@@ -5,12 +5,17 @@ export interface PatternParameter {
   integer?: boolean;
 }
 
-export interface PatternRenderContext {
+export type PatternLayer = "base" | "overlay";
+
+export interface PatternGeometry {
   width: number;
   height: number;
+  params: Record<string, number>;
+}
+
+export interface PatternRenderContext extends PatternGeometry {
   base: string;
   overlay: string;
-  params: Record<string, number>;
 }
 
 export interface PatternTemplate {
@@ -20,4 +25,6 @@ export interface PatternTemplate {
   defaultWeight: number;
   parameters: Record<string, PatternParameter>;
   render(context: PatternRenderContext): string;
+  // Espelha render(): diz qual camada pinta o ponto. Mede o fundo atrás dos logos; um teste de pixel garante a coerência.
+  colorAt(x: number, y: number, geometry: PatternGeometry): PatternLayer;
 }

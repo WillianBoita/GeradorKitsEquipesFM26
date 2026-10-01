@@ -7,4 +7,5 @@ export const solidPattern: PatternTemplate = {
   defaultWeight: 40,
   parameters: {},
   render: () => "",
+  colorAt: () => "base",
 };

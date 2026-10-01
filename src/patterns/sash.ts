@@ -13,4 +13,10 @@ export const sashPattern: PatternTemplate = {
     const length = (width + height) * 2;
     return `<rect x="${fmt(-length / 2)}" y="${fmt(-params.width / 2)}" width="${fmt(length)}" height="${fmt(params.width)}" fill="${overlay}" transform="translate(${fmt(width / 2)} ${fmt(height / 2)}) rotate(${angle})"/>`;
   },
+  colorAt(x, y, { width, height, params }) {
+    const [dx, dy] = [x - width / 2, y - height / 2];
+    // Distância ao eixo da faixa: rotate(45) desce para a direita (dy = dx), rotate(-45) sobe (dy = -dx).
+    const distance = Math.abs(params.direction === 0 ? dy - dx : dy + dx) / Math.SQRT2;
+    return distance <= params.width / 2 ? "overlay" : "base";
+  },
 };

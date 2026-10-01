@@ -9,6 +9,7 @@ const template: PatternTemplate = {
   defaultWeight: 1,
   parameters: { count: { min: 2, max: 10, default: 4, integer: true }, ratio: { min: 0.1, max: 0.9, default: 0.5 } },
   render: () => "",
+  colorAt: () => "base",
 };
 
 describe("resolveParams", () => {
