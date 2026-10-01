@@ -1,5 +1,4 @@
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
@@ -8,15 +7,12 @@ import { parseKitDefinition } from "../../src/core/kit.js";
 import { MAX_SEED } from "../../src/core/random.js";
 import { GALATICOS_CLUB, makeClubsDir } from "../fixtures/clubs.js";
 import { makeKit } from "../fixtures/kits.js";
+import { makeTempDir } from "../fixtures/temp.js";
 
 function captureIo() {
   const logs: string[] = [];
   const errors: string[] = [];
   return { io: { log: (message: string) => void logs.push(message), error: (message: string) => void errors.push(message) }, logs, errors };
-}
-
-async function tempDir(): Promise<string> {
-  return mkdtemp(path.join(tmpdir(), "kitgen-cli-"));
 }
 
 async function galaticosClubsDir(): Promise<string> {
@@ -46,7 +42,7 @@ describe("parseSeed", () => {
 
 describe("runCli generate", () => {
   it("saves the kit definition in the club folder and writes the named 2D PNG", async () => {
-    const [clubs, out] = [await galaticosClubsDir(), await tempDir()];
+    const [clubs, out] = [await galaticosClubsDir(), await makeTempDir("cli")];
     const { io, logs } = captureIo();
     expect(await runCli(["generate", "--club", "galaticos-fc", "--seed", "42", "--clubs", clubs, "--out", out], io)).toBe(0);
     const kit = parseKitDefinition(JSON.parse(await readFile(path.join(clubs, "galaticos-fc", "kits", "home", "kit.json"), "utf8")));
@@ -57,11 +53,11 @@ describe("runCli generate", () => {
   });
 
   it("keeps the versioned kit.json and logs the seed when the PNG cannot be written", async () => {
-    const [clubs, out] = [await galaticosClubsDir(), await tempDir()];
+    const [clubs, out] = [await galaticosClubsDir(), await makeTempDir("cli")];
     const kitFile = path.join(clubs, "galaticos-fc", "kits", "home", "kit.json");
     expect(await runCli(["generate", "--club", "galaticos-fc", "--seed", "1", "--clubs", clubs, "--out", out], captureIo().io)).toBe(0);
     const before = await readFile(kitFile, "utf8");
-    const blocker = path.join(await tempDir(), "not-a-dir");
+    const blocker = path.join(await makeTempDir("cli"), "not-a-dir");
     await writeFile(blocker, "");
     const { io, logs, errors } = captureIo();
     expect(await runCli(["generate", "--club", "galaticos-fc", "--seed", "2", "--clubs", clubs, "--out", blocker], io)).toBe(1);
@@ -72,8 +68,8 @@ describe("runCli generate", () => {
 
   it("is reproducible for the same seed", async () => {
     const [first, second] = [await galaticosClubsDir(), await galaticosClubsDir()];
-    await runCli(["generate", "--club", "galaticos-fc", "--seed", "7", "--clubs", first, "--out", await tempDir()], captureIo().io);
-    await runCli(["generate", "--club", "galaticos-fc", "--seed", "7", "--clubs", second, "--out", await tempDir()], captureIo().io);
+    await runCli(["generate", "--club", "galaticos-fc", "--seed", "7", "--clubs", first, "--out", await makeTempDir("cli")], captureIo().io);
+    await runCli(["generate", "--club", "galaticos-fc", "--seed", "7", "--clubs", second, "--out", await makeTempDir("cli")], captureIo().io);
     const read = (dir: string) => readFile(path.join(dir, "galaticos-fc", "kits", "home", "kit.json"), "utf8");
     expect(await read(first)).toBe(await read(second));
   });
@@ -104,7 +100,7 @@ describe("runCli generate", () => {
 
 describe("runCli render", () => {
   it("renders a definition file without randomization", async () => {
-    const dir = await tempDir();
+    const dir = await makeTempDir("cli");
     const definition = path.join(dir, "kit.json");
     const png = path.join(dir, "nested", "kit.png");
     await writeFile(definition, JSON.stringify(makeKit()));
@@ -113,7 +109,7 @@ describe("runCli render", () => {
   });
 
   it("reports invalid definitions", async () => {
-    const dir = await tempDir();
+    const dir = await makeTempDir("cli");
     const definition = path.join(dir, "kit.json");
     await writeFile(definition, JSON.stringify({ ...makeKit(), colors: { primary: "blue" } }));
     const { io, errors } = captureIo();

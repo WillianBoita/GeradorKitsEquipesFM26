@@ -1,6 +1,6 @@
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { makeTempDir } from "./temp.js";
 
 export const GALATICOS_CLUB = {
   id: "galaticos-fc",
@@ -10,7 +10,7 @@ export const GALATICOS_CLUB = {
 };
 
 export async function makeClubsDir(clubs: Record<string, string>): Promise<string> {
-  const dir = await mkdtemp(path.join(tmpdir(), "kitgen-clubs-"));
+  const dir = await makeTempDir("clubs");
   for (const [id, content] of Object.entries(clubs)) {
     await mkdir(path.join(dir, id), { recursive: true });
     await writeFile(path.join(dir, id, "club.json"), content);
