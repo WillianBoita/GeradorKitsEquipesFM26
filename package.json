@@ -1,0 +1,31 @@
+{
+  "name": "fm26-kit-generator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Gerador procedural de uniformes para Football Manager 2026",
+  "type": "module",
+  "bin": {
+    "kit-generator": "dist/cli/index.js"
+  },
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "kit-generator": "tsx src/cli/index.ts"
+  },
+  "dependencies": {
+    "colorjs.io": "^0.7.1",
+    "sharp": "^0.35.5",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "fast-xml-parser": "^5.11.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}
