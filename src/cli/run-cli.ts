@@ -6,7 +6,7 @@ import { CLUBS_DIR } from "../config/paths.js";
 import { parseKitDefinition } from "../core/kit.js";
 import { MAX_SEED } from "../core/random.js";
 import { kitAssetFileName } from "../fm26/naming.js";
-import { generateKit } from "../generator/kit-generator.js";
+import { generateKitSet } from "../generator/kit-generator.js";
 import { loadClub, saveKit } from "../io/club-repository.js";
 import { readJsonFile } from "../io/json-file.js";
 import { renderKit2dPng } from "../renderers/renderer-2d.js";
@@ -45,7 +45,7 @@ async function generateCommand(args: string[], io: CliIo): Promise<void> {
   const seed = parseSeed(values.seed);
   io.log(`Seed: ${seed}`);
   const club = await loadClub(values.club, values.clubs);
-  const kit = generateKit(club, seed);
+  const kit = generateKitSet(club, seed).home;
   const pngFile = path.resolve(values.out, club.id, "2d", kitAssetFileName(club.id, "home", "2d"));
   await writeOutput(pngFile, await renderKit2dPng(kit));
   // Salvar por último evita sobrescrever o kit.json versionado quando a renderização ou escrita do PNG falha.
