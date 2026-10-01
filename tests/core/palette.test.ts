@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { contrastRatio } from "../../src/core/color.js";
-import { MIN_ACCENT_CONTRAST, resolvePalette } from "../../src/core/palette.js";
+import { bestNeutral, MIN_ACCENT_CONTRAST, resolvePalette } from "../../src/core/palette.js";
 import { createRng } from "../../src/core/random.js";
 
 describe("resolvePalette", () => {
@@ -22,6 +22,15 @@ describe("resolvePalette", () => {
     for (let seed = 0; seed < 50; seed++) {
       const { accent } = resolvePalette({ primary }, createRng(seed));
       expect(accent).toMatch(/^#[0-9a-f]{6}$/);
+      expect(contrastRatio(primary, accent)).toBeGreaterThanOrEqual(MIN_ACCENT_CONTRAST);
+    }
+  });
+
+  // Antes destas luminosidades extras, todas estas primárias caíam sempre no neutro.
+  it.each(["#808080", "#4682b4", "#cd5c5c", "#708090", "#2e8b57"])("derives a chromatic accent for the mid-tone %s", (primary) => {
+    for (let seed = 0; seed < 50; seed++) {
+      const { accent } = resolvePalette({ primary }, createRng(seed));
+      expect(accent).not.toBe(bestNeutral(primary));
       expect(contrastRatio(primary, accent)).toBeGreaterThanOrEqual(MIN_ACCENT_CONTRAST);
     }
   });

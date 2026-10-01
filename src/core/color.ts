@@ -16,3 +16,8 @@ export function contrastRatio(a: string, b: string): number {
 export function toHex(color: Color): string {
   return color.to("srgb").toString({ format: "hex", collapse: false });
 }
+
+// ΔE OKLab: escala de 0 a ~1 que acompanha a percepção humana melhor que distância RGB ou contraste WCAG.
+export function colorDistance(a: string, b: string): number {
+  return new Color(a).deltaE(new Color(b), "OK");
+}

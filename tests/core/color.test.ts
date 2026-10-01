@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contrastRatio, normalizeHex } from "../../src/core/color.js";
+import { colorDistance, contrastRatio, normalizeHex } from "../../src/core/color.js";
 
 describe("normalizeHex", () => {
   it.each([
@@ -27,5 +27,21 @@ describe("contrastRatio", () => {
 
   it("is symmetric", () => {
     expect(contrastRatio("#123456", "#ffd700")).toBeCloseTo(contrastRatio("#ffd700", "#123456"), 5);
+  });
+});
+
+describe("colorDistance", () => {
+  it("is 0 for identical colors and 1 for black and white", () => {
+    expect(colorDistance("#123456", "#123456")).toBe(0);
+    expect(colorDistance("#000000", "#ffffff")).toBeCloseTo(1, 5);
+  });
+
+  it("matches known OKLab distances", () => {
+    expect(colorDistance("#123456", "#ffffff")).toBeCloseTo(0.685, 3);
+    expect(colorDistance("#ffffff", "#f0f0f0")).toBeCloseTo(0.045, 3);
+  });
+
+  it("is symmetric", () => {
+    expect(colorDistance("#c8102e", "#ffd700")).toBeCloseTo(colorDistance("#ffd700", "#c8102e"), 10);
   });
 });
