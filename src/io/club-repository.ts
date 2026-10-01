@@ -1,10 +1,9 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { parseClubIdentity, type ClubIdentity } from "../core/club.js";
-import type { KitDefinition } from "../core/kit.js";
+import type { KitDefinition, KitType } from "../core/kit.js";
 import { ClubIdSchema, parseWith } from "../core/primitives.js";
 import { CLUBS_DIR } from "../config/paths.js";
-import type { KitType } from "../fm26/naming.js";
 import { FileNotFoundError, readJsonFile } from "./json-file.js";
 
 export async function loadClub(clubId: string, clubsDir: string = CLUBS_DIR): Promise<ClubIdentity> {

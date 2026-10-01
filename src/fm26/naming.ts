@@ -1,9 +1,8 @@
+import type { KitType } from "../core/kit.js";
 import { ClubIdSchema, parseWith } from "../core/primitives.js";
 
-export const KIT_TYPES = ["home", "away", "third"] as const;
 export const RENDER_TYPES = ["2d", "3d"] as const;
 
-export type KitType = (typeof KIT_TYPES)[number];
 export type RenderType = (typeof RENDER_TYPES)[number];
 
 // O id interno só aceita [a-z0-9-], então trocar "-" por "_" já garante nome sem acento, espaço ou caractere especial.

@@ -22,6 +22,7 @@ export function generateKit(identity: ClubIdentity, seed: number): KitDefinition
   const socksColor = rng.pick<ColorRole>([shortsColor, "primary"]);
   return {
     clubId: identity.id,
+    kitType: "home",
     colors,
     pattern: { id: template.id, base: "primary", overlay: "secondary", params },
     collar: { style: collarStyle, color: collarColor },

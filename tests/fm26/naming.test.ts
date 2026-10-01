@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { clubSlug, KIT_TYPES, kitAssetFileName, kitAssetName, RENDER_TYPES } from "../../src/fm26/naming.js";
+import { KIT_TYPES } from "../../src/core/kit.js";
+import { clubSlug, kitAssetFileName, kitAssetName, RENDER_TYPES } from "../../src/fm26/naming.js";
 
 describe("clubSlug", () => {
   it.each([
