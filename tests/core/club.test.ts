@@ -49,6 +49,15 @@ describe("parseClubIdentity", () => {
     expect(() => parseClubIdentity({ ...galaticos, palette: { primary: "#123456", secundary: "#ffffff" } })).toThrow(/secundary/);
   });
 
+  it("rejects a misspelled fmUniqueId key", () => {
+    const { fmUniqueId, ...rest } = galaticos;
+    expect(() => parseClubIdentity({ ...rest, fmUniqueID: fmUniqueId })).toThrow(/fmUniqueID/);
+  });
+
+  it("rejects a misspelled patternWeights key", () => {
+    expect(() => parseClubIdentity({ ...galaticos, style: { categories: [], patternWeigths: { solid: 1 } } })).toThrow(/patternWeigths/);
+  });
+
   it("rejects invalid palette colors", () => {
     expect(() => parseClubIdentity({ ...galaticos, palette: { primary: "azul" } })).toThrow(/palette\.primary/);
   });

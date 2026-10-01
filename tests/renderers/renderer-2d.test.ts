@@ -78,4 +78,30 @@ describe("renderKit2dPng", () => {
     expect(await pixelAt(png, 207, 207)).toEqual(SECONDARY);
     expect(await pixelAt(png, 260, 150)).toEqual(PRIMARY);
   });
+
+  it("paints match-body sleeves with the body fabric instead of the sleeve color", async () => {
+    const kit = makeKit({ sleeves: { style: "match-body", color: "accent", cuffColor: "secondary" } });
+    expect(await pixelAt(await renderKit2dPng(kit), 332, 132)).toEqual(PRIMARY);
+  });
+
+  it("paints the cuffs with the cuff color", async () => {
+    const kit = makeKit({ sleeves: { style: "solid", color: "secondary", cuffColor: "accent" } });
+    const png = await renderKit2dPng(kit);
+    expect(await pixelAt(png, 358, 156)).toEqual(ACCENT);
+    expect(await pixelAt(png, 56, 156)).toEqual(ACCENT);
+  });
+
+  // Amostra 3px abaixo do centro do traço da gola: o contorno escuro da silhueta passa exatamente sobre o centro.
+  it("paints the collar with the collar color", async () => {
+    const kit = makeKit({ collar: { style: "round", color: "accent" } });
+    expect(await pixelAt(await renderKit2dPng(kit), 207, 73)).toEqual(ACCENT);
+  });
+
+  it("cuts the v-neck deeper than the round collar", async () => {
+    const round = await renderKit2dPng(makeKit({ collar: { style: "round", color: "accent" } }));
+    const vNeck = await renderKit2dPng(makeKit({ collar: { style: "v-neck", color: "accent" } }));
+    expect(await pixelAt(round, 207, 88)).toEqual(PRIMARY);
+    expect((await pixelAt(vNeck, 207, 88))[3]).toBe(0);
+    expect(await pixelAt(vNeck, 207, 103)).toEqual(ACCENT);
+  });
 });
