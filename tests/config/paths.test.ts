@@ -1,9 +1,14 @@
 import { access } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { CLUBS_DIR, kitRenderPath, OUTPUT_DIR } from "../../src/config/paths.js";
+import { ASSETS_DIR, CLUBS_DIR, kitRenderPath, OUTPUT_DIR } from "../../src/config/paths.js";
 
 describe("project directories", () => {
+  it("places assets/ next to clubs/", () => {
+    expect(path.dirname(ASSETS_DIR)).toBe(path.dirname(CLUBS_DIR));
+    expect(path.basename(ASSETS_DIR)).toBe("assets");
+  });
+
   it("places clubs/ and output/ side by side at the project root", async () => {
     expect(path.dirname(OUTPUT_DIR)).toBe(path.dirname(CLUBS_DIR));
     expect(path.basename(OUTPUT_DIR)).toBe("output");

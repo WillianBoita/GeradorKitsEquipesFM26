@@ -1,0 +1,7 @@
+{
+  "sponsors": [
+    { "id": "luna-air", "name": "Luna Air", "file": "sponsors/luna-air.svg" },
+    { "id": "orbita-bank", "name": "Órbita Bank", "file": "sponsors/orbita-bank.svg" }
+  ],
+  "manufacturers": [{ "id": "vertex", "name": "Vertex", "file": "manufacturers/vertex.svg" }]
+}

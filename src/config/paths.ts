@@ -8,6 +8,7 @@ const PROJECT_ROOT = fileURLToPath(new URL("../../", import.meta.url));
 
 export const CLUBS_DIR = path.join(PROJECT_ROOT, "clubs");
 export const OUTPUT_DIR = path.join(PROJECT_ROOT, "output");
+export const ASSETS_DIR = path.join(PROJECT_ROOT, "assets");
 
 export function kitRenderPath(outDir: string, clubId: string, kitType: KitType, renderType: RenderType): string {
   return path.join(outDir, clubId, renderType, kitAssetFileName(clubId, kitType, renderType));
