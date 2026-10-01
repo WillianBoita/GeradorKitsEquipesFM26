@@ -5,9 +5,10 @@ import { resolvePalette } from "../../src/core/palette.js";
 import { createRng, deriveSeed } from "../../src/core/random.js";
 import { validateKit, validateKitSet, validatePalette } from "../../src/core/validation.js";
 import { generateKit, generateKitSet, generatePalette, MAX_PALETTE_ATTEMPTS } from "../../src/generator/kit-generator.js";
-import { GALATICOS_CLUB } from "../fixtures/clubs.js";
+import { GALATICOS_BRANDED_CLUB, GALATICOS_CLUB } from "../fixtures/clubs.js";
 
 const identity: ClubIdentity = parseClubIdentity(GALATICOS_CLUB);
+const branded: ClubIdentity = parseClubIdentity(GALATICOS_BRANDED_CLUB);
 
 function withWeights(patternWeights: Record<string, number>): ClubIdentity {
   return { ...identity, style: { ...identity.style, patternWeights } };
@@ -61,7 +62,7 @@ describe("generateKitSet", () => {
     ];
     for (const palette of palettes) {
       for (let seed = 0; seed < 100; seed++) {
-        const set = generateKitSet(withPalette(palette), seed);
+        const set = generateKitSet({ ...withPalette(palette), sponsors: branded.sponsors, manufacturers: branded.manufacturers }, seed);
         for (const kit of Object.values(set)) expect(validateKit(kit)).toEqual([]);
         expect(validateKitSet(set)).toEqual([]);
       }
@@ -152,5 +153,93 @@ describe("generateKit", () => {
   it("produces the same kit as the set for the same type, palette and seed", () => {
     const set = generateKitSet(identity, 99);
     expect(generateKit(identity, "away", generatePalette(identity, 99), 99)).toEqual(set.away);
+  });
+});
+
+describe("generateKitSet logos", () => {
+  // Guarda: passa antes e depois desta tarefa; a 2b não pode mudar o desenho dos kits já versionados.
+  it("keeps the Phase 2a design for seed 42", () => {
+    const { home, away, third } = generateKitSet(identity, 42);
+    expect(home).toMatchObject({
+      pattern: { id: "sash", base: "primary", overlay: "secondary", params: { width: 86.656, direction: 0 } },
+      collar: { style: "round", color: "accent" },
+      sleeves: { style: "solid", color: "secondary", cuffColor: "secondary" },
+      shorts: { color: "primary" },
+      socks: { color: "primary" },
+    });
+    expect(away).toMatchObject({
+      pattern: { id: "stripes", params: { count: 10, ratio: 0.214 } },
+      collar: { style: "v-neck", color: "primary" },
+      sleeves: { style: "match-body", color: "accent", cuffColor: "primary" },
+      shorts: { color: "secondary" },
+      socks: { color: "secondary" },
+    });
+    expect(third).toMatchObject({
+      pattern: { id: "stripes", params: { count: 5, ratio: 0.305 } },
+      collar: { style: "round", color: "primary" },
+      sleeves: { style: "solid", color: "primary", cuffColor: "primary" },
+      shorts: { color: "primary" },
+      socks: { color: "accent" },
+    });
+  });
+
+  it("adds logos without changing the design", () => {
+    for (let seed = 0; seed < 30; seed++) {
+      const withLogos = generateKitSet(branded, seed, { badge: true });
+      const plain = generateKitSet(identity, seed);
+      for (const kitType of KIT_TYPES) {
+        const { badge: _badge, sponsor: _sponsor, manufacturer: _manufacturer, ...design } = withLogos[kitType];
+        expect(design).toEqual(plain[kitType]);
+      }
+    }
+  });
+
+  it("shares one sponsor and one manufacturer across the set", () => {
+    const sponsors = new Set<string>();
+    for (let seed = 0; seed < 50; seed++) {
+      const { home, away, third } = generateKitSet(branded, seed);
+      expect(home.sponsor).toBeDefined();
+      expect(away.sponsor?.id).toBe(home.sponsor?.id);
+      expect(third.sponsor?.id).toBe(home.sponsor?.id);
+      for (const kit of [home, away, third]) expect(kit.manufacturer?.id).toBe("vertex");
+      sponsors.add(home.sponsor!.id);
+    }
+    expect(sponsors).toEqual(new Set(["luna-air", "orbita-bank"]));
+  });
+
+  it("chooses legible colors for the galaticos set of seed 42", () => {
+    const { home, away, third } = generateKitSet(branded, 42);
+    expect(home.sponsor).toMatchObject({ color: "primary", outline: "secondary" });
+    expect(home.manufacturer).toMatchObject({ color: "primary", outline: "secondary" });
+    expect(away.sponsor).toEqual({ id: away.sponsor!.id, color: "primary" });
+    expect(third.sponsor).toMatchObject({ color: "primary", outline: "secondary" });
+    expect(third.manufacturer).toEqual({ id: "vertex", color: "primary" });
+  });
+
+  it("leaves out the logos the club does not configure", () => {
+    for (const kit of Object.values(generateKitSet(identity, 1))) {
+      expect(kit).not.toHaveProperty("badge");
+      expect(kit).not.toHaveProperty("sponsor");
+      expect(kit).not.toHaveProperty("manufacturer");
+    }
+  });
+
+  it("marks the badge only when asked", () => {
+    for (const kit of Object.values(generateKitSet(identity, 1, { badge: true }))) expect(kit.badge).toBe(true);
+  });
+
+  it("never picks a pool entry with zero weight", () => {
+    const club = { ...branded, sponsors: { "luna-air": 0, "orbita-bank": 1 } };
+    for (let seed = 0; seed < 30; seed++) expect(generateKitSet(club, seed).home.sponsor?.id).toBe("orbita-bank");
+  });
+
+  it("does not depend on the key order of a pool", () => {
+    const forward = { ...branded, sponsors: { "luna-air": 1, "orbita-bank": 1 } };
+    const backward = { ...branded, sponsors: { "orbita-bank": 1, "luna-air": 1 } };
+    for (let seed = 0; seed < 30; seed++) expect(generateKitSet(backward, seed)).toEqual(generateKitSet(forward, seed));
+  });
+
+  it("rejects pools without a positive weight", () => {
+    expect(() => generateKitSet({ ...branded, manufacturers: { vertex: 0 } }, 1)).toThrow(/no-asset-weight/);
   });
 });

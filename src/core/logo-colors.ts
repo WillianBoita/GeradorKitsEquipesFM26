@@ -55,12 +55,25 @@ function candidates(palette: Palette): Candidate[] {
   ];
 }
 
+type Contrast = (a: string, b: string) => number;
+
+// A busca de pares repete as mesmas medidas várias vezes e o Color.js é caro; guardar o resultado mantém o generator rápido.
+function memoizedContrast(): Contrast {
+  const cache = new Map<string, number>();
+  return (a, b) => {
+    const key = `${a}|${b}`;
+    let value = cache.get(key);
+    if (value === undefined) cache.set(key, (value = contrastRatio(a, b)));
+    return value;
+  };
+}
+
 // Maior contraste mínimo contra o fundo; empate fica com a primeira candidata.
-function bestSingle(group: Candidate[], background: readonly string[]): Candidate | undefined {
+function bestSingle(group: Candidate[], background: readonly string[], contrast: Contrast): Candidate | undefined {
   let best: Candidate | undefined;
   let bestScore = MIN_LOGO_CONTRAST;
   for (const candidate of group) {
-    const score = Math.min(...background.map((color) => contrastRatio(candidate.hex, color)));
+    const score = Math.min(...background.map((color) => contrast(candidate.hex, color)));
     if (score > bestScore || (best === undefined && score >= bestScore)) [best, bestScore] = [candidate, score];
   }
   return best;
@@ -69,8 +82,9 @@ function bestSingle(group: Candidate[], background: readonly string[]): Candidat
 // Preferência: cor única da paleta, branco/preto, par com contorno (spec da Fase 2b, seção 5.3).
 export function chooseLogoColors(palette: Palette, background: readonly string[]): LogoColors | undefined {
   const all = candidates(palette);
+  const contrast = memoizedContrast();
   for (const group of [all.filter((candidate) => candidate.fromPalette), all.filter((candidate) => !candidate.fromPalette)]) {
-    const single = bestSingle(group, background);
+    const single = bestSingle(group, background, contrast);
     if (single) return { color: single.value };
   }
   const dominant = background[0]!;
@@ -78,15 +92,15 @@ export function chooseLogoColors(palette: Palette, background: readonly string[]
     .flatMap((color) => all.filter((outline) => outline !== color).map((outline) => ({ color, outline })))
     .filter(
       ({ color, outline }) =>
-        contrastRatio(color.hex, outline.hex) >= MIN_LOGO_CONTRAST &&
-        background.every((bg) => Math.max(contrastRatio(color.hex, bg), contrastRatio(outline.hex, bg)) >= MIN_LOGO_CONTRAST),
+        contrast(color.hex, outline.hex) >= MIN_LOGO_CONTRAST &&
+        background.every((bg) => Math.max(contrast(color.hex, bg), contrast(outline.hex, bg)) >= MIN_LOGO_CONTRAST),
     );
   // sort é estável: o que empata nos três critérios segue a ordem das candidatas.
   pairs.sort(
     (a, b) =>
       Number(b.color.fromPalette) - Number(a.color.fromPalette) ||
       Number(b.outline.fromPalette) - Number(a.outline.fromPalette) ||
-      contrastRatio(b.color.hex, dominant) - contrastRatio(a.color.hex, dominant),
+      contrast(b.color.hex, dominant) - contrast(a.color.hex, dominant),
   );
   const best = pairs[0];
   return best && { color: best.color.value, outline: best.outline.value };
