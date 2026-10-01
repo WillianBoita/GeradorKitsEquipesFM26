@@ -2,6 +2,7 @@ import { XMLValidator } from "fast-xml-parser";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import { KIT_2D_SIZE, renderKit2dPng, renderKit2dSvg } from "../../src/renderers/renderer-2d.js";
+import { LOGO_BOXES } from "../../src/renderers/shirt-2d-shape.js";
 import { makeKit } from "../fixtures/kits.js";
 
 type Rgba = [number, number, number, number];
@@ -128,5 +129,21 @@ describe("renderKit2dPng", () => {
   it.each([0, 1])("keeps the widest sash (direction %d) below half of the torso", async (direction) => {
     const kit = makeKit({ pattern: { id: "sash", base: "primary", overlay: "secondary", params: { width: 1000, direction } } });
     expect(await torsoOverlayShare(await renderKit2dPng(kit))).toBeLessThan(0.5);
+  });
+
+  // Cada caixa de logo fica inteira sobre o corpo liso: nenhuma toca gola, manga, contorno ou fundo transparente.
+  it.each(["round", "v-neck"] as const)("keeps every logo box on the plain body with the %s collar", async (style) => {
+    const png = await renderKit2dPng(makeKit({ collar: { style, color: "accent" } }));
+    const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    let off = 0;
+    for (const box of Object.values(LOGO_BOXES)) {
+      for (let y = box.y; y < box.y + box.height; y++) {
+        for (let x = box.x; x < box.x + box.width; x++) {
+          const index = (y * info.width + x) * info.channels;
+          if ([data[index], data[index + 1], data[index + 2], data[index + 3]].join() !== PRIMARY.join()) off++;
+        }
+      }
+    }
+    expect(off).toBe(0);
   });
 });

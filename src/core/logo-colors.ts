@@ -1,0 +1,93 @@
+import { resolveParams } from "../patterns/params.js";
+import { getPatternTemplate } from "../patterns/registry.js";
+import { LOGO_BOXES, SHIRT_2D_VIEWBOX } from "../renderers/shirt-2d-shape.js";
+import { contrastRatio } from "./color.js";
+import { COLOR_ROLES, type ColorRole, type KitDefinition, type LogoColor, type LogoSlot } from "./kit.js";
+import type { Palette } from "./palette.js";
+
+// Mínimo da WCAG 2.1 para elementos gráficos.
+export const MIN_LOGO_CONTRAST = 3;
+// Lascas do padrão abaixo disto não atrapalham a leitura do logo.
+export const MIN_BACKGROUND_SHARE = 0.05;
+const GRID = 24;
+const NEUTRALS = ["#ffffff", "#000000"];
+
+export interface LogoColors {
+  color: LogoColor;
+  outline?: LogoColor;
+}
+
+interface Candidate {
+  value: LogoColor;
+  hex: string;
+  fromPalette: boolean;
+}
+
+// Mede no layout 2D, o mesmo que o renderer usa para posicionar os logos.
+export function backgroundRoles(kit: KitDefinition, slot: LogoSlot): ColorRole[] {
+  const template = getPatternTemplate(kit.pattern.id);
+  const geometry = { width: SHIRT_2D_VIEWBOX, height: SHIRT_2D_VIEWBOX, params: resolveParams(template, kit.pattern.params) };
+  const box = LOGO_BOXES[slot];
+  let overlay = 0;
+  for (let row = 0; row < GRID; row++) {
+    for (let column = 0; column < GRID; column++) {
+      const x = box.x + ((column + 0.5) * box.width) / GRID;
+      const y = box.y + ((row + 0.5) * box.height) / GRID;
+      if (template.colorAt(x, y, geometry) === "overlay") overlay++;
+    }
+  }
+  const overlayShare = overlay / (GRID * GRID);
+  const shares: [ColorRole, number][] = [
+    [kit.pattern.base, 1 - overlayShare],
+    [kit.pattern.overlay, overlayShare],
+  ];
+  const roles = shares
+    .filter(([, share]) => share >= MIN_BACKGROUND_SHARE)
+    .sort((a, b) => b[1] - a[1])
+    .map(([role]) => role);
+  return [...new Set(roles)];
+}
+
+function candidates(palette: Palette): Candidate[] {
+  return [
+    ...COLOR_ROLES.map((role) => ({ value: role, hex: palette[role], fromPalette: true })),
+    ...NEUTRALS.map((hex) => ({ value: hex, hex, fromPalette: false })),
+  ];
+}
+
+// Maior contraste mínimo contra o fundo; empate fica com a primeira candidata.
+function bestSingle(group: Candidate[], background: readonly string[]): Candidate | undefined {
+  let best: Candidate | undefined;
+  let bestScore = MIN_LOGO_CONTRAST;
+  for (const candidate of group) {
+    const score = Math.min(...background.map((color) => contrastRatio(candidate.hex, color)));
+    if (score > bestScore || (best === undefined && score >= bestScore)) [best, bestScore] = [candidate, score];
+  }
+  return best;
+}
+
+// Preferência: cor única da paleta, branco/preto, par com contorno (spec da Fase 2b, seção 5.3).
+export function chooseLogoColors(palette: Palette, background: readonly string[]): LogoColors | undefined {
+  const all = candidates(palette);
+  for (const group of [all.filter((candidate) => candidate.fromPalette), all.filter((candidate) => !candidate.fromPalette)]) {
+    const single = bestSingle(group, background);
+    if (single) return { color: single.value };
+  }
+  const dominant = background[0]!;
+  const pairs = all
+    .flatMap((color) => all.filter((outline) => outline !== color).map((outline) => ({ color, outline })))
+    .filter(
+      ({ color, outline }) =>
+        contrastRatio(color.hex, outline.hex) >= MIN_LOGO_CONTRAST &&
+        background.every((bg) => Math.max(contrastRatio(color.hex, bg), contrastRatio(outline.hex, bg)) >= MIN_LOGO_CONTRAST),
+    );
+  // sort é estável: o que empata nos três critérios segue a ordem das candidatas.
+  pairs.sort(
+    (a, b) =>
+      Number(b.color.fromPalette) - Number(a.color.fromPalette) ||
+      Number(b.outline.fromPalette) - Number(a.outline.fromPalette) ||
+      contrastRatio(b.color.hex, dominant) - contrastRatio(a.color.hex, dominant),
+  );
+  const best = pairs[0];
+  return best && { color: best.color.value, outline: best.outline.value };
+}
