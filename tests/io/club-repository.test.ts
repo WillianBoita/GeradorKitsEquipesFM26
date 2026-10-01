@@ -1,8 +1,8 @@
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { parseKitDefinition } from "../../src/core/kit.js";
-import { kitDefinitionPath, loadClub, saveKit } from "../../src/io/club-repository.js";
+import { parseKitDefinition, type KitType } from "../../src/core/kit.js";
+import { kitDefinitionPath, listClubIds, loadClub, loadKit, saveKit } from "../../src/io/club-repository.js";
 import { GALATICOS_CLUB, makeClubsDir } from "../fixtures/clubs.js";
 import { makeKit } from "../fixtures/kits.js";
 
@@ -44,19 +44,82 @@ describe("loadClub", () => {
   });
 });
 
+describe("listClubIds", () => {
+  it("lists folders that contain a club.json, sorted", async () => {
+    const dir = await makeClubsDir({ "kong-team": "{}", "galaticos-fc": "{}" });
+    await mkdir(path.join(dir, "empty-folder"));
+    await writeFile(path.join(dir, "notes.txt"), "");
+    expect(await listClubIds(dir)).toEqual(["galaticos-fc", "kong-team"]);
+  });
+
+  it("returns an empty list for an empty directory", async () => {
+    expect(await listClubIds(await makeClubsDir({}))).toEqual([]);
+  });
+
+  it("reports a missing directory", async () => {
+    const dir = path.join(await makeClubsDir({}), "missing");
+    await expect(listClubIds(dir)).rejects.toThrow(`Clubs directory not found: ${dir}`);
+  });
+});
+
+describe("kitDefinitionPath", () => {
+  it("rejects kit types outside home, away and third at runtime", () => {
+    expect(() => kitDefinitionPath("galaticos-fc", "fourth" as KitType)).toThrow(/Invalid kit type/);
+  });
+});
+
 describe("saveKit", () => {
-  it("writes clubs/<id>/kits/<type>/kit.json and returns the path", async () => {
+  it("writes clubs/<id>/kits/<kitType>/kit.json and returns the path", async () => {
     const dir = await makeClubsDir({});
-    const file = await saveKit(makeKit(), "home", dir);
-    expect(file).toBe(path.join(dir, "galaticos-fc", "kits", "home", "kit.json"));
-    expect(file).toBe(kitDefinitionPath("galaticos-fc", "home", dir));
-    expect(parseKitDefinition(JSON.parse(await readFile(file, "utf8")))).toEqual(makeKit());
+    const kit = makeKit({ kitType: "away" });
+    const file = await saveKit(kit, dir);
+    expect(file).toBe(path.join(dir, "galaticos-fc", "kits", "away", "kit.json"));
+    expect(file).toBe(kitDefinitionPath("galaticos-fc", "away", dir));
+    expect(parseKitDefinition(JSON.parse(await readFile(file, "utf8")))).toEqual(kit);
   });
 
   it("overwrites a previously saved kit", async () => {
     const dir = await makeClubsDir({});
-    await saveKit(makeKit(), "home", dir);
-    const file = await saveKit(makeKit({ shorts: { color: "primary" } }), "home", dir);
+    await saveKit(makeKit(), dir);
+    const file = await saveKit(makeKit({ shorts: { color: "primary" } }), dir);
     expect(parseKitDefinition(JSON.parse(await readFile(file, "utf8"))).shorts.color).toBe("primary");
+  });
+});
+
+describe("loadKit", () => {
+  async function writeGalaticosKitFile(dir: string, kitType: KitType, content: unknown): Promise<string> {
+    const file = kitDefinitionPath("galaticos-fc", kitType, dir);
+    await mkdir(path.dirname(file), { recursive: true });
+    await writeFile(file, JSON.stringify(content));
+    return file;
+  }
+
+  it("loads a saved kit", async () => {
+    const dir = await makeClubsDir({});
+    const kit = makeKit({ kitType: "third", generatedWith: { seed: 42 } });
+    await saveKit(kit, dir);
+    expect(await loadKit("galaticos-fc", "third", dir)).toEqual(kit);
+  });
+
+  it("returns undefined when the kit does not exist", async () => {
+    expect(await loadKit("galaticos-fc", "home", await makeClubsDir({}))).toBeUndefined();
+  });
+
+  it("rejects a kit saved in the folder of another kit type", async () => {
+    const dir = await makeClubsDir({});
+    const file = await writeGalaticosKitFile(dir, "home", makeKit({ kitType: "away" }));
+    await expect(loadKit("galaticos-fc", "home", dir)).rejects.toThrow(`${file} declares kitType "away", expected "home"`);
+  });
+
+  it("rejects a kit saved in the folder of another club", async () => {
+    const dir = await makeClubsDir({});
+    const file = await writeGalaticosKitFile(dir, "home", makeKit({ clubId: "kong-team" }));
+    await expect(loadKit("galaticos-fc", "home", dir)).rejects.toThrow(`${file} declares clubId "kong-team", expected "galaticos-fc"`);
+  });
+
+  it("names the file when the content is invalid", async () => {
+    const dir = await makeClubsDir({});
+    const file = await writeGalaticosKitFile(dir, "home", { ...makeKit(), kitType: undefined });
+    await expect(loadKit("galaticos-fc", "home", dir)).rejects.toThrow(`Invalid kit definition in ${file}`);
   });
 });
