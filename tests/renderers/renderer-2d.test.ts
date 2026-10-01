@@ -1,8 +1,9 @@
 import { XMLValidator } from "fast-xml-parser";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
-import { KIT_2D_SIZE, renderKit2dPng, renderKit2dSvg } from "../../src/renderers/renderer-2d.js";
+import { KIT_2D_SIZE, renderKit2dPng, renderKit2dSvg, type KitLogoImages } from "../../src/renderers/renderer-2d.js";
 import { LOGO_BOXES } from "../../src/renderers/shirt-2d-shape.js";
+import { LOGO_SVG, makeLogoPng } from "../fixtures/assets.js";
 import { makeKit } from "../fixtures/kits.js";
 
 type Rgba = [number, number, number, number];
@@ -16,6 +17,7 @@ async function pixelAt(png: Buffer, x: number, y: number): Promise<Rgba> {
 const PRIMARY: Rgba = [0x12, 0x34, 0x56, 255];
 const SECONDARY: Rgba = [0xff, 0xff, 0xff, 255];
 const ACCENT: Rgba = [0xff, 0xd7, 0x00, 255];
+const GREEN: Rgba = [0, 0xff, 0, 255];
 
 // Fração do tronco (sem gola e mangas) pintada pelo overlay branco; o canal vermelho separa branco (0xff) do navy da base (0x12).
 async function torsoOverlayShare(png: Buffer): Promise<number> {
@@ -145,5 +147,60 @@ describe("renderKit2dPng", () => {
       }
     }
     expect(off).toBe(0);
+  });
+});
+
+describe("renderKit2dPng logos", () => {
+  const sponsorLogo = () => ({ sponsor: Buffer.from(LOGO_SVG) });
+  const sponsorKit = (outline?: "secondary") => makeKit({ sponsor: { id: "luna-air", color: "accent", ...(outline ? { outline } : {}) } });
+
+  it("renders a kit without logos exactly as the Phase 2a renderer", async () => {
+    const kit = makeKit();
+    const phase2a = await sharp(Buffer.from(renderKit2dSvg(kit)))
+      .png()
+      .toBuffer();
+    expect((await renderKit2dPng(kit, { logos: sponsorLogo() })).equals(phase2a)).toBe(true);
+  });
+
+  // LOGO_SVG ocupa 124×41 a partir de (145, 184); o furo central fica entre x 194–219 e y 196–212.
+  it("paints the sponsor silhouette with the logo color and leaves its hole transparent", async () => {
+    const png = await renderKit2dPng(sponsorKit(), { logos: sponsorLogo() });
+    expect(await pixelAt(png, 155, 205)).toEqual(ACCENT);
+    expect(await pixelAt(png, 207, 205)).toEqual(PRIMARY);
+  });
+
+  it("draws the outline around the sponsor only when the kit asks for it", async () => {
+    const withOutline = await renderKit2dPng(sponsorKit("secondary"), { logos: sponsorLogo() });
+    const without = await renderKit2dPng(sponsorKit(), { logos: sponsorLogo() });
+    expect(await pixelAt(withOutline, 155, 183)).toEqual(SECONDARY);
+    expect(await pixelAt(withOutline, 155, 205)).toEqual(ACCENT);
+    expect(await pixelAt(without, 155, 183)).toEqual(PRIMARY);
+  });
+
+  it("paints the manufacturer with its own color", async () => {
+    const kit = makeKit({ manufacturer: { id: "vertex", color: "#000000" } });
+    expect(await pixelAt(await renderKit2dPng(kit, { logos: { manufacturer: await makeLogoPng(30, 30) } }), 164, 120)).toEqual([0, 0, 0, 255]);
+  });
+
+  it("keeps the badge colors", async () => {
+    const png = await renderKit2dPng(makeKit({ badge: true }), { logos: { badge: await makeLogoPng(40, 40, "#00ff00") } });
+    expect(await pixelAt(png, 250, 120)).toEqual(GREEN);
+  });
+
+  it("scales logos with the image size", async () => {
+    expect(await pixelAt(await renderKit2dPng(sponsorKit(), { size: 828, logos: sponsorLogo() }), 310, 410)).toEqual(ACCENT);
+  });
+
+  it.each(["badge", "sponsor", "manufacturer"] as const)("fails when the kit declares a %s without its image", async (slot) => {
+    const kit = makeKit({ badge: true, sponsor: { id: "luna-air", color: "accent" }, manufacturer: { id: "vertex", color: "accent" } });
+    const logos: KitLogoImages = { badge: await makeLogoPng(40, 40), sponsor: Buffer.from(LOGO_SVG), manufacturer: await makeLogoPng(30, 30) };
+    delete logos[slot];
+    await expect(renderKit2dPng(kit, { logos })).rejects.toThrow(`Kit declares a ${slot} but no ${slot} image was provided`);
+  });
+
+  it("is deterministic with logos", async () => {
+    const kit = makeKit({ badge: true, sponsor: { id: "luna-air", color: "accent", outline: "secondary" } });
+    const logos = { badge: await makeLogoPng(40, 40, "#00ff00"), ...sponsorLogo() };
+    expect((await renderKit2dPng(kit, { logos })).equals(await renderKit2dPng(kit, { logos }))).toBe(true);
   });
 });
