@@ -175,7 +175,7 @@ Módulo `src/core/logo-colors.ts`, puro e síncrono. `MIN_LOGO_CONTRAST = 3` (co
 
 **Fundo:** `backgroundRoles(kit, slot)` amostra uma grade 24×24 de pontos (centro de cada célula) na caixa do slot, chama `colorAt` do padrão do kit e devolve os papéis com cobertura ≥ 5% (`MIN_BACKGROUND_SHARE = 0.05`), do mais coberto para o menos coberto. O primeiro é o papel dominante. Lascas abaixo de 5% são ignoradas.
 
-**Candidatas**, nesta ordem: `primary`, `secondary`, `accent`, `#ffffff`, `#000000`. Uma candidata hex com o mesmo valor de um papel da paleta é descartada (fica o papel).
+**Candidatas**, nesta ordem: `primary`, `secondary`, `accent`, `#ffffff`, `#000000`. Não há deduplicação: quando a paleta já tem branco, o papel vem antes do hex em todos os passos, então o hex repetido nunca vence.
 
 **Escolha** (`chooseLogoColors(colors, backgroundHexes)`, devolve `{ color, outline? }`):
 
@@ -236,11 +236,11 @@ export interface Render2dOptions {
 
 ### 6.2 Composição
 
-Para cada slot declarado, na ordem fabricante, escudo, patrocinador:
+Para cada slot declarado (escudo, patrocinador, fabricante; as caixas não se sobrepõem, então a ordem não muda o resultado):
 
 - Caixa em pixels = caixa do viewBox × `size / 414`, arredondada.
 - O logo é redimensionado com `fit: "inside"` (sem distorção) e centralizado na caixa.
-- SVG é carregado com densidade suficiente para já sair no tamanho da caixa; nunca é ampliado a partir de bitmap pequeno.
+- SVG nunca é ampliado a partir de bitmap pequeno. O Sharp 0.35 já rasteriza o SVG direto no tamanho do `resize` (medido: um furo de 0,1 unidade num SVG de 6×2 continua com 2 px transparentes a 124 px de largura); um teste fixa esse comportamento, então não há cálculo de `density`.
 - **Patrocinador e fabricante:** silhueta. O canal alfa do arquivo vira máscara de uma imagem sólida na cor `color` resolvida. Com `outline`, uma camada de contorno vai por baixo: o alfa dilatado (`sharp.dilate`) por `max(1, round(2 · size / 414))` px, na cor `outline`.
 - **Escudo:** cores originais, sem recolorir.
 
@@ -269,6 +269,7 @@ export async function checkAssetFiles(clubId: string, refs: AssetRefs, registry:
 - `loadKitLogos` lê só o que o kit declara: `clubLogoPath` para `badge: true`; `assetFilePath` para `sponsor` e `manufacturer`.
 - Arquivo ausente: `Sponsor "luna-air" file not found: <caminho>` (idem `Manufacturer`), e `Club "galaticos-fc" badge not found: <caminho>`.
 - ID fora do registry: erro de `getAsset`.
+- Arquivo que não é imagem (texto, PNG corrompido): `Invalid image file: <caminho>`. O Sharp sozinho só diria `Input buffer contains unsupported image format`, sem dizer qual arquivo.
 - `checkAssetFiles` confere cada arquivo uma vez: o `validate` junta, sem repetição, os IDs dos pools e dos kits, e `badge` é verdadeiro se algum kit declara escudo. IDs fora do registry são pulados (a regra `unknown-asset` já os acusa). Devolve `missing-asset` e `opaque-logo`.
 
 ## 8. Validação
@@ -283,13 +284,15 @@ Novas regras, todas com o formato atual de `ValidationIssue`:
 | `validateKit(kit)` (pura) | `logo-contrast` | sem `outline`: contraste de `color` < 3 contra alguma cor do fundo; com `outline`: contraste `color` × `outline` < 3, ou alguma cor do fundo com contraste < 3 contra as duas |
 | `checkAssetFiles` (I/O) | `missing-asset` | arquivo do registry inexistente para um ID usado, ou `badge: true` sem `logo.png` |
 | | `opaque-logo` | patrocinador ou fabricante sem nenhum pixel transparente (canal alfa todo 255): viraria um retângulo sólido |
+| | `invalid-file` | arquivo de logo (ou `logo.png`) existe mas não é imagem |
 
 `logo-contrast` é pulada quando o padrão é desconhecido (sem `colorAt` não há fundo; `unknown-pattern` já acusa).
 
 Exemplos de mensagem:
 
 - `unknown-asset: sponsors references unknown sponsor "acme" (known: luna-air, orbita-bank)`
-- `logo-contrast: home kit sponsor #ffd700 has contrast 1.40 against overlay #ffffff (minimum 3)`
+- `logo-contrast: home kit sponsor #ffd700 has contrast 1.40 against secondary #ffffff (minimum 3)` (o papel do fundo, como `backgroundRoles` devolve)
+- `logo-contrast: home kit sponsor #123456 and its outline #000000 have contrast 1.65 (minimum 3)`
 - `opaque-logo: sponsor "luna-air" (sponsors/luna-air.png) has no transparent pixels`
 
 ## 9. CLI
@@ -334,7 +337,7 @@ Criados nesta fase, fictícios, desenhados só com `path` (sem `<text>`), com tr
 - **Padrões:** `colorAt` × `render` por pixel em `solid`, `stripes` e `sash` (as duas direções).
 - **Caixas:** dentro do tronco e abaixo das golas `round` e `v-neck`.
 - **`backgroundRoles`:** `solid` só base; faixa larga com overlay dominante; lasca < 5% ignorada.
-- **`chooseLogoColors`:** cor única da paleta; branco/preto; par com contorno (caso Home do galaticos: `primary` + `secondary`); cada critério de desempate do passo 3; propriedade da seção 5.4 para paletas aleatórias.
+- **`chooseLogoColors`:** cor única da paleta; branco/preto; par com contorno (caso Home do galaticos: `primary` + `secondary`); critérios 1, 3 e 4 do passo 3 com casos próprios (o critério 2 raramente decide: como as condições do par são simétricas, um par válido com `color` neutra sempre tem o espelho com `color` da paleta, que o critério 1 já prefere); propriedade da seção 5.4 para paletas aleatórias.
 - **Generator:** mesmo patrocinador e fabricante nos três kits; pool ausente gera kit sem o campo; `badge` segue a opção; ordem das chaves do pool não muda o sorteio; desenho idêntico ao da 2a para a mesma seed; todo kit gerado passa em `validateKit`.
 - **Validação:** cada regra nova com caso que passa e caso que falha.
 - **Asset repository:** `loadKitLogos` lê só o declarado; mensagens de arquivo ausente; `checkAssetFiles` acusa `missing-asset` e `opaque-logo` uma vez por arquivo e pula IDs fora do registry.
