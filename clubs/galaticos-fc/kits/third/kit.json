@@ -1,6 +1,6 @@
 {
   "clubId": "galaticos-fc",
-  "kitType": "home",
+  "kitType": "third",
   "generatedWith": {
     "seed": 42
   },
@@ -10,27 +10,27 @@
     "accent": "#ffd700"
   },
   "pattern": {
-    "id": "sash",
-    "base": "primary",
-    "overlay": "secondary",
+    "id": "stripes",
+    "base": "accent",
+    "overlay": "primary",
     "params": {
-      "width": 86.656,
-      "direction": 0
+      "count": 5,
+      "ratio": 0.305
     }
   },
   "collar": {
     "style": "round",
-    "color": "accent"
+    "color": "primary"
   },
   "sleeves": {
     "style": "solid",
-    "color": "secondary",
-    "cuffColor": "secondary"
+    "color": "primary",
+    "cuffColor": "primary"
   },
   "shorts": {
     "color": "primary"
   },
   "socks": {
-    "color": "primary"
+    "color": "accent"
   }
 }
