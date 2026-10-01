@@ -2,8 +2,16 @@ import Color from "colorjs.io";
 import { contrastRatio, normalizeHex, toHex } from "./color.js";
 import type { Rng } from "./random.js";
 
-export interface PaletteInput { primary: string; secondary?: string; accent?: string }
-export interface Palette { primary: string; secondary: string; accent: string }
+export interface PaletteInput {
+  primary: string;
+  secondary?: string;
+  accent?: string;
+}
+export interface Palette {
+  primary: string;
+  secondary: string;
+  accent: string;
+}
 
 export const MIN_ACCENT_CONTRAST = 3;
 const WHITE = "#ffffff";

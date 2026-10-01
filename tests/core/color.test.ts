@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 import { contrastRatio, normalizeHex } from "../../src/core/color.js";
 
 describe("normalizeHex", () => {
-  it.each([["#FFD700", "#ffd700"], ["#fff", "#ffffff"], ["#AbC", "#aabbcc"], ["#123456", "#123456"]])("normalizes %s to %s", (input, expected) => {
+  it.each([
+    ["#FFD700", "#ffd700"],
+    ["#fff", "#ffffff"],
+    ["#AbC", "#aabbcc"],
+    ["#123456", "#123456"],
+  ])("normalizes %s to %s", (input, expected) => {
     expect(normalizeHex(input)).toBe(expected);
   });
 

@@ -19,7 +19,7 @@ npm run kit-generator -- generate --club galaticos-fc --seed 42
 npm run kit-generator -- render --definition clubs/galaticos-fc/kits/home/kit.json --out output/preview.png
 ```
 
-Não há linter nem formatter configurados. Uma fase só avança com `npm test`, `npm run typecheck` e `npm run build` verdes e o PNG inspecionado visualmente.
+Formatter: Prettier (`printWidth` 160; `npm run format` formata, `npm run format:check` confere). Não há linter. Uma fase só avança com `npm test`, `npm run typecheck`, `npm run build` e `npm run format:check` verdes e os PNGs inspecionados visualmente.
 
 ## Arquitetura
 
@@ -42,4 +42,4 @@ Fluxo: `club.json` (identidade) → `generateKit(identity, seed)` → `KitDefini
 - Imports internos usam extensão `.js` (`NodeNext` + `verbatimModuleSyntax`); use `import type` para tipos.
 - Testes espelham `src/` em `tests/`; fixtures em `tests/fixtures/` (`makeClubsDir` cria clubes temporários em `/tmp`).
 - `docs/fm_templates/` são assets de referência do FM26 (UV, PSDs, máscaras) só para engenharia; o runtime nunca os lê.
-- Código e comentários seguem o estilo do repositório: comentários em português, só para o "porquê"; declarações em uma linha (largura alvo 160 colunas).
+- Código e comentários seguem o estilo do repositório: comentários em português, só para o "porquê"; declarações em uma linha quando couberem. O Prettier (largura 160) decide as quebras; interfaces ficam multilinha.

@@ -47,13 +47,21 @@ describe("createRng", () => {
 
   it("never picks zero-weight options", () => {
     const rng = createRng(99);
-    for (let i = 0; i < 1000; i++) expect(rng.weighted([["a", 0], ["b", 1]])).toBe("b");
+    const entries = [
+      ["a", 0],
+      ["b", 1],
+    ] as const;
+    for (let i = 0; i < 1000; i++) expect(rng.weighted(entries)).toBe("b");
   });
 
   it("follows the configured weights", () => {
     const rng = createRng(2024);
+    const entries = [
+      ["a", 3],
+      ["b", 1],
+    ] as const;
     let hits = 0;
-    for (let i = 0; i < 10_000; i++) if (rng.weighted([["a", 3], ["b", 1]]) === "a") hits++;
+    for (let i = 0; i < 10_000; i++) if (rng.weighted(entries) === "a") hits++;
     expect(hits / 10_000).toBeCloseTo(0.75, 1);
   });
 

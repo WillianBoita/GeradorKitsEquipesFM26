@@ -24,7 +24,11 @@ async function galaticosClubsDir(): Promise<string> {
 }
 
 describe("parseSeed", () => {
-  it.each([["0", 0], ["42", 42], ["4294967295", MAX_SEED]])("parses %s", (value, expected) => {
+  it.each([
+    ["0", 0],
+    ["42", 42],
+    ["4294967295", MAX_SEED],
+  ])("parses %s", (value, expected) => {
     expect(parseSeed(value)).toBe(expected);
   });
 

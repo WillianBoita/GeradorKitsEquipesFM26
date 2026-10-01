@@ -1,0 +1,6 @@
+dist
+output
+docs
+*.md
+package-lock.json
+clubs/*/kits

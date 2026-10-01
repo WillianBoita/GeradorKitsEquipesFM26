@@ -6,7 +6,9 @@ import { bodyPath, collarPath, CUFFS_PATH, outlinePath, SHIRT_2D_VIEWBOX, SLEEVE
 
 export const KIT_2D_SIZE = 414;
 
-export interface Render2dOptions { size?: number }
+export interface Render2dOptions {
+  size?: number;
+}
 
 export function renderKit2dSvg(kit: KitDefinition, options: Render2dOptions = {}): string {
   const size = options.size ?? KIT_2D_SIZE;
@@ -16,7 +18,8 @@ export function renderKit2dSvg(kit: KitDefinition, options: Render2dOptions = {}
   const params = resolveParams(template, kit.pattern.params);
   const pattern = template.render({ width: view, height: view, base: color(kit.pattern.base), overlay: color(kit.pattern.overlay), params });
   const fabric = `<rect width="${view}" height="${view}" fill="${color(kit.pattern.base)}"/>${pattern}`;
-  const sleeves = kit.sleeves.style === "match-body" ? `<g clip-path="url(#sleeves)">${fabric}</g>` : `<path d="${SLEEVES_PATH}" fill="${color(kit.sleeves.color)}"/>`;
+  const sleeves =
+    kit.sleeves.style === "match-body" ? `<g clip-path="url(#sleeves)">${fabric}</g>` : `<path d="${SLEEVES_PATH}" fill="${color(kit.sleeves.color)}"/>`;
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${view} ${view}">`,
     `<defs><clipPath id="body"><path d="${bodyPath(kit.collar.style)}"/></clipPath><clipPath id="sleeves"><path d="${SLEEVES_PATH}"/></clipPath></defs>`,
@@ -30,5 +33,7 @@ export function renderKit2dSvg(kit: KitDefinition, options: Render2dOptions = {}
 }
 
 export async function renderKit2dPng(kit: KitDefinition, options: Render2dOptions = {}): Promise<Buffer> {
-  return sharp(Buffer.from(renderKit2dSvg(kit, options))).png().toBuffer();
+  return sharp(Buffer.from(renderKit2dSvg(kit, options)))
+    .png()
+    .toBuffer();
 }

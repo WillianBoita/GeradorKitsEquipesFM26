@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import { clubSlug, KIT_TYPES, kitAssetFileName, kitAssetName, RENDER_TYPES } from "../../src/fm26/naming.js";
 
 describe("clubSlug", () => {
-  it.each([["galaticos-fc", "galaticos_fc"], ["kong-team", "kong_team"], ["fnaf", "fnaf"]])("turns %s into %s", (id, slug) => {
+  it.each([
+    ["galaticos-fc", "galaticos_fc"],
+    ["kong-team", "kong_team"],
+    ["fnaf", "fnaf"],
+  ])("turns %s into %s", (id, slug) => {
     expect(clubSlug(id)).toBe(slug);
   });
 

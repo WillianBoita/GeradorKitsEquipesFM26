@@ -11,6 +11,9 @@ export const stripesPattern: PatternTemplate = {
     const period = width / params.count;
     const stripeWidth = period * params.ratio;
     const offset = (period - stripeWidth) / 2;
-    return Array.from({ length: params.count }, (_, index) => `<rect x="${fmt(index * period + offset)}" y="0" width="${fmt(stripeWidth)}" height="${fmt(height)}" fill="${overlay}"/>`).join("");
+    return Array.from(
+      { length: params.count },
+      (_, index) => `<rect x="${fmt(index * period + offset)}" y="0" width="${fmt(stripeWidth)}" height="${fmt(height)}" fill="${overlay}"/>`,
+    ).join("");
   },
 };

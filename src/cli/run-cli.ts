@@ -11,9 +11,16 @@ import { loadClub, saveKit } from "../io/club-repository.js";
 import { readJsonFile } from "../io/json-file.js";
 import { renderKit2dPng } from "../renderers/renderer-2d.js";
 
-export interface CliIo { log(message: string): void; error(message: string): void }
+export interface CliIo {
+  log(message: string): void;
+  error(message: string): void;
+}
 
-export const USAGE = ["Usage:", "  kit-generator generate --club <id> [--seed <n>] [--out <dir>] [--clubs <dir>]", "  kit-generator render --definition <kit.json> --out <file.png>"].join("\n");
+export const USAGE = [
+  "Usage:",
+  "  kit-generator generate --club <id> [--seed <n>] [--out <dir>] [--clubs <dir>]",
+  "  kit-generator render --definition <kit.json> --out <file.png>",
+].join("\n");
 
 export function parseSeed(value: string | undefined): number {
   if (value === undefined) return randomInt(0, MAX_SEED + 1);
@@ -27,7 +34,12 @@ async function writeOutput(file: string, content: Buffer): Promise<void> {
 }
 
 async function generateCommand(args: string[], io: CliIo): Promise<void> {
-  const options = { club: { type: "string" }, seed: { type: "string" }, out: { type: "string", default: "output" }, clubs: { type: "string", default: CLUBS_DIR } } as const;
+  const options = {
+    club: { type: "string" },
+    seed: { type: "string" },
+    out: { type: "string", default: "output" },
+    clubs: { type: "string", default: CLUBS_DIR },
+  } as const;
   const { values } = parseArgs({ args, options, strict: true });
   if (!values.club) throw new Error("Missing required option --club");
   const seed = parseSeed(values.seed);
