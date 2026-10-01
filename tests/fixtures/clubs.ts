@@ -9,6 +9,8 @@ export const GALATICOS_CLUB = {
   style: { categories: ["modern"], patternWeights: { solid: 20, stripes: 40, sash: 40 } },
 };
 
+export const KONG_CLUB = { id: "kong-team", name: "Kong Team", palette: { primary: "#2e7d32" } };
+
 export async function makeClubsDir(clubs: Record<string, string>): Promise<string> {
   const dir = await makeTempDir("clubs");
   for (const [id, content] of Object.entries(clubs)) {

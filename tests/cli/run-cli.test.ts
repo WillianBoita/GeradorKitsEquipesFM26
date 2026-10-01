@@ -1,11 +1,11 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { access, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import { parseSeed, runCli, USAGE } from "../../src/cli/run-cli.js";
-import { parseKitDefinition } from "../../src/core/kit.js";
-import { MAX_SEED } from "../../src/core/random.js";
-import { GALATICOS_CLUB, makeClubsDir } from "../fixtures/clubs.js";
+import { KIT_TYPES, parseKitDefinition, type KitType } from "../../src/core/kit.js";
+import { deriveSeed, MAX_SEED } from "../../src/core/random.js";
+import { GALATICOS_CLUB, KONG_CLUB, makeClubsDir } from "../fixtures/clubs.js";
 import { makeKit } from "../fixtures/kits.js";
 import { makeTempDir } from "../fixtures/temp.js";
 
@@ -17,6 +17,23 @@ function captureIo() {
 
 async function galaticosClubsDir(): Promise<string> {
   return makeClubsDir({ "galaticos-fc": JSON.stringify(GALATICOS_CLUB) });
+}
+
+function kitFile(clubs: string, clubId: string, kitType: KitType): string {
+  return path.join(clubs, clubId, "kits", kitType, "kit.json");
+}
+
+function pngFile(out: string, clubId: string, kitType: KitType): string {
+  return path.join(out, clubId, "2d", `${clubId.replaceAll("-", "_")}_${kitType}_2d.png`);
+}
+
+async function exists(file: string): Promise<boolean> {
+  try {
+    await access(file);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 describe("parseSeed", () => {
@@ -40,44 +57,82 @@ describe("parseSeed", () => {
   });
 });
 
-describe("runCli generate", () => {
-  it("saves the kit definition in the club folder and writes the named 2D PNG", async () => {
+describe("runCli generate --club", () => {
+  it("saves home, away and third definitions and writes their named 2D PNGs", async () => {
     const [clubs, out] = [await galaticosClubsDir(), await makeTempDir("cli")];
     const { io, logs } = captureIo();
     expect(await runCli(["generate", "--club", "galaticos-fc", "--seed", "42", "--clubs", clubs, "--out", out], io)).toBe(0);
-    const kit = parseKitDefinition(JSON.parse(await readFile(path.join(clubs, "galaticos-fc", "kits", "home", "kit.json"), "utf8")));
-    expect(kit.clubId).toBe("galaticos-fc");
-    const png = path.join(out, "galaticos-fc", "2d", "galaticos_fc_home_2d.png");
-    expect(await sharp(png).metadata()).toMatchObject({ format: "png", width: 414, height: 414 });
-    expect(logs.join("\n")).toContain("seed 42");
+    for (const kitType of KIT_TYPES) {
+      const kit = parseKitDefinition(JSON.parse(await readFile(kitFile(clubs, "galaticos-fc", kitType), "utf8")));
+      expect(kit).toMatchObject({ clubId: "galaticos-fc", kitType, generatedWith: { seed: 42 } });
+      expect(await sharp(pngFile(out, "galaticos-fc", kitType)).metadata()).toMatchObject({ format: "png", width: 414, height: 414 });
+    }
+    expect(logs[0]).toBe("Seed: 42 (galaticos-fc)");
+    expect(logs).toContain("Generated Galáticos FC kits (seed 42)");
+    expect(logs).toContain(`  away 2D: ${pngFile(out, "galaticos-fc", "away")}`);
   });
 
-  it("keeps the versioned kit.json and logs the seed when the PNG cannot be written", async () => {
+  it("generates only the requested type, identical to the same type in the full set", async () => {
+    const [full, single] = [await galaticosClubsDir(), await galaticosClubsDir()];
+    const out = await makeTempDir("cli");
+    await runCli(["generate", "--club", "galaticos-fc", "--seed", "9", "--clubs", full, "--out", await makeTempDir("cli")], captureIo().io);
+    expect(await runCli(["generate", "--club", "galaticos-fc", "--seed", "9", "--type", "away", "--clubs", single, "--out", out], captureIo().io)).toBe(0);
+    expect(await readFile(kitFile(single, "galaticos-fc", "away"), "utf8")).toBe(await readFile(kitFile(full, "galaticos-fc", "away"), "utf8"));
+    expect(await exists(kitFile(single, "galaticos-fc", "home"))).toBe(false);
+    expect(await exists(pngFile(out, "galaticos-fc", "home"))).toBe(false);
+    expect(await exists(pngFile(out, "galaticos-fc", "away"))).toBe(true);
+  });
+
+  it("keeps every versioned kit.json and logs the seed when a PNG cannot be written", async () => {
     const [clubs, out] = [await galaticosClubsDir(), await makeTempDir("cli")];
-    const kitFile = path.join(clubs, "galaticos-fc", "kits", "home", "kit.json");
     expect(await runCli(["generate", "--club", "galaticos-fc", "--seed", "1", "--clubs", clubs, "--out", out], captureIo().io)).toBe(0);
-    const before = await readFile(kitFile, "utf8");
+    const before = await Promise.all(KIT_TYPES.map((kitType) => readFile(kitFile(clubs, "galaticos-fc", kitType), "utf8")));
     const blocker = path.join(await makeTempDir("cli"), "not-a-dir");
     await writeFile(blocker, "");
     const { io, logs, errors } = captureIo();
     expect(await runCli(["generate", "--club", "galaticos-fc", "--seed", "2", "--clubs", clubs, "--out", blocker], io)).toBe(1);
     expect(errors).toHaveLength(1);
-    expect(await readFile(kitFile, "utf8")).toBe(before);
-    expect(logs).toContain("Seed: 2");
+    expect(await Promise.all(KIT_TYPES.map((kitType) => readFile(kitFile(clubs, "galaticos-fc", kitType), "utf8")))).toEqual(before);
+    expect(logs).toContain("Seed: 2 (galaticos-fc)");
   });
 
-  it("is reproducible for the same seed", async () => {
+  it("is reproducible byte for byte for the same seed", async () => {
     const [first, second] = [await galaticosClubsDir(), await galaticosClubsDir()];
-    await runCli(["generate", "--club", "galaticos-fc", "--seed", "7", "--clubs", first, "--out", await makeTempDir("cli")], captureIo().io);
-    await runCli(["generate", "--club", "galaticos-fc", "--seed", "7", "--clubs", second, "--out", await makeTempDir("cli")], captureIo().io);
-    const read = (dir: string) => readFile(path.join(dir, "galaticos-fc", "kits", "home", "kit.json"), "utf8");
-    expect(await read(first)).toBe(await read(second));
+    const [firstOut, secondOut] = [await makeTempDir("cli"), await makeTempDir("cli")];
+    await runCli(["generate", "--club", "galaticos-fc", "--seed", "7", "--clubs", first, "--out", firstOut], captureIo().io);
+    await runCli(["generate", "--club", "galaticos-fc", "--seed", "7", "--clubs", second, "--out", secondOut], captureIo().io);
+    for (const kitType of KIT_TYPES) {
+      expect(await readFile(kitFile(second, "galaticos-fc", kitType), "utf8")).toBe(await readFile(kitFile(first, "galaticos-fc", kitType), "utf8"));
+      expect((await readFile(pngFile(secondOut, "galaticos-fc", kitType))).equals(await readFile(pngFile(firstOut, "galaticos-fc", kitType)))).toBe(true);
+    }
   });
 
-  it("rejects invalid seeds", async () => {
+  it.each(["0", "4294967295"])("accepts the boundary seed %s", async (seed) => {
+    const { io, logs } = captureIo();
+    expect(
+      await runCli(["generate", "--club", "galaticos-fc", "--seed", seed, "--clubs", await galaticosClubsDir(), "--out", await makeTempDir("cli")], io),
+    ).toBe(0);
+    expect(logs[0]).toBe(`Seed: ${seed} (galaticos-fc)`);
+  });
+
+  it.each([["--seed", "abc"], ["--seed=-1"], ["--seed", "4294967296"]])("rejects invalid seeds (%s %s)", async (...seedArgs) => {
     const { io, errors } = captureIo();
-    expect(await runCli(["generate", "--club", "galaticos-fc", "--seed", "abc", "--clubs", await galaticosClubsDir()], io)).toBe(1);
-    expect(errors.join("\n")).toContain('Invalid seed "abc"');
+    expect(await runCli(["generate", "--club", "galaticos-fc", ...seedArgs, "--clubs", await galaticosClubsDir()], io)).toBe(1);
+    expect(errors.join("\n")).toMatch(/Invalid seed/);
+  });
+
+  it("rejects unknown kit types", async () => {
+    const { io, errors } = captureIo();
+    expect(await runCli(["generate", "--club", "galaticos-fc", "--type", "fourth", "--clubs", await galaticosClubsDir()], io)).toBe(1);
+    expect(errors.join("\n")).toContain("Invalid kit type");
+  });
+
+  it("reports clubs that fail validation", async () => {
+    const clash = { ...GALATICOS_CLUB, palette: { primary: "#123456", secondary: "#1a3d66" } };
+    const { io, errors } = captureIo();
+    const clubs = await makeClubsDir({ "galaticos-fc": JSON.stringify(clash) });
+    expect(await runCli(["generate", "--club", "galaticos-fc", "--clubs", clubs, "--out", await makeTempDir("cli")], io)).toBe(1);
+    expect(errors.join("\n")).toContain('Club "galaticos-fc" is invalid:\n  - distinct-colors: primary #123456 and secondary #1a3d66');
   });
 
   it("reports unknown clubs", async () => {
@@ -86,15 +141,68 @@ describe("runCli generate", () => {
     expect(errors.join("\n")).toMatch(/Club "ghost" not found/);
   });
 
-  it("requires --club", async () => {
-    const { io, errors } = captureIo();
-    expect(await runCli(["generate"], io)).toBe(1);
-    expect(errors.join("\n")).toContain("Missing required option --club");
+  it("requires --club or --all, but not both", async () => {
+    const missing = captureIo();
+    expect(await runCli(["generate"], missing.io)).toBe(1);
+    expect(missing.errors.join("\n")).toContain("Missing required option --club or --all");
+    const both = captureIo();
+    expect(await runCli(["generate", "--club", "galaticos-fc", "--all"], both.io)).toBe(1);
+    expect(both.errors.join("\n")).toContain("Use either --club or --all, not both");
   });
 
   it("rejects unknown options", async () => {
     const { io } = captureIo();
     expect(await runCli(["generate", "--club", "galaticos-fc", "--colour", "red"], io)).toBe(1);
+  });
+});
+
+describe("runCli generate --all", () => {
+  it("generates every club and logs one seed per club", async () => {
+    const clubs = await makeClubsDir({ "galaticos-fc": JSON.stringify(GALATICOS_CLUB), "kong-team": JSON.stringify(KONG_CLUB) });
+    const { io, logs } = captureIo();
+    expect(await runCli(["generate", "--all", "--clubs", clubs, "--out", await makeTempDir("cli")], io)).toBe(0);
+    for (const clubId of ["galaticos-fc", "kong-team"]) {
+      for (const kitType of KIT_TYPES) expect(await exists(kitFile(clubs, clubId, kitType))).toBe(true);
+      expect(logs.some((line) => new RegExp(`^Seed: \\d+ \\(${clubId}\\)$`).test(line))).toBe(true);
+    }
+    expect(logs.at(-1)).toBe("Generated 2 of 2 clubs");
+  });
+
+  it("derives a reproducible seed per club from --seed", async () => {
+    const clubs = await makeClubsDir({ "galaticos-fc": JSON.stringify(GALATICOS_CLUB), "kong-team": JSON.stringify(KONG_CLUB) });
+    const { io, logs } = captureIo();
+    expect(await runCli(["generate", "--all", "--seed", "42", "--clubs", clubs, "--out", await makeTempDir("cli")], io)).toBe(0);
+    const kongSeed = deriveSeed(42, "kong-team");
+    expect(logs).toContain(`Seed: ${kongSeed} (kong-team)`);
+    const single = await makeClubsDir({ "kong-team": JSON.stringify(KONG_CLUB) });
+    await runCli(["generate", "--club", "kong-team", "--seed", String(kongSeed), "--clubs", single, "--out", await makeTempDir("cli")], captureIo().io);
+    expect(await readFile(kitFile(single, "kong-team", "third"), "utf8")).toBe(await readFile(kitFile(clubs, "kong-team", "third"), "utf8"));
+  });
+
+  it("keeps going when one club fails and exits with 1", async () => {
+    const clubs = await makeClubsDir({ broken: "{ not json", "kong-team": JSON.stringify(KONG_CLUB) });
+    const { io, logs, errors } = captureIo();
+    expect(await runCli(["generate", "--all", "--clubs", clubs, "--out", await makeTempDir("cli")], io)).toBe(1);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatch(/^Error: \[broken\] Invalid JSON in/);
+    expect(await exists(kitFile(clubs, "kong-team", "home"))).toBe(true);
+    expect(logs.at(-1)).toBe("Generated 1 of 2 clubs");
+  });
+
+  it("reports folders whose name is not a valid club id", async () => {
+    const clubs = await makeClubsDir({ "Old Club": JSON.stringify(GALATICOS_CLUB), "kong-team": JSON.stringify(KONG_CLUB) });
+    const { io, errors } = captureIo();
+    expect(await runCli(["generate", "--all", "--seed", "1", "--clubs", clubs, "--out", await makeTempDir("cli")], io)).toBe(1);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatch(/^Error: \[Old Club\] Invalid club id/);
+    expect(await exists(kitFile(clubs, "kong-team", "away"))).toBe(true);
+  });
+
+  it("reports an empty clubs directory", async () => {
+    const clubs = await makeClubsDir({});
+    const { io, errors } = captureIo();
+    expect(await runCli(["generate", "--all", "--clubs", clubs], io)).toBe(1);
+    expect(errors).toEqual([`Error: No clubs found in ${clubs}`]);
   });
 });
 
