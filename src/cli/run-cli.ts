@@ -4,7 +4,7 @@ import path from "node:path";
 import { parseArgs } from "node:util";
 import { CLUBS_DIR, kitRenderPath, OUTPUT_DIR } from "../config/paths.js";
 import type { ClubIdentity } from "../core/club.js";
-import { KIT_TYPES, KitTypeSchema, parseKitDefinition, type KitDefinition, type KitType } from "../core/kit.js";
+import { KIT_TYPES, KitDefinitionSchema, KitTypeSchema, type KitDefinition, type KitType } from "../core/kit.js";
 import { parseWith } from "../core/primitives.js";
 import { deriveSeed, MAX_SEED } from "../core/random.js";
 import { formatIssues, validateClub, validateKit, validateKitSet, type ValidationIssue } from "../core/validation.js";
@@ -112,7 +112,7 @@ async function renderCommand(args: string[], io: CliIo): Promise<number> {
   const { values } = parseArgs({ args, options: { definition: { type: "string" }, out: { type: "string" } }, strict: true });
   if (!values.definition) throw new Error("Missing required option --definition");
   if (!values.out) throw new Error("Missing required option --out");
-  const kit = parseKitDefinition(await readJsonFile(values.definition));
+  const kit = parseWith(KitDefinitionSchema, await readJsonFile(values.definition), `kit definition in ${values.definition}`);
   const out = path.resolve(values.out);
   await writeOutput(out, await renderKit2dPng(kit));
   io.log(`Rendered ${values.definition} to ${out}`);

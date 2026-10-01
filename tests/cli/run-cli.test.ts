@@ -224,6 +224,17 @@ describe("runCli render", () => {
     expect(await runCli(["render", "--definition", definition, "--out", path.join(dir, "kit.png")], io)).toBe(1);
     expect(errors.join("\n")).toContain("Invalid kit definition");
   });
+
+  it("names the file when a Phase 1 definition without kitType is rendered", async () => {
+    const dir = await makeTempDir("cli");
+    const definition = path.join(dir, "kit.json");
+    const { kitType: _ignored, ...phaseOneKit } = makeKit();
+    await writeFile(definition, JSON.stringify(phaseOneKit));
+    const { io, errors } = captureIo();
+    expect(await runCli(["render", "--definition", definition, "--out", path.join(dir, "kit.png")], io)).toBe(1);
+    expect(errors.join("\n")).toContain(`Invalid kit definition in ${definition}`);
+    expect(errors.join("\n")).toContain("kitType");
+  });
 });
 
 describe("runCli validate", () => {
