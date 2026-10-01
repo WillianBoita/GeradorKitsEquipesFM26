@@ -1,7 +1,8 @@
+import { findAsset, knownAssetIds, type AssetRegistry } from "../assets/registry.js";
 import { listPatternTemplates } from "../patterns/registry.js";
 import type { ClubIdentity } from "./club.js";
 import { colorDistance } from "./color.js";
-import { COLOR_ROLES, KIT_TYPES, type ColorRole, type KitDefinition, type KitType } from "./kit.js";
+import { BRAND_KINDS, BRAND_LISTS, COLOR_ROLES, KIT_TYPES, type ColorRole, type KitDefinition, type KitType } from "./kit.js";
 import type { Palette } from "./palette.js";
 
 export interface ValidationIssue {
@@ -45,7 +46,21 @@ export function validateClub(identity: ClubIdentity): ValidationIssue[] {
   if (weights && !Object.entries(weights).some(([id, weight]) => known.includes(id) && weight > 0)) {
     issues.push({ rule: "no-pattern-weight", message: "style.patternWeights gives no known pattern a positive weight" });
   }
+  for (const kind of BRAND_KINDS) {
+    const pool = identity[BRAND_LISTS[kind]];
+    if (pool && !Object.values(pool).some((weight) => weight > 0)) {
+      issues.push({ rule: "no-asset-weight", message: `${BRAND_LISTS[kind]} gives no ${kind} a positive weight` });
+    }
+  }
   return [...issues, ...validateColors(identity.palette)];
+}
+
+export function validateClubAssets(identity: ClubIdentity, registry: AssetRegistry): ValidationIssue[] {
+  return BRAND_KINDS.flatMap((kind) =>
+    Object.keys(identity[BRAND_LISTS[kind]] ?? {})
+      .filter((id) => !findAsset(registry, kind, id))
+      .map((id) => ({ rule: "unknown-asset", message: `${BRAND_LISTS[kind]} references unknown ${kind} "${id}" (known: ${knownAssetIds(registry, kind)})` })),
+  );
 }
 
 export function validatePalette(palette: Palette): ValidationIssue[] {

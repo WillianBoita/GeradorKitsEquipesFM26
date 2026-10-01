@@ -1,11 +1,20 @@
 import { describe, expect, it } from "vitest";
+import type { AssetRegistry } from "../../src/assets/registry.js";
 import { parseClubIdentity } from "../../src/core/club.js";
 import type { KitDefinition } from "../../src/core/kit.js";
-import { formatIssues, validateClub, validateColors, validateKit, validateKitSet, validatePalette } from "../../src/core/validation.js";
+import { formatIssues, validateClub, validateClubAssets, validateColors, validateKit, validateKitSet, validatePalette } from "../../src/core/validation.js";
 import { GALATICOS_CLUB } from "../fixtures/clubs.js";
 import { makeKit } from "../fixtures/kits.js";
 
 const PALETTE = { primary: "#123456", secondary: "#ffffff", accent: "#ffd700" };
+
+const REGISTRY: AssetRegistry = {
+  sponsors: [
+    { id: "luna-air", name: "Luna Air", file: "sponsors/luna-air.svg" },
+    { id: "orbita-bank", name: "Órbita Bank", file: "sponsors/orbita-bank.svg" },
+  ],
+  manufacturers: [{ id: "vertex", name: "Vertex", file: "manufacturers/vertex.svg" }],
+};
 
 function club(overrides: Record<string, unknown> = {}) {
   return parseClubIdentity({ ...GALATICOS_CLUB, ...overrides });
@@ -58,6 +67,31 @@ describe("validateClub", () => {
   it("checks only the colors the club provides", () => {
     expect(validateClub(club({ palette: { primary: "#123456" } }))).toEqual([]);
     expect(validateClub(club({ palette: { primary: "#123456", accent: "#1a3d66" } })).map((issue) => issue.rule)).toEqual(["distinct-colors"]);
+  });
+
+  it("accepts pools with at least one positive weight", () => {
+    expect(validateClub(club({ sponsors: { "luna-air": 0, "orbita-bank": 2 }, manufacturers: { vertex: 1 } }))).toEqual([]);
+  });
+
+  it("reports pools without any positive weight", () => {
+    expect(validateClub(club({ sponsors: { "luna-air": 0 }, manufacturers: {} }))).toEqual([
+      { rule: "no-asset-weight", message: "sponsors gives no sponsor a positive weight" },
+      { rule: "no-asset-weight", message: "manufacturers gives no manufacturer a positive weight" },
+    ]);
+  });
+});
+
+describe("validateClubAssets", () => {
+  it("accepts clubs without pools or with registered ids", () => {
+    expect(validateClubAssets(club(), REGISTRY)).toEqual([]);
+    expect(validateClubAssets(club({ sponsors: { "luna-air": 1 }, manufacturers: { vertex: 1 } }), REGISTRY)).toEqual([]);
+  });
+
+  it("reports pool ids missing from the registry", () => {
+    expect(validateClubAssets(club({ sponsors: { acme: 1, "luna-air": 1 }, manufacturers: { kong: 1 } }), REGISTRY)).toEqual([
+      { rule: "unknown-asset", message: 'sponsors references unknown sponsor "acme" (known: luna-air, orbita-bank)' },
+      { rule: "unknown-asset", message: 'manufacturers references unknown manufacturer "kong" (known: vertex)' },
+    ]);
   });
 });
 

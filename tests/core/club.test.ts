@@ -67,4 +67,22 @@ describe("parseClubIdentity", () => {
   it("rejects invalid palette colors", () => {
     expect(() => parseClubIdentity({ ...galaticos, palette: { primary: "azul" } })).toThrow(/palette\.primary/);
   });
+
+  it("accepts sponsor and manufacturer pools", () => {
+    const club = parseClubIdentity({ ...galaticos, sponsors: { "luna-air": 3, "orbita-bank": 0 }, manufacturers: { vertex: 1 } });
+    expect(club.sponsors).toEqual({ "luna-air": 3, "orbita-bank": 0 });
+    expect(club.manufacturers).toEqual({ vertex: 1 });
+  });
+
+  it("rejects pool keys that are not asset ids", () => {
+    expect(() => parseClubIdentity({ ...galaticos, sponsors: { "Luna Air": 1 } })).toThrow(/sponsors/);
+  });
+
+  it.each([-1, 1_000_001])("rejects the pool weight %d", (weight) => {
+    expect(() => parseClubIdentity({ ...galaticos, manufacturers: { vertex: weight } })).toThrow(/manufacturers/);
+  });
+
+  it("rejects a misspelled pool key", () => {
+    expect(() => parseClubIdentity({ ...galaticos, sponsor: { "luna-air": 1 } })).toThrow(/sponsor/);
+  });
 });
