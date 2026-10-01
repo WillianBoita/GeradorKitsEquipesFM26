@@ -136,6 +136,57 @@ describe("validateKit", () => {
   });
 });
 
+describe("validateKit logo-contrast", () => {
+  const sash = { id: "sash", base: "primary" as const, overlay: "secondary" as const, params: { width: 70, direction: 0 } };
+
+  it("accepts a legible sponsor", () => {
+    expect(validateKit(makeKit({ sponsor: { id: "luna-air", color: "secondary" } }))).toEqual([]);
+  });
+
+  it("reports a sponsor that disappears into the base", () => {
+    expect(validateKit(makeKit({ sponsor: { id: "luna-air", color: "primary" } }))).toEqual([
+      { rule: "logo-contrast", message: "home kit sponsor #123456 has contrast 1.00 against primary #123456 (minimum 3)" },
+    ]);
+  });
+
+  it("checks every color behind the logo", () => {
+    expect(validateKit(makeKit({ pattern: sash, sponsor: { id: "luna-air", color: "accent" } }))).toEqual([
+      { rule: "logo-contrast", message: "home kit sponsor #ffd700 has contrast 1.40 against secondary #ffffff (minimum 3)" },
+    ]);
+  });
+
+  it("accepts an outline that covers the colors the fill cannot", () => {
+    expect(validateKit(makeKit({ pattern: sash, sponsor: { id: "luna-air", color: "accent", outline: "primary" } }))).toEqual([]);
+  });
+
+  it("reports an outline too close to the fill", () => {
+    const kit = makeKit({
+      pattern: { id: "solid", base: "secondary", overlay: "primary", params: {} },
+      sponsor: { id: "luna-air", color: "primary", outline: "#000000" },
+    });
+    expect(validateKit(kit)).toEqual([{ rule: "logo-contrast", message: "home kit sponsor #123456 and its outline #000000 have contrast 1.65 (minimum 3)" }]);
+  });
+
+  it("names the outline when fill and outline both fail against the background", () => {
+    const kit = makeKit({ sponsor: { id: "luna-air", color: "primary", outline: "#000000" } });
+    expect(validateKit(kit)).toContainEqual({
+      rule: "logo-contrast",
+      message: "home kit sponsor #123456 with outline #000000 has contrast 1.65 against primary #123456 (minimum 3)",
+    });
+  });
+
+  it("checks the manufacturer too", () => {
+    expect(validateKit(makeKit({ manufacturer: { id: "vertex", color: "primary" } }))).toEqual([
+      { rule: "logo-contrast", message: "home kit manufacturer #123456 has contrast 1.00 against primary #123456 (minimum 3)" },
+    ]);
+  });
+
+  it("skips the rule when the pattern is unknown", () => {
+    const kit = makeKit({ pattern: { id: "zigzag", base: "primary", overlay: "secondary", params: {} }, sponsor: { id: "luna-air", color: "primary" } });
+    expect(validateKit(kit).map((issue) => issue.rule)).toEqual(["unknown-pattern"]);
+  });
+});
+
 describe("validateKitAssets", () => {
   it("accepts kits without logos or with registered ids", () => {
     expect(validateKitAssets(makeKit(), REGISTRY)).toEqual([]);
