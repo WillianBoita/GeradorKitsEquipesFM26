@@ -226,6 +226,65 @@ describe("runCli render", () => {
   });
 });
 
+describe("runCli validate", () => {
+  async function generatedClubsDir(): Promise<string> {
+    const clubs = await makeClubsDir({ "galaticos-fc": JSON.stringify(GALATICOS_CLUB), "kong-team": JSON.stringify(KONG_CLUB) });
+    await runCli(["generate", "--all", "--seed", "3", "--clubs", clubs, "--out", await makeTempDir("cli")], captureIo().io);
+    return clubs;
+  }
+
+  it("accepts freshly generated clubs", async () => {
+    const { io, logs, errors } = captureIo();
+    expect(await runCli(["validate", "--all", "--clubs", await generatedClubsDir()], io)).toBe(0);
+    expect(logs).toEqual(["OK galaticos-fc (3 kits)", "OK kong-team (3 kits)"]);
+    expect(errors).toEqual([]);
+  });
+
+  it("accepts a valid club without kits", async () => {
+    const { io, logs } = captureIo();
+    expect(await runCli(["validate", "--club", "galaticos-fc", "--clubs", await galaticosClubsDir()], io)).toBe(0);
+    expect(logs).toEqual(["OK galaticos-fc (0 kits)"]);
+  });
+
+  it("reports every problem of a hand-edited kit set", async () => {
+    const clubs = await generatedClubsDir();
+    const away = parseKitDefinition(JSON.parse(await readFile(kitFile(clubs, "galaticos-fc", "away"), "utf8")));
+    const clashing = { ...away, pattern: { ...away.pattern, base: "primary", overlay: "primary" } };
+    await writeFile(kitFile(clubs, "galaticos-fc", "away"), JSON.stringify(clashing));
+    const { io, logs, errors } = captureIo();
+    expect(await runCli(["validate", "--all", "--clubs", clubs], io)).toBe(1);
+    expect(logs).toEqual(["OK kong-team (3 kits)"]);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("FAIL galaticos-fc\n");
+    expect(errors[0]).toContain("  - pattern-contrast: away kit uses primary as both pattern base and overlay");
+    expect(errors[0]).toContain("  - kit-clash: home base #123456 and away base #123456");
+  });
+
+  it("reports unreadable club and kit files as invalid-file", async () => {
+    const clubs = await generatedClubsDir();
+    await writeFile(kitFile(clubs, "galaticos-fc", "third"), JSON.stringify(makeKit({ kitType: "home" })));
+    await writeFile(path.join(clubs, "kong-team", "club.json"), "{ not json");
+    const { io, errors } = captureIo();
+    expect(await runCli(["validate", "--all", "--clubs", clubs], io)).toBe(1);
+    expect(errors[0]).toMatch(/^FAIL galaticos-fc\n  - invalid-file: .*declares kitType "home", expected "third"/);
+    expect(errors[1]).toMatch(/^FAIL kong-team\n  - invalid-file: Invalid JSON in/);
+  });
+
+  it("reports club rules", async () => {
+    const clubs = await makeClubsDir({ "galaticos-fc": JSON.stringify({ ...GALATICOS_CLUB, style: { categories: [], patternWeights: { zigzag: 1 } } }) });
+    const { io, errors } = captureIo();
+    expect(await runCli(["validate", "--club", "galaticos-fc", "--clubs", clubs], io)).toBe(1);
+    expect(errors[0]).toContain('  - unknown-pattern: style.patternWeights references unknown pattern "zigzag"');
+    expect(errors[0]).toContain("  - no-pattern-weight:");
+  });
+
+  it("requires --club or --all", async () => {
+    const { io, errors } = captureIo();
+    expect(await runCli(["validate"], io)).toBe(1);
+    expect(errors).toEqual(["Error: Missing required option --club or --all"]);
+  });
+});
+
 describe("runCli usage", () => {
   it.each([[[]], [["explode"]]])("prints usage for %j", async (argv) => {
     const { io, errors } = captureIo();

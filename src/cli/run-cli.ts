@@ -3,11 +3,13 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { CLUBS_DIR, kitRenderPath, OUTPUT_DIR } from "../config/paths.js";
-import { KIT_TYPES, KitTypeSchema, parseKitDefinition, type KitType } from "../core/kit.js";
+import type { ClubIdentity } from "../core/club.js";
+import { KIT_TYPES, KitTypeSchema, parseKitDefinition, type KitDefinition, type KitType } from "../core/kit.js";
 import { parseWith } from "../core/primitives.js";
 import { deriveSeed, MAX_SEED } from "../core/random.js";
+import { formatIssues, validateClub, validateKit, validateKitSet, type ValidationIssue } from "../core/validation.js";
 import { generateKitSet } from "../generator/kit-generator.js";
-import { listClubIds, loadClub, saveKit } from "../io/club-repository.js";
+import { listClubIds, loadClub, loadKit, saveKit } from "../io/club-repository.js";
 import { readJsonFile } from "../io/json-file.js";
 import { renderKit2dPng } from "../renderers/renderer-2d.js";
 
@@ -26,6 +28,7 @@ export const USAGE = [
   "Usage:",
   "  kit-generator generate (--club <id> | --all) [--type <home|away|third>] [--seed <n>] [--out <dir>] [--clubs <dir>]",
   "  kit-generator render --definition <kit.json> --out <file.png>",
+  "  kit-generator validate (--club <id> | --all) [--clubs <dir>]",
 ].join("\n");
 
 export function parseSeed(value: string | undefined): number {
@@ -116,11 +119,51 @@ async function renderCommand(args: string[], io: CliIo): Promise<number> {
   return 0;
 }
 
+// Junta todos os problemas do clube em vez de parar no primeiro, para o usuário corrigir tudo de uma vez.
+async function validateClubFiles(clubId: string, clubsDir: string): Promise<{ kitCount: number; issues: ValidationIssue[] }> {
+  let club: ClubIdentity;
+  try {
+    club = await loadClub(clubId, clubsDir);
+  } catch (error) {
+    return { kitCount: 0, issues: [{ rule: "invalid-file", message: errorMessage(error) }] };
+  }
+  const issues = validateClub(club);
+  const kits: Partial<Record<KitType, KitDefinition>> = {};
+  for (const kitType of KIT_TYPES) {
+    try {
+      const kit = await loadKit(club.id, kitType, clubsDir);
+      if (kit) kits[kitType] = kit;
+    } catch (error) {
+      issues.push({ rule: "invalid-file", message: errorMessage(error) });
+    }
+  }
+  const loaded = Object.values(kits);
+  issues.push(...loaded.flatMap((kit) => validateKit(kit)), ...validateKitSet(kits));
+  return { kitCount: loaded.length, issues };
+}
+
+async function validateCommand(args: string[], io: CliIo): Promise<number> {
+  const options = { club: { type: "string" }, all: { type: "boolean", default: false }, clubs: { type: "string", default: CLUBS_DIR } } as const;
+  const { values } = parseArgs({ args, options, strict: true });
+  let failed = 0;
+  for (const clubId of await resolveClubIds(values, values.clubs)) {
+    const { kitCount, issues } = await validateClubFiles(clubId, values.clubs);
+    if (issues.length === 0) {
+      io.log(`OK ${clubId} (${kitCount} kits)`);
+    } else {
+      failed++;
+      io.error(`FAIL ${clubId}\n${formatIssues(issues)}`);
+    }
+  }
+  return failed === 0 ? 0 : 1;
+}
+
 export async function runCli(argv: string[], io: CliIo = console): Promise<number> {
   const [command, ...args] = argv;
   try {
     if (command === "generate") return await generateCommand(args, io);
     if (command === "render") return await renderCommand(args, io);
+    if (command === "validate") return await validateCommand(args, io);
     io.error(USAGE);
     return 1;
   } catch (error) {
