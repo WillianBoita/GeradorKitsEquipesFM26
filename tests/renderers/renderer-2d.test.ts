@@ -16,6 +16,20 @@ const PRIMARY: Rgba = [0x12, 0x34, 0x56, 255];
 const SECONDARY: Rgba = [0xff, 0xff, 0xff, 255];
 const ACCENT: Rgba = [0xff, 0xd7, 0x00, 255];
 
+// Fração do tronco (sem gola e mangas) pintada pelo overlay branco; o canal vermelho separa branco (0xff) do navy da base (0x12).
+async function torsoOverlayShare(png: Buffer): Promise<number> {
+  const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  let overlay = 0;
+  let total = 0;
+  for (let y = 150; y < 380; y++) {
+    for (let x = 115; x < 300; x++) {
+      total++;
+      if (data[(y * info.width + x) * info.channels]! > 0x88) overlay++;
+    }
+  }
+  return overlay / total;
+}
+
 describe("renderKit2dSvg", () => {
   it("produces valid SVG", () => {
     expect(XMLValidator.validate(renderKit2dSvg(makeKit()))).toBe(true);
@@ -103,5 +117,16 @@ describe("renderKit2dPng", () => {
     expect(await pixelAt(round, 207, 88)).toEqual(PRIMARY);
     expect((await pixelAt(vNeck, 207, 88))[3]).toBe(0);
     expect(await pixelAt(vNeck, 207, 103)).toEqual(ACCENT);
+  });
+
+  // A cor base precisa dominar a camisa; senão o Away (base secondary) pode parecer o Home e o kit-clash não percebe.
+  it.each([3, 4, 5, 8, 15])("keeps the widest stripes (count %d) below half of the torso", async (count) => {
+    const kit = makeKit({ pattern: { id: "stripes", base: "primary", overlay: "secondary", params: { count, ratio: 1 } } });
+    expect(await torsoOverlayShare(await renderKit2dPng(kit))).toBeLessThan(0.5);
+  });
+
+  it.each([0, 1])("keeps the widest sash (direction %d) below half of the torso", async (direction) => {
+    const kit = makeKit({ pattern: { id: "sash", base: "primary", overlay: "secondary", params: { width: 1000, direction } } });
+    expect(await torsoOverlayShare(await renderKit2dPng(kit))).toBeLessThan(0.5);
   });
 });

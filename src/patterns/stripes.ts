@@ -6,7 +6,7 @@ export const stripesPattern: PatternTemplate = {
   name: "Vertical stripes",
   category: "classic",
   defaultWeight: 35,
-  parameters: { count: { min: 3, max: 15, default: 7, integer: true }, ratio: { min: 0.2, max: 0.8, default: 0.5 } },
+  parameters: { count: { min: 3, max: 15, default: 7, integer: true }, ratio: { min: 0.2, max: 0.4, default: 0.3 } },
   render({ width, height, overlay, params }) {
     const period = width / params.count;
     const stripeWidth = period * params.ratio;

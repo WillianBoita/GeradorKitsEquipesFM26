@@ -6,7 +6,7 @@ export const sashPattern: PatternTemplate = {
   name: "Sash",
   category: "classic",
   defaultWeight: 25,
-  parameters: { width: { min: 30, max: 140, default: 80 }, direction: { min: 0, max: 1, default: 0, integer: true } },
+  parameters: { width: { min: 30, max: 100, default: 70 }, direction: { min: 0, max: 1, default: 0, integer: true } },
   render({ width, height, overlay, params }) {
     const angle = params.direction === 0 ? 45 : -45;
     // Comprimento maior que a diagonal do canvas para a faixa nunca terminar dentro da camisa.
