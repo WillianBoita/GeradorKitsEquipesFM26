@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { parseSeed, runCli, USAGE } from "../../src/cli/run-cli.js";
 import { KIT_TYPES, parseKitDefinition, resolveLogoColor, type KitType } from "../../src/core/kit.js";
 import { deriveSeed, MAX_SEED } from "../../src/core/random.js";
-import { makeAssetsDir, writeClubLogo } from "../fixtures/assets.js";
+import { makeAssetsDir, makeOpaquePng, writeClubLogo } from "../fixtures/assets.js";
 import { GALATICOS_BRANDED_CLUB, GALATICOS_CLUB, KONG_CLUB, makeClubsDir } from "../fixtures/clubs.js";
 import { makeKit } from "../fixtures/kits.js";
 import { makeTempDir } from "../fixtures/temp.js";
@@ -421,6 +421,75 @@ describe("runCli validate", () => {
     const { io, errors } = captureIo();
     expect(await runCli(["validate"], io)).toBe(1);
     expect(errors).toEqual(["Error: Missing required option --club or --all"]);
+  });
+
+  async function generatedBrandedSetup(): Promise<{ clubs: string; assets: string }> {
+    const setup = await brandedSetup();
+    await runCli(["generate", "--all", "--seed", "3", "--clubs", setup.clubs, "--assets", setup.assets, "--out", await makeTempDir("cli")], captureIo().io);
+    return setup;
+  }
+
+  async function validateBranded(setup: { clubs: string; assets: string }) {
+    const capture = captureIo();
+    const code = await runCli(["validate", "--club", "galaticos-fc", "--clubs", setup.clubs, "--assets", setup.assets], capture.io);
+    return { code, ...capture };
+  }
+
+  async function readHome(clubs: string) {
+    return parseKitDefinition(JSON.parse(await readFile(kitFile(clubs, "galaticos-fc", "home"), "utf8")));
+  }
+
+  it("accepts freshly generated clubs with logos", async () => {
+    const { code, logs, errors } = await validateBranded(await generatedBrandedSetup());
+    expect(code).toBe(0);
+    expect(logs).toEqual(["OK galaticos-fc (3 kits)"]);
+    expect(errors).toEqual([]);
+  });
+
+  it("reports unregistered ids in the club and in a hand-edited kit", async () => {
+    const setup = await generatedBrandedSetup();
+    await writeFile(path.join(setup.clubs, "galaticos-fc", "club.json"), JSON.stringify({ ...GALATICOS_BRANDED_CLUB, sponsors: { acme: 1 } }));
+    const home = await readHome(setup.clubs);
+    await writeFile(kitFile(setup.clubs, "galaticos-fc", "home"), JSON.stringify({ ...home, manufacturer: { ...home.manufacturer, id: "kong" } }));
+    const { code, errors } = await validateBranded(setup);
+    expect(code).toBe(1);
+    expect(errors[0]).toContain('  - unknown-asset: sponsors references unknown sponsor "acme" (known: luna-air, orbita-bank)');
+    expect(errors[0]).toContain('  - unknown-asset: home kit references unknown manufacturer "kong" (known: vertex)');
+  });
+
+  it("reports missing, opaque and broken logo files", async () => {
+    const setup = await generatedBrandedSetup();
+    await rm(path.join(setup.clubs, "galaticos-fc", "logo.png"));
+    await rm(path.join(setup.assets, "manufacturers", "vertex.png"));
+    await writeFile(path.join(setup.assets, "sponsors", "orbita-bank.png"), await makeOpaquePng(60, 20));
+    await writeFile(path.join(setup.assets, "sponsors", "luna-air.svg"), "not an image");
+    const { code, errors } = await validateBranded(setup);
+    expect(code).toBe(1);
+    expect(errors[0]).toContain(`  - missing-asset: club badge not found: ${path.join(setup.clubs, "galaticos-fc", "logo.png")}`);
+    expect(errors[0]).toContain(`  - missing-asset: manufacturer "vertex" file not found: ${path.join(setup.assets, "manufacturers", "vertex.png")}`);
+    expect(errors[0]).toContain('  - opaque-logo: sponsor "orbita-bank" (sponsors/orbita-bank.png) has no transparent pixels');
+    expect(errors[0]).toContain('  - invalid-file: sponsor "luna-air" (sponsors/luna-air.svg) is not a valid image');
+  });
+
+  it("reports a hand-edited logo color without contrast", async () => {
+    const setup = await generatedBrandedSetup();
+    const home = await readHome(setup.clubs);
+    const edited = {
+      ...home,
+      pattern: { id: "solid", base: "primary", overlay: "secondary", params: {} },
+      sponsor: { id: home.sponsor!.id, color: "primary" },
+    };
+    await writeFile(kitFile(setup.clubs, "galaticos-fc", "home"), JSON.stringify(edited));
+    const { code, errors } = await validateBranded(setup);
+    expect(code).toBe(1);
+    expect(errors[0]).toContain("  - logo-contrast: home kit sponsor #123456 has contrast 1.00 against primary #123456 (minimum 3)");
+  });
+
+  it("fails every club when the asset registry is missing", async () => {
+    const assets = await makeTempDir("assets");
+    const { io, errors } = captureIo();
+    expect(await runCli(["validate", "--club", "galaticos-fc", "--clubs", await galaticosClubsDir(), "--assets", assets], io)).toBe(1);
+    expect(errors).toEqual([`FAIL galaticos-fc\n  - invalid-file: Asset registry not found: ${path.join(assets, "registry.json")}`]);
   });
 });
 

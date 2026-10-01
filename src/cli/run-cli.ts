@@ -5,12 +5,12 @@ import { parseArgs } from "node:util";
 import { loadAssetRegistry, type AssetRegistry } from "../assets/registry.js";
 import { ASSETS_DIR, CLUBS_DIR, kitRenderPath, OUTPUT_DIR } from "../config/paths.js";
 import type { ClubIdentity } from "../core/club.js";
-import { KIT_TYPES, KitDefinitionSchema, KitTypeSchema, type KitDefinition, type KitType } from "../core/kit.js";
+import { BRAND_LISTS, KIT_TYPES, KitDefinitionSchema, KitTypeSchema, type BrandKind, type KitDefinition, type KitType } from "../core/kit.js";
 import { parseWith } from "../core/primitives.js";
 import { deriveSeed, MAX_SEED } from "../core/random.js";
-import { formatIssues, validateClub, validateClubAssets, validateKit, validateKitSet, type ValidationIssue } from "../core/validation.js";
+import { formatIssues, validateClub, validateClubAssets, validateKit, validateKitAssets, validateKitSet, type ValidationIssue } from "../core/validation.js";
 import { generateKitSet } from "../generator/kit-generator.js";
-import { loadKitLogos } from "../io/asset-repository.js";
+import { checkAssetFiles, loadKitLogos, type AssetDirs, type AssetRefs } from "../io/asset-repository.js";
 import { hasClubLogo, listClubIds, loadClub, loadKit, saveKit } from "../io/club-repository.js";
 import { readJsonFile } from "../io/json-file.js";
 import { renderKit2dPng } from "../renderers/renderer-2d.js";
@@ -136,11 +136,18 @@ async function renderCommand(args: string[], io: CliIo): Promise<number> {
   return 0;
 }
 
+type RegistryLoad = { registry: AssetRegistry } | { error: string };
+
+function assetRefs(club: ClubIdentity, kits: KitDefinition[]): AssetRefs {
+  const ids = (kind: BrandKind): string[] => [...Object.keys(club[BRAND_LISTS[kind]] ?? {}), ...kits.flatMap((kit) => kit[kind]?.id ?? [])];
+  return { badge: kits.some((kit) => kit.badge === true), sponsors: ids("sponsor"), manufacturers: ids("manufacturer") };
+}
+
 // Junta todos os problemas do clube em vez de parar no primeiro, para o usuário corrigir tudo de uma vez.
-async function validateClubFiles(clubId: string, clubsDir: string): Promise<{ kitCount: number; issues: ValidationIssue[] }> {
+async function validateClubFiles(clubId: string, dirs: AssetDirs, load: RegistryLoad): Promise<{ kitCount: number; issues: ValidationIssue[] }> {
   let club: ClubIdentity;
   try {
-    club = await loadClub(clubId, clubsDir);
+    club = await loadClub(clubId, dirs.clubsDir);
   } catch (error) {
     return { kitCount: 0, issues: [{ rule: "invalid-file", message: errorMessage(error) }] };
   }
@@ -148,7 +155,7 @@ async function validateClubFiles(clubId: string, clubsDir: string): Promise<{ ki
   const kits: Partial<Record<KitType, KitDefinition>> = {};
   for (const kitType of KIT_TYPES) {
     try {
-      const kit = await loadKit(club.id, kitType, clubsDir);
+      const kit = await loadKit(club.id, kitType, dirs.clubsDir);
       if (kit) kits[kitType] = kit;
     } catch (error) {
       issues.push({ rule: "invalid-file", message: errorMessage(error) });
@@ -156,15 +163,33 @@ async function validateClubFiles(clubId: string, clubsDir: string): Promise<{ ki
   }
   const loaded = Object.values(kits);
   issues.push(...loaded.flatMap((kit) => validateKit(kit)), ...validateKitSet(kits));
+  // Sem registry não dá para conferir ids nem arquivos de logo; o erro do registry já explica o FAIL.
+  if ("error" in load) {
+    issues.push({ rule: "invalid-file", message: load.error });
+  } else {
+    issues.push(...validateClubAssets(club, load.registry), ...loaded.flatMap((kit) => validateKitAssets(kit, load.registry)));
+    issues.push(...(await checkAssetFiles(club.id, assetRefs(club, loaded), load.registry, dirs)));
+  }
   return { kitCount: loaded.length, issues };
 }
 
 async function validateCommand(args: string[], io: CliIo): Promise<number> {
-  const options = { club: { type: "string" }, all: { type: "boolean", default: false }, clubs: { type: "string", default: CLUBS_DIR } } as const;
+  const options = {
+    club: { type: "string" },
+    all: { type: "boolean", default: false },
+    clubs: { type: "string", default: CLUBS_DIR },
+    assets: { type: "string", default: ASSETS_DIR },
+  } as const;
   const { values } = parseArgs({ args, options, strict: true });
+  const clubIds = await resolveClubIds(values, values.clubs);
+  const load: RegistryLoad = await loadAssetRegistry(values.assets).then(
+    (registry) => ({ registry }),
+    (error: unknown) => ({ error: errorMessage(error) }),
+  );
+  const dirs: AssetDirs = { assetsDir: values.assets, clubsDir: values.clubs };
   let failed = 0;
-  for (const clubId of await resolveClubIds(values, values.clubs)) {
-    const { kitCount, issues } = await validateClubFiles(clubId, values.clubs);
+  for (const clubId of clubIds) {
+    const { kitCount, issues } = await validateClubFiles(clubId, dirs, load);
     if (issues.length === 0) {
       io.log(`OK ${clubId} (${kitCount} kits)`);
     } else {
