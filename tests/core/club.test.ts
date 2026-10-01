@@ -45,6 +45,10 @@ describe("parseClubIdentity", () => {
     expect(() => parseClubIdentity({ ...galaticos, name: "" })).toThrow(/name/);
   });
 
+  it("rejects unknown keys and names them", () => {
+    expect(() => parseClubIdentity({ ...galaticos, palette: { primary: "#123456", secundary: "#ffffff" } })).toThrow(/secundary/);
+  });
+
   it("rejects invalid palette colors", () => {
     expect(() => parseClubIdentity({ ...galaticos, palette: { primary: "azul" } })).toThrow(/palette\.primary/);
   });

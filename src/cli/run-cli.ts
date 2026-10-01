@@ -31,11 +31,13 @@ async function generateCommand(args: string[], io: CliIo): Promise<void> {
   const { values } = parseArgs({ args, options, strict: true });
   if (!values.club) throw new Error("Missing required option --club");
   const seed = parseSeed(values.seed);
+  io.log(`Seed: ${seed}`);
   const club = await loadClub(values.club, values.clubs);
   const kit = generateKit(club, seed);
-  const kitFile = await saveKit(kit, "home", values.clubs);
   const pngFile = path.resolve(values.out, club.id, "2d", kitAssetFileName(club.id, "home", "2d"));
   await writeOutput(pngFile, await renderKit2dPng(kit));
+  // Salvar por último evita sobrescrever o kit.json versionado quando a renderização ou escrita do PNG falha.
+  const kitFile = await saveKit(kit, "home", values.clubs);
   io.log(`Generated ${club.name} home kit (seed ${seed})`);
   io.log(`  definition: ${kitFile}`);
   io.log(`  2D: ${pngFile}`);

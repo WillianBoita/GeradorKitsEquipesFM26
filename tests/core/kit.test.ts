@@ -32,6 +32,12 @@ describe("parseKitDefinition", () => {
     expect(() => parseKitDefinition({ ...makeKit(), collar: { style: "round", color: "gold" } })).toThrow(/Invalid kit definition/);
   });
 
+  it("rejects unknown keys and names them", () => {
+    const raw = JSON.parse(JSON.stringify(makeKit()));
+    raw.collar.colour = "primary";
+    expect(() => parseKitDefinition(raw)).toThrow(/colour/);
+  });
+
   it("rejects invalid club ids", () => {
     expect(() => parseKitDefinition(makeKit({ clubId: "Bad Id" }))).toThrow(/clubId/);
   });

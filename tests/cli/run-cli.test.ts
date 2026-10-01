@@ -52,6 +52,20 @@ describe("runCli generate", () => {
     expect(logs.join("\n")).toContain("seed 42");
   });
 
+  it("keeps the versioned kit.json and logs the seed when the PNG cannot be written", async () => {
+    const [clubs, out] = [await galaticosClubsDir(), await tempDir()];
+    const kitFile = path.join(clubs, "galaticos-fc", "kits", "home", "kit.json");
+    expect(await runCli(["generate", "--club", "galaticos-fc", "--seed", "1", "--clubs", clubs, "--out", out], captureIo().io)).toBe(0);
+    const before = await readFile(kitFile, "utf8");
+    const blocker = path.join(await tempDir(), "not-a-dir");
+    await writeFile(blocker, "");
+    const { io, logs, errors } = captureIo();
+    expect(await runCli(["generate", "--club", "galaticos-fc", "--seed", "2", "--clubs", clubs, "--out", blocker], io)).toBe(1);
+    expect(errors).toHaveLength(1);
+    expect(await readFile(kitFile, "utf8")).toBe(before);
+    expect(logs).toContain("Seed: 2");
+  });
+
   it("is reproducible for the same seed", async () => {
     const [first, second] = [await galaticosClubsDir(), await galaticosClubsDir()];
     await runCli(["generate", "--club", "galaticos-fc", "--seed", "7", "--clubs", first, "--out", await tempDir()], captureIo().io);

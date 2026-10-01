@@ -7,14 +7,14 @@ export const SLEEVE_STYLES = ["match-body", "solid"] as const;
 
 export const ColorRoleSchema = z.enum(COLOR_ROLES);
 
-export const KitDefinitionSchema = z.object({
+export const KitDefinitionSchema = z.strictObject({
   clubId: ClubIdSchema,
-  colors: z.object({ primary: HexColorSchema, secondary: HexColorSchema, accent: HexColorSchema }),
-  pattern: z.object({ id: z.string().min(1), base: ColorRoleSchema, overlay: ColorRoleSchema, params: z.record(z.string(), z.number()).default({}) }),
-  collar: z.object({ style: z.enum(COLLAR_STYLES), color: ColorRoleSchema }),
-  sleeves: z.object({ style: z.enum(SLEEVE_STYLES), color: ColorRoleSchema, cuffColor: ColorRoleSchema }),
-  shorts: z.object({ color: ColorRoleSchema }),
-  socks: z.object({ color: ColorRoleSchema }),
+  colors: z.strictObject({ primary: HexColorSchema, secondary: HexColorSchema, accent: HexColorSchema }),
+  pattern: z.strictObject({ id: z.string().min(1), base: ColorRoleSchema, overlay: ColorRoleSchema, params: z.record(z.string(), z.number()).default({}) }),
+  collar: z.strictObject({ style: z.enum(COLLAR_STYLES), color: ColorRoleSchema }),
+  sleeves: z.strictObject({ style: z.enum(SLEEVE_STYLES), color: ColorRoleSchema, cuffColor: ColorRoleSchema }),
+  shorts: z.strictObject({ color: ColorRoleSchema }),
+  socks: z.strictObject({ color: ColorRoleSchema }),
 });
 
 export type ColorRole = z.infer<typeof ColorRoleSchema>;
