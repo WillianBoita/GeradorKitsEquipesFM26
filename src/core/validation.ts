@@ -86,6 +86,14 @@ export function validateKit(kit: KitDefinition): ValidationIssue[] {
   return issues;
 }
 
+export function validateKitAssets(kit: KitDefinition, registry: AssetRegistry): ValidationIssue[] {
+  return BRAND_KINDS.flatMap((kind) => {
+    const logo = kit[kind];
+    if (!logo || findAsset(registry, kind, logo.id)) return [];
+    return [{ rule: "unknown-asset", message: `${kit.kitType} kit references unknown ${kind} "${logo.id}" (known: ${knownAssetIds(registry, kind)})` }];
+  });
+}
+
 export function validateKitSet(kits: Partial<Record<KitType, KitDefinition>>): ValidationIssue[] {
   const present = KIT_TYPES.flatMap((kitType) => kits[kitType] ?? []);
   const issues: ValidationIssue[] = [];

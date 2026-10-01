@@ -2,7 +2,16 @@ import { describe, expect, it } from "vitest";
 import type { AssetRegistry } from "../../src/assets/registry.js";
 import { parseClubIdentity } from "../../src/core/club.js";
 import type { KitDefinition } from "../../src/core/kit.js";
-import { formatIssues, validateClub, validateClubAssets, validateColors, validateKit, validateKitSet, validatePalette } from "../../src/core/validation.js";
+import {
+  formatIssues,
+  validateClub,
+  validateClubAssets,
+  validateColors,
+  validateKit,
+  validateKitAssets,
+  validateKitSet,
+  validatePalette,
+} from "../../src/core/validation.js";
 import { GALATICOS_CLUB } from "../fixtures/clubs.js";
 import { makeKit } from "../fixtures/kits.js";
 
@@ -123,6 +132,23 @@ describe("validateKit", () => {
     const kit = makeKit({ colors: { primary: "#123456", secondary: "#1a3d66", accent: "#ffd700" } });
     expect(validateKit(kit)).toEqual([
       { rule: "pattern-contrast", message: "home kit base #123456 and overlay #1a3d66 are too similar (distance 0.039, minimum 0.15)" },
+    ]);
+  });
+});
+
+describe("validateKitAssets", () => {
+  it("accepts kits without logos or with registered ids", () => {
+    expect(validateKitAssets(makeKit(), REGISTRY)).toEqual([]);
+    expect(
+      validateKitAssets(makeKit({ sponsor: { id: "luna-air", color: "secondary" }, manufacturer: { id: "vertex", color: "secondary" } }), REGISTRY),
+    ).toEqual([]);
+  });
+
+  it("reports sponsor and manufacturer ids missing from the registry", () => {
+    const kit = makeKit({ kitType: "away", sponsor: { id: "acme", color: "primary" }, manufacturer: { id: "kong", color: "primary" } });
+    expect(validateKitAssets(kit, REGISTRY)).toEqual([
+      { rule: "unknown-asset", message: 'away kit references unknown sponsor "acme" (known: luna-air, orbita-bank)' },
+      { rule: "unknown-asset", message: 'away kit references unknown manufacturer "kong" (known: vertex)' },
     ]);
   });
 });

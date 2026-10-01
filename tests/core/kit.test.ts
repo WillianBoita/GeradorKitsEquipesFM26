@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { KIT_TYPES, parseKitDefinition } from "../../src/core/kit.js";
+import { KIT_TYPES, parseKitDefinition, resolveLogoColor } from "../../src/core/kit.js";
 import { MAX_SEED } from "../../src/core/random.js";
 import { makeKit } from "../fixtures/kits.js";
 
@@ -64,5 +64,37 @@ describe("parseKitDefinition", () => {
 
   it("rejects unknown keys in generatedWith", () => {
     expect(() => parseKitDefinition({ ...makeKit(), generatedWith: { seed: 1, attempt: 0 } })).toThrow(/attempt/);
+  });
+
+  it("accepts badge, sponsor and manufacturer and keeps them through a JSON round trip", () => {
+    const kit = makeKit({ badge: true, sponsor: { id: "luna-air", color: "primary", outline: "secondary" }, manufacturer: { id: "vertex", color: "#000000" } });
+    expect(parseKitDefinition(JSON.parse(JSON.stringify(kit)))).toEqual(kit);
+  });
+
+  it("keeps Phase 2a kits without logos valid", () => {
+    const kit = parseKitDefinition(makeKit());
+    expect(kit).not.toHaveProperty("badge");
+    expect(kit).not.toHaveProperty("sponsor");
+    expect(kit).not.toHaveProperty("manufacturer");
+  });
+
+  it("normalizes hex logo colors", () => {
+    expect(parseKitDefinition(makeKit({ sponsor: { id: "luna-air", color: "#FFF" } })).sponsor).toEqual({ id: "luna-air", color: "#ffffff" });
+  });
+
+  it("rejects logo colors that are neither a palette role nor a hex color", () => {
+    expect(() => parseKitDefinition({ ...makeKit(), sponsor: { id: "luna-air", color: "gold" } })).toThrow(/sponsor\.color/);
+  });
+
+  it("rejects invalid logo ids and unknown logo keys", () => {
+    expect(() => parseKitDefinition({ ...makeKit(), manufacturer: { id: "Vertex", color: "primary" } })).toThrow(/manufacturer\.id/);
+    expect(() => parseKitDefinition({ ...makeKit(), sponsor: { id: "luna-air", color: "primary", colour: "accent" } })).toThrow(/colour/);
+  });
+});
+
+describe("resolveLogoColor", () => {
+  it("resolves palette roles and keeps hex colors", () => {
+    expect(resolveLogoColor(makeKit(), "accent")).toBe("#ffd700");
+    expect(resolveLogoColor(makeKit(), "#000000")).toBe("#000000");
   });
 });

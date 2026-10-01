@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ClubIdSchema, HexColorSchema, parseWith, SeedSchema } from "./primitives.js";
+import { AssetIdSchema, ClubIdSchema, HexColorSchema, parseWith, SeedSchema } from "./primitives.js";
 
 export const KIT_TYPES = ["home", "away", "third"] as const;
 export const COLOR_ROLES = ["primary", "secondary", "accent"] as const;
@@ -12,6 +12,9 @@ export const BRAND_LISTS = { sponsor: "sponsors", manufacturer: "manufacturers" 
 
 export const KitTypeSchema = z.enum(KIT_TYPES);
 export const ColorRoleSchema = z.enum(COLOR_ROLES);
+// Papel acompanha edições da paleta; hex cobre branco e preto, que não são papéis.
+export const LogoColorSchema = z.union([ColorRoleSchema, HexColorSchema]);
+const BrandLogoSchema = z.strictObject({ id: AssetIdSchema, color: LogoColorSchema, outline: LogoColorSchema.optional() });
 
 export const KitDefinitionSchema = z.strictObject({
   clubId: ClubIdSchema,
@@ -24,14 +27,28 @@ export const KitDefinitionSchema = z.strictObject({
   sleeves: z.strictObject({ style: z.enum(SLEEVE_STYLES), color: ColorRoleSchema, cuffColor: ColorRoleSchema }),
   shorts: z.strictObject({ color: ColorRoleSchema }),
   socks: z.strictObject({ color: ColorRoleSchema }),
+  badge: z.boolean().optional(),
+  sponsor: BrandLogoSchema.optional(),
+  manufacturer: BrandLogoSchema.optional(),
 });
 
 export type KitType = z.infer<typeof KitTypeSchema>;
 export type ColorRole = z.infer<typeof ColorRoleSchema>;
 export type CollarStyle = (typeof COLLAR_STYLES)[number];
 export type BrandKind = (typeof BRAND_KINDS)[number];
+export type LogoSlot = "badge" | BrandKind;
+export type LogoColor = z.infer<typeof LogoColorSchema>;
+export type BrandLogo = z.infer<typeof BrandLogoSchema>;
 export type KitDefinition = z.infer<typeof KitDefinitionSchema>;
 
 export function parseKitDefinition(input: unknown): KitDefinition {
   return parseWith(KitDefinitionSchema, input, "kit definition");
+}
+
+export function isColorRole(value: string): value is ColorRole {
+  return (COLOR_ROLES as readonly string[]).includes(value);
+}
+
+export function resolveLogoColor(kit: KitDefinition, value: LogoColor): string {
+  return isColorRole(value) ? kit.colors[value] : value;
 }
