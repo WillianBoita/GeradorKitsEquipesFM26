@@ -1,11 +1,12 @@
-import { access, readFile, writeFile } from "node:fs/promises";
+import { access, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import { parseSeed, runCli, USAGE } from "../../src/cli/run-cli.js";
-import { KIT_TYPES, parseKitDefinition, type KitType } from "../../src/core/kit.js";
+import { KIT_TYPES, parseKitDefinition, resolveLogoColor, type KitType } from "../../src/core/kit.js";
 import { deriveSeed, MAX_SEED } from "../../src/core/random.js";
-import { GALATICOS_CLUB, KONG_CLUB, makeClubsDir } from "../fixtures/clubs.js";
+import { makeAssetsDir, writeClubLogo } from "../fixtures/assets.js";
+import { GALATICOS_BRANDED_CLUB, GALATICOS_CLUB, KONG_CLUB, makeClubsDir } from "../fixtures/clubs.js";
 import { makeKit } from "../fixtures/kits.js";
 import { makeTempDir } from "../fixtures/temp.js";
 
@@ -35,6 +36,24 @@ async function exists(file: string): Promise<boolean> {
     return false;
   }
 }
+
+async function pixelAt(png: Buffer, x: number, y: number): Promise<number[]> {
+  const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const index = (y * info.width + x) * info.channels;
+  return [...data.subarray(index, index + 4)];
+}
+
+function rgba(hex: string): number[] {
+  return [...[1, 3, 5].map((start) => Number.parseInt(hex.slice(start, start + 2), 16)), 255];
+}
+
+async function brandedSetup(withLogo = true): Promise<{ clubs: string; assets: string }> {
+  const clubs = await makeClubsDir({ "galaticos-fc": JSON.stringify(GALATICOS_BRANDED_CLUB) });
+  if (withLogo) await writeClubLogo(clubs, "galaticos-fc");
+  return { clubs, assets: await makeAssetsDir() };
+}
+
+const GREEN = [0, 255, 0, 255];
 
 describe("parseSeed", () => {
   it.each([
@@ -206,6 +225,95 @@ describe("runCli generate --all", () => {
   });
 });
 
+describe("runCli generate with logos", () => {
+  it("saves the logos in every kit.json and draws them on the PNGs", async () => {
+    const { clubs, assets } = await brandedSetup();
+    const out = await makeTempDir("cli");
+    expect(await runCli(["generate", "--club", "galaticos-fc", "--seed", "42", "--clubs", clubs, "--assets", assets, "--out", out], captureIo().io)).toBe(0);
+    const kits = await Promise.all(
+      KIT_TYPES.map(async (kitType) => parseKitDefinition(JSON.parse(await readFile(kitFile(clubs, "galaticos-fc", kitType), "utf8")))),
+    );
+    for (const kit of kits) {
+      expect(kit.badge).toBe(true);
+      expect(kit.sponsor?.id).toBe(kits[0]!.sponsor?.id);
+      expect(kit.manufacturer?.id).toBe("vertex");
+      const png = await readFile(pngFile(out, "galaticos-fc", kit.kitType));
+      expect(await pixelAt(png, 250, 120)).toEqual(GREEN);
+      expect(await pixelAt(png, 164, 120)).toEqual(rgba(resolveLogoColor(kit, kit.manufacturer!.color)));
+    }
+  });
+
+  it("generates kits without a badge when the club has no logo.png", async () => {
+    const { clubs, assets } = await brandedSetup(false);
+    expect(
+      await runCli(
+        ["generate", "--club", "galaticos-fc", "--seed", "1", "--clubs", clubs, "--assets", assets, "--out", await makeTempDir("cli")],
+        captureIo().io,
+      ),
+    ).toBe(0);
+    const kit = parseKitDefinition(JSON.parse(await readFile(kitFile(clubs, "galaticos-fc", "home"), "utf8")));
+    expect(kit).not.toHaveProperty("badge");
+    expect(kit.sponsor).toBeDefined();
+  });
+
+  it("rejects clubs whose pools reference unregistered assets", async () => {
+    const clubs = await makeClubsDir({ "galaticos-fc": JSON.stringify({ ...GALATICOS_BRANDED_CLUB, sponsors: { acme: 1 } }) });
+    const { io, errors } = captureIo();
+    expect(
+      await runCli(["generate", "--club", "galaticos-fc", "--clubs", clubs, "--assets", await makeAssetsDir(), "--out", await makeTempDir("cli")], io),
+    ).toBe(1);
+    expect(errors.join("\n")).toContain(
+      'Club "galaticos-fc" is invalid:\n  - unknown-asset: sponsors references unknown sponsor "acme" (known: luna-air, orbita-bank)',
+    );
+  });
+
+  it("keeps generating the other clubs when one references an unregistered asset", async () => {
+    const clubs = await makeClubsDir({
+      "galaticos-fc": JSON.stringify({ ...GALATICOS_BRANDED_CLUB, manufacturers: { kong: 1 } }),
+      "kong-team": JSON.stringify(KONG_CLUB),
+    });
+    const { io, logs, errors } = captureIo();
+    expect(await runCli(["generate", "--all", "--clubs", clubs, "--assets", await makeAssetsDir(), "--out", await makeTempDir("cli")], io)).toBe(1);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatch(/^Error: \[galaticos-fc\] Club "galaticos-fc" is invalid:/);
+    expect(await exists(kitFile(clubs, "galaticos-fc", "home"))).toBe(false);
+    expect(await exists(kitFile(clubs, "kong-team", "home"))).toBe(true);
+    expect(logs.at(-1)).toBe("Generated 1 of 2 clubs");
+  });
+
+  it("writes no kit.json when a registered logo file is missing", async () => {
+    const { clubs, assets } = await brandedSetup();
+    const missing = path.join(assets, "manufacturers", "vertex.png");
+    await rm(missing);
+    const { io, errors } = captureIo();
+    expect(
+      await runCli(["generate", "--club", "galaticos-fc", "--seed", "42", "--clubs", clubs, "--assets", assets, "--out", await makeTempDir("cli")], io),
+    ).toBe(1);
+    expect(errors.join("\n")).toContain(`Manufacturer "vertex" file not found: ${missing}`);
+    for (const kitType of KIT_TYPES) expect(await exists(kitFile(clubs, "galaticos-fc", kitType))).toBe(false);
+  });
+
+  it("reports a missing asset registry", async () => {
+    const assets = await makeTempDir("assets");
+    const { io, errors } = captureIo();
+    expect(await runCli(["generate", "--club", "galaticos-fc", "--clubs", await galaticosClubsDir(), "--assets", assets], io)).toBe(1);
+    expect(errors).toEqual([`Error: Asset registry not found: ${path.join(assets, "registry.json")}`]);
+  });
+
+  it("is reproducible byte for byte with logos", async () => {
+    const [first, second] = [await brandedSetup(), await brandedSetup()];
+    const [firstOut, secondOut] = [await makeTempDir("cli"), await makeTempDir("cli")];
+    await runCli(["generate", "--club", "galaticos-fc", "--seed", "7", "--clubs", first.clubs, "--assets", first.assets, "--out", firstOut], captureIo().io);
+    await runCli(["generate", "--club", "galaticos-fc", "--seed", "7", "--clubs", second.clubs, "--assets", second.assets, "--out", secondOut], captureIo().io);
+    for (const kitType of KIT_TYPES) {
+      expect(await readFile(kitFile(second.clubs, "galaticos-fc", kitType), "utf8")).toBe(
+        await readFile(kitFile(first.clubs, "galaticos-fc", kitType), "utf8"),
+      );
+      expect((await readFile(pngFile(secondOut, "galaticos-fc", kitType))).equals(await readFile(pngFile(firstOut, "galaticos-fc", kitType)))).toBe(true);
+    }
+  });
+});
+
 describe("runCli render", () => {
   it("renders a definition file without randomization", async () => {
     const dir = await makeTempDir("cli");
@@ -234,6 +342,26 @@ describe("runCli render", () => {
     expect(await runCli(["render", "--definition", definition, "--out", path.join(dir, "kit.png")], io)).toBe(1);
     expect(errors.join("\n")).toContain(`Invalid kit definition in ${definition}`);
     expect(errors.join("\n")).toContain("kitType");
+  });
+
+  it("renders the logos of a definition, with the badge from --clubs and the files from --assets", async () => {
+    const { clubs, assets } = await brandedSetup();
+    const dir = await makeTempDir("cli");
+    const [definition, png] = [path.join(dir, "kit.json"), path.join(dir, "kit.png")];
+    await writeFile(definition, JSON.stringify(makeKit({ badge: true, manufacturer: { id: "vertex", color: "#000000" } })));
+    expect(await runCli(["render", "--definition", definition, "--out", png, "--clubs", clubs, "--assets", assets], captureIo().io)).toBe(0);
+    expect(await pixelAt(await readFile(png), 250, 120)).toEqual(GREEN);
+    expect(await pixelAt(await readFile(png), 164, 120)).toEqual([0, 0, 0, 255]);
+  });
+
+  it("names the missing badge when rendering", async () => {
+    const { clubs, assets } = await brandedSetup(false);
+    const dir = await makeTempDir("cli");
+    const definition = path.join(dir, "kit.json");
+    await writeFile(definition, JSON.stringify(makeKit({ badge: true })));
+    const { io, errors } = captureIo();
+    expect(await runCli(["render", "--definition", definition, "--out", path.join(dir, "kit.png"), "--clubs", clubs, "--assets", assets], io)).toBe(1);
+    expect(errors).toEqual([`Error: Club "galaticos-fc" badge not found: ${path.join(clubs, "galaticos-fc", "logo.png")}`]);
   });
 });
 

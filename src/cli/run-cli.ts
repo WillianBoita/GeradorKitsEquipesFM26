@@ -2,14 +2,16 @@ import { randomInt } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
-import { CLUBS_DIR, kitRenderPath, OUTPUT_DIR } from "../config/paths.js";
+import { loadAssetRegistry, type AssetRegistry } from "../assets/registry.js";
+import { ASSETS_DIR, CLUBS_DIR, kitRenderPath, OUTPUT_DIR } from "../config/paths.js";
 import type { ClubIdentity } from "../core/club.js";
 import { KIT_TYPES, KitDefinitionSchema, KitTypeSchema, type KitDefinition, type KitType } from "../core/kit.js";
 import { parseWith } from "../core/primitives.js";
 import { deriveSeed, MAX_SEED } from "../core/random.js";
-import { formatIssues, validateClub, validateKit, validateKitSet, type ValidationIssue } from "../core/validation.js";
+import { formatIssues, validateClub, validateClubAssets, validateKit, validateKitSet, type ValidationIssue } from "../core/validation.js";
 import { generateKitSet } from "../generator/kit-generator.js";
-import { listClubIds, loadClub, loadKit, saveKit } from "../io/club-repository.js";
+import { loadKitLogos } from "../io/asset-repository.js";
+import { hasClubLogo, listClubIds, loadClub, loadKit, saveKit } from "../io/club-repository.js";
 import { readJsonFile } from "../io/json-file.js";
 import { renderKit2dPng } from "../renderers/renderer-2d.js";
 
@@ -22,13 +24,15 @@ interface GenerateOptions {
   kitTypes: readonly KitType[];
   outDir: string;
   clubsDir: string;
+  assetsDir: string;
+  registry: AssetRegistry;
 }
 
 export const USAGE = [
   "Usage:",
-  "  kit-generator generate (--club <id> | --all) [--type <home|away|third>] [--seed <n>] [--out <dir>] [--clubs <dir>]",
-  "  kit-generator render --definition <kit.json> --out <file.png>",
-  "  kit-generator validate (--club <id> | --all) [--clubs <dir>]",
+  "  kit-generator generate (--club <id> | --all) [--type <home|away|third>] [--seed <n>] [--out <dir>] [--clubs <dir>] [--assets <dir>]",
+  "  kit-generator render --definition <kit.json> --out <file.png> [--clubs <dir>] [--assets <dir>]",
+  "  kit-generator validate (--club <id> | --all) [--clubs <dir>] [--assets <dir>]",
 ].join("\n");
 
 export function parseSeed(value: string | undefined): number {
@@ -59,13 +63,16 @@ async function generateClub(clubId: string, seed: number, options: GenerateOptio
   // Seed impressa antes de qualquer efeito colateral, para reproduzir até uma execução que falhou.
   io.log(`Seed: ${seed} (${clubId})`);
   const club = await loadClub(clubId, options.clubsDir);
-  const set = generateKitSet(club, seed);
+  const assetIssues = validateClubAssets(club, options.registry);
+  if (assetIssues.length > 0) throw new Error(`Club "${club.id}" is invalid:\n${formatIssues(assetIssues)}`);
+  const set = generateKitSet(club, seed, { badge: await hasClubLogo(club.id, options.clubsDir) });
   const kits = options.kitTypes.map((kitType) => set[kitType]);
   // Todos os PNGs antes do primeiro kit.json: uma falha de renderização não deixa o conjunto versionado pela metade.
   const pngFiles: string[] = [];
   for (const kit of kits) {
     const pngFile = kitRenderPath(options.outDir, club.id, kit.kitType, "2d");
-    await writeOutput(pngFile, await renderKit2dPng(kit));
+    const logos = await loadKitLogos(kit, options.registry, options);
+    await writeOutput(pngFile, await renderKit2dPng(kit, { logos }));
     pngFiles.push(pngFile);
   }
   const lines = [`Generated ${club.name} kits (seed ${seed})`];
@@ -84,12 +91,14 @@ async function generateCommand(args: string[], io: CliIo): Promise<number> {
     seed: { type: "string" },
     out: { type: "string", default: OUTPUT_DIR },
     clubs: { type: "string", default: CLUBS_DIR },
+    assets: { type: "string", default: ASSETS_DIR },
   } as const;
   const { values } = parseArgs({ args, options, strict: true });
   const kitTypes = values.type === undefined ? KIT_TYPES : [parseWith(KitTypeSchema, values.type, "kit type")];
   const seed = values.seed === undefined ? undefined : parseSeed(values.seed);
   const clubIds = await resolveClubIds(values, values.clubs);
-  const generateOptions: GenerateOptions = { kitTypes, outDir: path.resolve(values.out), clubsDir: values.clubs };
+  const registry = await loadAssetRegistry(values.assets);
+  const generateOptions: GenerateOptions = { kitTypes, outDir: path.resolve(values.out), clubsDir: values.clubs, assetsDir: values.assets, registry };
   if (!values.all) {
     await generateClub(clubIds[0]!, seed ?? parseSeed(undefined), generateOptions, io);
     return 0;
@@ -109,12 +118,20 @@ async function generateCommand(args: string[], io: CliIo): Promise<number> {
 }
 
 async function renderCommand(args: string[], io: CliIo): Promise<number> {
-  const { values } = parseArgs({ args, options: { definition: { type: "string" }, out: { type: "string" } }, strict: true });
+  const options = {
+    definition: { type: "string" },
+    out: { type: "string" },
+    clubs: { type: "string", default: CLUBS_DIR },
+    assets: { type: "string", default: ASSETS_DIR },
+  } as const;
+  const { values } = parseArgs({ args, options, strict: true });
   if (!values.definition) throw new Error("Missing required option --definition");
   if (!values.out) throw new Error("Missing required option --out");
   const kit = parseWith(KitDefinitionSchema, await readJsonFile(values.definition), `kit definition in ${values.definition}`);
+  const registry = await loadAssetRegistry(values.assets);
+  const logos = await loadKitLogos(kit, registry, { assetsDir: values.assets, clubsDir: values.clubs });
   const out = path.resolve(values.out);
-  await writeOutput(out, await renderKit2dPng(kit));
+  await writeOutput(out, await renderKit2dPng(kit, { logos }));
   io.log(`Rendered ${values.definition} to ${out}`);
   return 0;
 }
