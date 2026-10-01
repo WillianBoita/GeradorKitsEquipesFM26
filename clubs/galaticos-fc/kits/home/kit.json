@@ -1,0 +1,32 @@
+{
+  "clubId": "galaticos-fc",
+  "colors": {
+    "primary": "#123456",
+    "secondary": "#ffffff",
+    "accent": "#ffd700"
+  },
+  "pattern": {
+    "id": "sash",
+    "base": "primary",
+    "overlay": "secondary",
+    "params": {
+      "width": 79.312,
+      "direction": 1
+    }
+  },
+  "collar": {
+    "style": "v-neck",
+    "color": "secondary"
+  },
+  "sleeves": {
+    "style": "solid",
+    "color": "secondary",
+    "cuffColor": "secondary"
+  },
+  "shorts": {
+    "color": "secondary"
+  },
+  "socks": {
+    "color": "primary"
+  }
+}
