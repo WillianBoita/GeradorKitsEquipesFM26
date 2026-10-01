@@ -28,10 +28,11 @@ async function readIfExists(file: string): Promise<Buffer | undefined> {
   }
 }
 
-// O Sharp só diria "unsupported image format", sem o arquivo; quem chama põe o caminho na mensagem.
+// O Sharp só diria "unsupported image format" ou "libpng read error", sem o arquivo; quem chama põe o caminho na mensagem.
+// metadata() lê só o cabeçalho e aceita PNG com os pixels cortados, então decodifica de verdade (reduzido, para SVG enorme não alocar demais).
 async function isImage(content: Buffer): Promise<boolean> {
   try {
-    await sharp(content).metadata();
+    await sharp(content).resize({ width: 64, height: 64, fit: "inside" }).raw().toBuffer();
     return true;
   } catch {
     return false;
