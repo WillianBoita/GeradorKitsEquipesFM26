@@ -32,5 +32,15 @@
   },
   "socks": {
     "color": "accent"
+  },
+  "badge": true,
+  "sponsor": {
+    "id": "luna-air",
+    "color": "primary",
+    "outline": "secondary"
+  },
+  "manufacturer": {
+    "id": "vertex",
+    "color": "primary"
   }
 }

@@ -2,5 +2,7 @@
   "id": "galaticos-fc",
   "name": "Galáticos FC",
   "palette": { "primary": "#123456", "secondary": "#FFFFFF", "accent": "#FFD700" },
-  "style": { "categories": ["modern"], "patternWeights": { "solid": 20, "stripes": 40, "sash": 40 } }
+  "style": { "categories": ["modern"], "patternWeights": { "solid": 20, "stripes": 40, "sash": 40 } },
+  "sponsors": { "luna-air": 3, "orbita-bank": 1 },
+  "manufacturers": { "vertex": 1 }
 }
