@@ -2,7 +2,8 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseKitDefinition, type KitType } from "../../src/core/kit.js";
-import { kitDefinitionPath, listClubIds, loadClub, loadKit, saveKit } from "../../src/io/club-repository.js";
+import { clubLogoPath, hasClubLogo, kitDefinitionPath, listClubIds, loadClub, loadKit, saveKit } from "../../src/io/club-repository.js";
+import { writeClubLogo } from "../fixtures/assets.js";
 import { GALATICOS_CLUB, makeClubsDir } from "../fixtures/clubs.js";
 import { makeKit } from "../fixtures/kits.js";
 
@@ -121,5 +122,19 @@ describe("loadKit", () => {
     const dir = await makeClubsDir({});
     const file = await writeGalaticosKitFile(dir, "home", { ...makeKit(), kitType: undefined });
     await expect(loadKit("galaticos-fc", "home", dir)).rejects.toThrow(`Invalid kit definition in ${file}`);
+  });
+});
+
+describe("club logo", () => {
+  it("lives at clubs/<id>/logo.png", () => {
+    expect(clubLogoPath("galaticos-fc", "/tmp/clubs")).toBe(path.join("/tmp/clubs", "galaticos-fc", "logo.png"));
+    expect(() => clubLogoPath("../escape", "/tmp/clubs")).toThrow(/Invalid club id/);
+  });
+
+  it("reports whether the club has a logo", async () => {
+    const dir = await makeClubsDir({ "galaticos-fc": JSON.stringify(GALATICOS_CLUB) });
+    expect(await hasClubLogo("galaticos-fc", dir)).toBe(false);
+    await writeClubLogo(dir, "galaticos-fc");
+    expect(await hasClubLogo("galaticos-fc", dir)).toBe(true);
   });
 });

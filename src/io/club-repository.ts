@@ -40,6 +40,14 @@ export async function loadClub(clubId: string, clubsDir: string = CLUBS_DIR): Pr
   return club;
 }
 
+export function clubLogoPath(clubId: string, clubsDir: string = CLUBS_DIR): string {
+  return path.join(clubsDir, parseWith(ClubIdSchema, clubId, "club id"), "logo.png");
+}
+
+export async function hasClubLogo(clubId: string, clubsDir: string = CLUBS_DIR): Promise<boolean> {
+  return isFile(clubLogoPath(clubId, clubsDir));
+}
+
 export function kitDefinitionPath(clubId: string, kitType: KitType, clubsDir: string = CLUBS_DIR): string {
   // kitType chega da linha de comando (--type); o tipo TS sozinho não impede um diretório arbitrário.
   const type = parseWith(KitTypeSchema, kitType, "kit type");
