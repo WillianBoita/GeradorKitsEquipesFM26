@@ -41,6 +41,12 @@ describe("parseClubIdentity", () => {
     expect(() => parseClubIdentity(club)).toThrow(/patternWeights/);
   });
 
+  it("accepts pattern weights up to 1,000,000 and rejects larger ones", () => {
+    const withWeight = (weight: number) => ({ ...galaticos, style: { categories: [], patternWeights: { stripes: weight } } });
+    expect(parseClubIdentity(withWeight(1_000_000)).style.patternWeights).toEqual({ stripes: 1_000_000 });
+    expect(() => parseClubIdentity(withWeight(1_000_001))).toThrow(/patternWeights/);
+  });
+
   it("rejects empty names", () => {
     expect(() => parseClubIdentity({ ...galaticos, name: "" })).toThrow(/name/);
   });

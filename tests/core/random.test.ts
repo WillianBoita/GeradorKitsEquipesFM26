@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRng, MAX_SEED } from "../../src/core/random.js";
+import { createRng, deriveSeed, MAX_SEED } from "../../src/core/random.js";
 
 function sample(seed: number, count = 5): number[] {
   const rng = createRng(seed);
@@ -67,5 +67,39 @@ describe("createRng", () => {
 
   it("throws when no option has positive weight", () => {
     expect(() => createRng(1).weighted([["a", 0]])).toThrow("No options with positive weight");
+  });
+
+  it("throws when the sum of weights overflows", () => {
+    const entries = [
+      ["a", 1e308],
+      ["b", 1e308],
+    ] as const;
+    expect(() => createRng(1).weighted(entries)).toThrow("Sum of weights must be finite");
+  });
+});
+
+describe("deriveSeed", () => {
+  it("is stable across runs and platforms", () => {
+    expect(deriveSeed(42, "home")).toBe(466384824);
+    expect(deriveSeed(42, "palette:0")).toBe(2366796840);
+    expect(deriveSeed(MAX_SEED, "third")).toBe(65517137);
+  });
+
+  it("changes with the label and with the seed", () => {
+    expect(new Set(["home", "away", "third"].map((label) => deriveSeed(42, label))).size).toBe(3);
+    expect(deriveSeed(1, "home")).not.toBe(deriveSeed(2, "home"));
+  });
+
+  it("returns valid seeds", () => {
+    for (let seed = 0; seed < 1000; seed++) {
+      const derived = deriveSeed(seed, "palette:3");
+      expect(Number.isInteger(derived)).toBe(true);
+      expect(derived).toBeGreaterThanOrEqual(0);
+      expect(derived).toBeLessThanOrEqual(MAX_SEED);
+    }
+  });
+
+  it.each([-1, 1.5, MAX_SEED + 1])("rejects invalid seed %d", (seed) => {
+    expect(() => deriveSeed(seed, "home")).toThrow(/Seed must be an integer/);
   });
 });
