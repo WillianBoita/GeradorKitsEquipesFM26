@@ -38,7 +38,7 @@ Crie `clubs/<id>/club.json`. O `id` usa só minúsculas, dígitos e `-`, e deve 
 - Só `id`, `name` e `palette.primary` são obrigatórios.
 - `secondary` e `accent` ausentes são derivados da cor primária.
 - As cores informadas precisam ser distinguíveis entre si (distância OKLab de pelo menos 0.15). Cores quase iguais são rejeitadas, porque cada uma vira a cor base de um kit.
-- `fmUniqueId` é o Unique ID real do clube no FM26, como string de dígitos. Informe você mesmo; o código nunca o inventa. Nesta fase ele é só validado, ainda não é usado.
+- `fmUniqueId` é o Unique ID real do clube no FM26, como string de dígitos. Informe você mesmo; o código nunca o inventa. Só o `export` o usa (seção 6); o `generate` apenas o valida.
 - `patternWeights` aceita os padrões `solid`, `stripes` e `sash`, com pesos de 0 a 1.000.000. Sem ele, valem os pesos padrão (40/35/25).
 - `sponsors` e `manufacturers` são opcionais: IDs do registry de logos (seção 2) com pesos de 0 a 1.000.000. Cada geração sorteia um patrocinador e um fabricante para o conjunto: Home, Away e Third usam os mesmos. Sem a chave, os kits saem sem patrocinador ou sem fabricante.
 - Escudo: coloque um PNG com fundo transparente em `clubs/<id>/logo.png`. Ele aparece com as cores originais. Sem o arquivo, os kits saem sem escudo.
@@ -116,6 +116,42 @@ npm run kit-generator -- render --definition clubs/galaticos-fc/kits/home/kit.js
 ```
 
 O escudo vem de `clubs/<clubId>/logo.png` (`--clubs <dir>` muda a pasta de clubes) e os logos de `assets/` (`--assets <dir>`). Parâmetros de padrão fora da faixa são ajustados para o limite. Padrão desconhecido gera erro listando os conhecidos. Depois de editar, rode `validate`.
+
+### Estilos disponíveis no uniforme
+
+Os valores aceitos no `kit.json`. Valor fora da lista é rejeitado, exceto o parâmetro numérico de padrão, que é ajustado para o limite.
+
+**Padrão da camisa** (`pattern.id`). O padrão pinta o `overlay` sobre a cor `base`; o `generate` sorteia o padrão pelos pesos do `club.json`.
+
+| `pattern.id` | Aparência | Parâmetros (mín–máx, padrão) | Peso padrão |
+|---|---|---|---|
+| `solid` | Cor lisa, só a `base` | nenhum | 40 |
+| `stripes` | Listras verticais | `count` 3–15 inteiro, 7 (quantidade); `ratio` 0.2–0.4, 0.3 (fração de cada faixa que a listra ocupa) | 35 |
+| `sash` | Faixa diagonal no tronco | `width` 30–100, 70 (largura da faixa); `direction` 0 ou 1, 0 (`0` desce para a direita, `\`; `1` sobe para a direita, `/`) | 25 |
+
+Os limites mantêm o padrão abaixo de metade do tronco, para a `base` continuar dominante. Para `pattern.base` e `pattern.overlay` use um papel de cor (`primary`, `secondary` ou `accent`); os dois precisam ser cores diferentes e distinguíveis.
+
+**Gola** (`collar.style`), desenhada com a cor `collar.color` (um papel de cor):
+
+| `collar.style` | Aparência |
+|---|---|
+| `round` | Gola redonda |
+| `v-neck` | Gola em V |
+
+**Mangas** (`sleeves.style`):
+
+| `sleeves.style` | Aparência |
+|---|---|
+| `match-body` | A manga continua o padrão do corpo |
+| `solid` | A manga é lisa, na cor `sleeves.color` (o gerador usa a cor do padrão) |
+
+O punho tem cor própria em `sleeves.cuffColor` nos dois estilos.
+
+**Calção e meias** (`shorts.color` e `socks.color`): só têm cor, sem estilo, e ainda não são desenhados no PNG 2D; entram no 3D (Fase 3b).
+
+**Papéis de cor.** `primary`, `secondary` e `accent` apontam para `colors` no `kit.json`, então editar uma cor da paleta atualiza padrão, gola, mangas, calção e meias de uma vez. Só as cores dos logos podem ser um hex fixo.
+
+**Categorias de estilo do clube.** `style.categories` no `club.json` aceita uma lista de textos livres (ex.: `["modern"]`), mas hoje não muda a geração: só `style.patternWeights` influencia o sorteio. Os padrões `solid`, `stripes` e `sash` pertencem à categoria `classic`. Perfis de estilo reais (tradicional, moderno etc.) estão previstos para a Fase 4.
 
 ## 5. Validar
 
