@@ -11,8 +11,8 @@ describe("loadClub", () => {
   it("loads the bundled galaticos-fc club", async () => {
     const club = await loadClub("galaticos-fc");
     expect(club.name).toBe("Galáticos FC");
-    expect(club.palette.primary).toBe("#123456");
-    expect(club.fmUniqueId).toBeUndefined();
+    expect(club.palette.primary).toBe("#191970");
+    expect(club.fmUniqueId).toBe("1");
   });
 
   it("loads clubs from a custom directory", async () => {
