@@ -1,7 +1,17 @@
 import { access } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { ASSETS_DIR, CLUBS_DIR, kitRenderPath, OUTPUT_DIR } from "../../src/config/paths.js";
+import {
+  ASSETS_DIR,
+  CLUBS_DIR,
+  CONFIG_XML_FILE,
+  exportConfigPath,
+  exportFilePath,
+  FM26_EXPORT_DIR,
+  kitRenderPath,
+  OUTPUT_DIR,
+} from "../../src/config/paths.js";
+import { ClubIdSchema } from "../../src/core/primitives.js";
 
 describe("project directories", () => {
   it("places assets/ next to clubs/", () => {
@@ -23,5 +33,23 @@ describe("kitRenderPath", () => {
 
   it("rejects invalid club ids", () => {
     expect(() => kitRenderPath("/tmp/out", "../escape", "home", "2d")).toThrow(/Invalid club id/);
+  });
+});
+
+describe("FM26 export paths", () => {
+  it("places the export folder inside output/ with a name no club id can take", () => {
+    expect(path.dirname(FM26_EXPORT_DIR)).toBe(OUTPUT_DIR);
+    expect(path.basename(FM26_EXPORT_DIR)).toBe("fm26_export");
+    expect(ClubIdSchema.safeParse(path.basename(FM26_EXPORT_DIR)).success).toBe(false);
+  });
+
+  it("puts every PNG flat in the export folder, next to config.xml", () => {
+    expect(exportFilePath("/tmp/out", "galaticos-fc", "away", "2d")).toBe(path.join("/tmp/out", "galaticos_fc_away_2d.png"));
+    expect(exportConfigPath("/tmp/out")).toBe(path.join("/tmp/out", CONFIG_XML_FILE));
+    expect(CONFIG_XML_FILE).toBe("config.xml");
+  });
+
+  it("rejects invalid club ids", () => {
+    expect(() => exportFilePath("/tmp/out", "../escape", "home", "2d")).toThrow(/Invalid club id/);
   });
 });
