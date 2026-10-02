@@ -6,16 +6,16 @@
   },
   "colors": {
     "primary": "#191970",
-    "secondary": "#8a00c4",
-    "accent": "#f4fdff"
+    "secondary": "#000000",
+    "accent": "#d4af37"
   },
   "pattern": {
-    "id": "stripes",
+    "id": "sash",
     "base": "secondary",
     "overlay": "accent",
     "params": {
-      "count": 4,
-      "ratio": 0.332
+      "width": 33.061,
+      "direction": 1
     }
   },
   "collar": {
@@ -41,7 +41,6 @@
   },
   "manufacturer": {
     "id": "vertex",
-    "color": "primary",
-    "outline": "accent"
+    "color": "accent"
   }
 }

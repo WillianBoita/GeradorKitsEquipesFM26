@@ -2,8 +2,8 @@
   "id": "galaticos-fc",
   "name": "Galáticos FC",
   "fmUniqueId": "1",
-  "palette": { "primary": "#191970", "secondary": "#8A00C4", "accent": "#F4FDFF" },
-  "style": { "categories": ["modern"], "patternWeights": { "solid": 20, "stripes": 40, "sash": 40 } },
+  "palette": { "primary": "#191970", "secondary": "#000000", "accent": "#D4AF37" },
+  "style": { "categories": ["modern"], "patternWeights": { "solid": 15, "stripes": 15, "sash": 70 } },
   "sponsors": { "luna-air": 3, "orbita-bank": 1 },
   "manufacturers": { "vertex": 1 }
 }

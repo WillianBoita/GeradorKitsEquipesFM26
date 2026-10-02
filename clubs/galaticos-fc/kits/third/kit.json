@@ -6,8 +6,8 @@
   },
   "colors": {
     "primary": "#191970",
-    "secondary": "#8a00c4",
-    "accent": "#f4fdff"
+    "secondary": "#000000",
+    "accent": "#d4af37"
   },
   "pattern": {
     "id": "sash",
@@ -41,6 +41,6 @@
   },
   "manufacturer": {
     "id": "vertex",
-    "color": "primary"
+    "color": "secondary"
   }
 }
