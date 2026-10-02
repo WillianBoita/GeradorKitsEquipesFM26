@@ -5,7 +5,7 @@ Guias: `fm26-procedural-kit-generator-guide.md` (arquitetura) e `fm26-kit-export
 
 ## Status
 
-Fase 2b concluída: gera os kits Home, Away e Third de um clube com a mesma paleta, valida a coerência das cores e renderiza um PNG 2D 414×414 por kit, com escudo, patrocinador e fabricante. Ainda não existem textura 3D, `config.xml` nem exportação para o FM26 (Fase 3). Ver `docs/superpowers/plans/2026-10-01-roadmap.md`.
+Fase 3a concluída: gera os kits Home, Away e Third de um clube com a mesma paleta, valida a coerência das cores, renderiza um PNG 2D 414×414 por kit (com escudo, patrocinador e fabricante) e exporta todos os clubes para o FM26 numa pasta com os PNGs e um `config.xml` gerado. A textura 3D ainda não existe (Fase 3b). Ver `docs/superpowers/plans/2026-10-01-roadmap.md`.
 
 ## Requisitos
 
@@ -126,6 +126,22 @@ npm run kit-generator -- validate --club galaticos-fc
 
 Confere o `club.json` e cada `kit.json` existente: schema, pasta certa, cores distinguíveis, padrão diferente da base, cores base diferentes entre Home, Away e Third, IDs de patrocinador e fabricante registrados, arquivos de logo presentes, válidos e com transparência, e contraste dos logos com a camisa. Imprime `OK <id> (<n> kits)` ou `FAIL <id>` seguido das regras violadas, e termina com código 1 se algum clube falhar.
 
+## 6. Exportar para o FM26
+
+Preencha `fmUniqueId` no `club.json` de cada clube com o Unique ID do clube no FM26 (o projeto nunca inventa esse número) e gere os kits. Depois:
+
+```bash
+npm run export
+```
+
+O comando lê os `kit.json` salvos de **todos** os clubes de `clubs/`, renderiza os PNGs 2D e grava tudo em `output/fm26_export/`: um PNG por kit (`galaticos_fc_home_2d.png`, ...) e um único `config.xml` que mapeia cada PNG para `graphics/pictures/team/<fmUniqueId>/kits/<tipo>`. Os PNGs ficam na mesma pasta do `config.xml` porque o FM26 ignora caminhos com subpasta no `from`.
+
+Cada clube precisa de `fmUniqueId` e dos kits `home` e `away`; `third` é opcional. Dois clubes com o mesmo `fmUniqueId` são rejeitados. Se qualquer clube tiver problema, nada é gravado: o comando lista os erros de todos os clubes (`Error: [<id>] ...`) e termina com código 1. O export sobrescreve os arquivos que gera e nunca apaga nada da pasta.
+
+Opções: `--out <dir>` (pasta de saída; pode apontar direto para dentro do `graphics/` do jogo), `--clubs <dir>` e `--assets <dir>`.
+
+Instalação no jogo: copie a pasta `output/fm26_export/` para `Documents/Sports Interactive/Football Manager 26/graphics/kits/`. No FM26, em Preferências > Interface, desligue o cache de skin e recarregue a skin para o jogo ler o `config.xml` novo.
+
 ## Desenvolvimento
 
 ```bash
@@ -138,4 +154,4 @@ npm run format:check  # confere a formatação; faz parte do gate de cada fase
 
 `build` gera `dist/cli/index.js`, executável com `node dist/cli/index.js generate ...`. O comando global `kit-generator` só existe se você rodar `npm link` por conta própria.
 
-Estrutura: `src/core` (RNG, cores, schemas, validação, cor dos logos), `src/patterns` (solid, stripes, sash), `src/generator` (conjunto Home/Away/Third), `src/renderers` (2D com logos), `src/assets` (registry de logos), `src/fm26` (nomes de arquivo), `src/io` (clubes, kits, JSON e arquivos de logo), `src/config` (diretórios), `src/cli`. Só o generator usa aleatoriedade; renderers e padrões são determinísticos.
+Estrutura: `src/core` (RNG, cores, schemas, validação, cor dos logos), `src/patterns` (solid, stripes, sash), `src/generator` (conjunto Home/Away/Third), `src/renderers` (2D com logos), `src/assets` (registry de logos), `src/fm26` (nomes de arquivo, `config.xml` e exporter), `src/io` (clubes, kits, JSON e arquivos de logo), `src/config` (diretórios), `src/cli`. Só o generator usa aleatoriedade; renderers e padrões são determinísticos.
