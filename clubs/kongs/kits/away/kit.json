@@ -1,0 +1,45 @@
+{
+  "clubId": "kongs",
+  "kitType": "away",
+  "generatedWith": {
+    "seed": 44
+  },
+  "colors": {
+    "primary": "#0078bf",
+    "secondary": "#000000",
+    "accent": "#ffffff"
+  },
+  "pattern": {
+    "id": "stripes",
+    "base": "secondary",
+    "overlay": "accent",
+    "params": {
+      "count": 4,
+      "ratio": 0.332
+    }
+  },
+  "collar": {
+    "style": "round",
+    "color": "accent"
+  },
+  "sleeves": {
+    "style": "match-body",
+    "color": "accent",
+    "cuffColor": "primary"
+  },
+  "shorts": {
+    "color": "accent"
+  },
+  "socks": {
+    "color": "secondary"
+  },
+  "badge": true,
+  "sponsor": {
+    "id": "luna-air",
+    "color": "primary"
+  },
+  "manufacturer": {
+    "id": "vertex",
+    "color": "primary"
+  }
+}
