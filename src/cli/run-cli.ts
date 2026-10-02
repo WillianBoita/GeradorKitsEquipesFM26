@@ -5,6 +5,7 @@ import { parseArgs } from "node:util";
 import { loadAssetRegistry, type AssetRegistry } from "../assets/registry.js";
 import { ASSETS_DIR, CLUBS_DIR, kitRenderPath, OUTPUT_DIR } from "../config/paths.js";
 import type { ClubIdentity } from "../core/club.js";
+import { errorMessage } from "../core/errors.js";
 import { BRAND_LISTS, KIT_TYPES, KitDefinitionSchema, KitTypeSchema, type BrandKind, type KitDefinition, type KitType } from "../core/kit.js";
 import { parseWith } from "../core/primitives.js";
 import { deriveSeed, MAX_SEED } from "../core/random.js";
@@ -39,10 +40,6 @@ export function parseSeed(value: string | undefined): number {
   if (value === undefined) return randomInt(0, MAX_SEED + 1);
   if (!/^\d+$/.test(value) || Number(value) > MAX_SEED) throw new Error(`Invalid seed "${value}": expected an integer between 0 and ${MAX_SEED}`);
   return Number(value);
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 async function writeOutput(file: string, content: Buffer): Promise<void> {
