@@ -3,13 +3,14 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { loadAssetRegistry, type AssetRegistry } from "../assets/registry.js";
-import { ASSETS_DIR, CLUBS_DIR, kitRenderPath, OUTPUT_DIR } from "../config/paths.js";
+import { ASSETS_DIR, CLUBS_DIR, FM26_EXPORT_DIR, kitRenderPath, OUTPUT_DIR } from "../config/paths.js";
 import type { ClubIdentity } from "../core/club.js";
 import { errorMessage } from "../core/errors.js";
 import { BRAND_LISTS, KIT_TYPES, KitDefinitionSchema, KitTypeSchema, type BrandKind, type KitDefinition, type KitType } from "../core/kit.js";
 import { parseWith } from "../core/primitives.js";
 import { deriveSeed, MAX_SEED } from "../core/random.js";
 import { formatIssues, validateClub, validateClubAssets, validateKit, validateKitAssets, validateKitSet, type ValidationIssue } from "../core/validation.js";
+import { ExportAbortedError, exportKits, type RenderKit } from "../fm26/exporter.js";
 import { generateKitSet } from "../generator/kit-generator.js";
 import { checkAssetFiles, loadKitLogos, type AssetDirs, type AssetRefs } from "../io/asset-repository.js";
 import { hasClubLogo, listClubIds, loadClub, loadKit, saveKit } from "../io/club-repository.js";
@@ -34,6 +35,7 @@ export const USAGE = [
   "  kit-generator generate (--club <id> | --all) [--type <home|away|third>] [--seed <n>] [--out <dir>] [--clubs <dir>] [--assets <dir>]",
   "  kit-generator render --definition <kit.json> --out <file.png> [--clubs <dir>] [--assets <dir>]",
   "  kit-generator validate (--club <id> | --all) [--clubs <dir>] [--assets <dir>]",
+  "  kit-generator export [--out <dir>] [--clubs <dir>] [--assets <dir>]",
 ].join("\n");
 
 export function parseSeed(value: string | undefined): number {
@@ -197,12 +199,37 @@ async function validateCommand(args: string[], io: CliIo): Promise<number> {
   return failed === 0 ? 0 : 1;
 }
 
+async function exportCommand(args: string[], io: CliIo): Promise<number> {
+  const options = {
+    out: { type: "string", default: FM26_EXPORT_DIR },
+    clubs: { type: "string", default: CLUBS_DIR },
+    assets: { type: "string", default: ASSETS_DIR },
+  } as const;
+  const { values } = parseArgs({ args, options, strict: true });
+  const registry = await loadAssetRegistry(values.assets);
+  const dirs: AssetDirs = { assetsDir: values.assets, clubsDir: values.clubs };
+  // Só 2D na 3a; a 3b escolhe o renderer pelo renderType.
+  const renderKit: RenderKit = async (kit) => renderKit2dPng(kit, { logos: await loadKitLogos(kit, registry, dirs) });
+  try {
+    const result = await exportKits({ clubsDir: values.clubs, outDir: path.resolve(values.out), renderTypes: ["2d"], renderKit });
+    for (const { club, kitTypes } of result.clubs) io.log(`Exported ${club.name}: ${kitTypes.join(", ")}`);
+    io.log(`Wrote ${result.recordCount} records to ${result.configFile}`);
+    return 0;
+  } catch (error) {
+    if (!(error instanceof ExportAbortedError)) throw error;
+    for (const failure of error.failures) io.error(`Error: [${failure.clubId}] Club cannot be exported:\n${formatIssues(failure.issues)}`);
+    io.error(`Error: ${error.message}`);
+    return 1;
+  }
+}
+
 export async function runCli(argv: string[], io: CliIo = console): Promise<number> {
   const [command, ...args] = argv;
   try {
     if (command === "generate") return await generateCommand(args, io);
     if (command === "render") return await renderCommand(args, io);
     if (command === "validate") return await validateCommand(args, io);
+    if (command === "export") return await exportCommand(args, io);
     io.error(USAGE);
     return 1;
   } catch (error) {

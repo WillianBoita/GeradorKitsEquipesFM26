@@ -16,7 +16,8 @@
     "test": "vitest run",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "kit-generator": "tsx src/cli/index.ts"
+    "kit-generator": "tsx src/cli/index.ts",
+    "export": "tsx src/cli/index.ts export"
   },
   "dependencies": {
     "colorjs.io": "^0.7.1",

@@ -1,4 +1,4 @@
-import { access, readFile, rm, writeFile } from "node:fs/promises";
+import { access, readFile, rm, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
@@ -493,10 +493,100 @@ describe("runCli validate", () => {
   });
 });
 
+describe("runCli export", () => {
+  // Clube com fmUniqueId e os três kits gerados pela seed 42; devolve também a pasta dos previews do generate.
+  async function exportableClubs(club: object = { ...GALATICOS_CLUB, fmUniqueId: "1" }, assets?: string): Promise<{ clubs: string; preview: string }> {
+    const clubs = await makeClubsDir({ "galaticos-fc": JSON.stringify(club) });
+    const preview = await makeTempDir("cli");
+    const assetArgs = assets === undefined ? [] : ["--assets", assets];
+    await runCli(["generate", "--club", "galaticos-fc", "--seed", "42", "--clubs", clubs, "--out", preview, ...assetArgs], captureIo().io);
+    return { clubs, preview };
+  }
+
+  async function exportDir(): Promise<string> {
+    return path.join(await makeTempDir("cli"), "fm26_export");
+  }
+
+  it("writes the 2D PNGs and config.xml of every club into one folder", async () => {
+    const { clubs } = await exportableClubs();
+    const out = await exportDir();
+    const { io, logs, errors } = captureIo();
+    expect(await runCli(["export", "--clubs", clubs, "--out", out], io)).toBe(0);
+    for (const kitType of KIT_TYPES) {
+      expect(await sharp(path.join(out, `galaticos_fc_${kitType}_2d.png`)).metadata()).toMatchObject({ format: "png", width: 414, height: 414 });
+    }
+    const xml = await readFile(path.join(out, "config.xml"), "utf8");
+    expect(xml).toContain('<record from="galaticos_fc_away_2d" to="graphics/pictures/team/1/kits/away"/>');
+    expect(logs).toEqual(["Exported Galáticos FC: home, away, third", `Wrote 3 records to ${path.join(out, "config.xml")}`]);
+    expect(errors).toEqual([]);
+  });
+
+  it("exports the same PNG the generate preview shows", async () => {
+    const { clubs, preview } = await exportableClubs();
+    const out = await exportDir();
+    expect(await runCli(["export", "--clubs", clubs, "--out", out], captureIo().io)).toBe(0);
+    for (const kitType of KIT_TYPES) {
+      expect((await readFile(path.join(out, `galaticos_fc_${kitType}_2d.png`))).equals(await readFile(pngFile(preview, "galaticos-fc", kitType)))).toBe(true);
+    }
+  });
+
+  it("aborts without writing anything when a club has no fmUniqueId", async () => {
+    const { clubs } = await exportableClubs(GALATICOS_CLUB);
+    const out = await exportDir();
+    const { io, logs, errors } = captureIo();
+    expect(await runCli(["export", "--clubs", clubs, "--out", out], io)).toBe(1);
+    expect(errors).toEqual([
+      'Error: [galaticos-fc] Club cannot be exported:\n  - missing-fm-unique-id: Club "galaticos-fc" has no fmUniqueId',
+      "Error: Export aborted, nothing was written (1 of 1 clubs failed)",
+    ]);
+    expect(logs).toEqual([]);
+    expect(await exists(out)).toBe(false);
+  });
+
+  it("reports a badge deleted after generate as a render failure with its path", async () => {
+    const clubs = await makeClubsDir({ "galaticos-fc": JSON.stringify({ ...GALATICOS_BRANDED_CLUB, fmUniqueId: "1" }) });
+    const assets = await makeAssetsDir();
+    await writeClubLogo(clubs, "galaticos-fc");
+    await runCli(
+      ["generate", "--club", "galaticos-fc", "--seed", "42", "--clubs", clubs, "--assets", assets, "--out", await makeTempDir("cli")],
+      captureIo().io,
+    );
+    const logo = path.join(clubs, "galaticos-fc", "logo.png");
+    await unlink(logo);
+    const out = await exportDir();
+    const { io, errors } = captureIo();
+    expect(await runCli(["export", "--clubs", clubs, "--assets", assets, "--out", out], io)).toBe(1);
+    expect(errors[0]).toContain(`  - render-failed: home 2d: Club "galaticos-fc" badge not found: ${logo}`);
+    expect(errors.at(-1)).toBe("Error: Export aborted, nothing was written (1 of 1 clubs failed)");
+    expect(await exists(out)).toBe(false);
+  });
+
+  it("reports an --out that is a file", async () => {
+    const { clubs } = await exportableClubs();
+    const out = path.join(await makeTempDir("cli"), "not-a-dir");
+    await writeFile(out, "");
+    const { io, errors } = captureIo();
+    expect(await runCli(["export", "--clubs", clubs, "--out", out], io)).toBe(1);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatch(/^Error: EEXIST/);
+  });
+
+  it("reports an empty clubs folder", async () => {
+    const clubs = await makeClubsDir({});
+    const { io, errors } = captureIo();
+    expect(await runCli(["export", "--clubs", clubs, "--out", await exportDir()], io)).toBe(1);
+    expect(errors).toEqual([`Error: No clubs found in ${clubs}`]);
+  });
+});
+
 describe("runCli usage", () => {
   it.each([[[]], [["explode"]]])("prints usage for %j", async (argv) => {
     const { io, errors } = captureIo();
     expect(await runCli(argv, io)).toBe(1);
     expect(errors).toEqual([USAGE]);
+  });
+
+  it("documents the export command", () => {
+    expect(USAGE).toContain("kit-generator export [--out <dir>] [--clubs <dir>] [--assets <dir>]");
   });
 });
