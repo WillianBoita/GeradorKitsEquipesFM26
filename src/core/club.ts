@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AssetIdSchema, ClubIdSchema, HexColorSchema, parseWith } from "./primitives.js";
+import { AssetIdSchema, ClubIdSchema, FmUniqueIdSchema, HexColorSchema, parseWith } from "./primitives.js";
 
 // O teto mantém finita a soma dos pesos em rng.weighted.
 const WeightSchema = z.number().nonnegative().max(1_000_000);
@@ -9,8 +9,7 @@ const AssetPoolSchema = z.record(AssetIdSchema, WeightSchema);
 export const ClubIdentitySchema = z.strictObject({
   id: ClubIdSchema,
   name: z.string().min(1),
-  // String para não perder precisão em IDs grandes; nunca derivado do nome, sempre informado pelo usuário.
-  fmUniqueId: z.string().regex(/^\d+$/, "must be the numeric FM Unique ID as a string").optional(),
+  fmUniqueId: FmUniqueIdSchema.optional(),
   palette: z.strictObject({ primary: HexColorSchema, secondary: HexColorSchema.optional(), accent: HexColorSchema.optional() }),
   style: z
     .strictObject({ categories: z.array(z.string()).default([]), patternWeights: z.record(z.string(), WeightSchema).optional() })

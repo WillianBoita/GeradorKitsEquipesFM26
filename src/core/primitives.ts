@@ -10,6 +10,9 @@ export const ClubIdSchema = z.string().regex(/^[a-z0-9][a-z0-9-]*$/, "must conta
 // Mesma regra do id de clube: o id de asset vira chave de pool e parte de mensagens.
 export const AssetIdSchema = ClubIdSchema;
 
+// String para não perder precisão em IDs grandes; nunca derivado do nome, sempre informado pelo usuário.
+export const FmUniqueIdSchema = z.string().regex(/^\d+$/, "must be the numeric FM Unique ID as a string");
+
 export const SeedSchema = z.number().int().min(0).max(MAX_SEED);
 
 export function parseWith<T extends z.ZodType>(schema: T, input: unknown, label: string): z.output<T> {
