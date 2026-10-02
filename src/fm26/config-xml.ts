@@ -49,6 +49,18 @@ export function validateConfigRecords(records: readonly ConfigRecord[]): Validat
   return [...issues, ...duplicates(records, "from"), ...duplicates(records, "to")];
 }
 
+const RECORD_LINE = new RegExp(`^${INDENT.repeat(2)}<record from="([^"]*)" to="([^"]*)"/>$`);
+
+// O formato é determinístico: só é "nosso" o arquivo cujas linhas são as fixas ou registros válidos. Protege o config.xml de outro pacote.
+export function isGeneratedConfigXml(xml: string): boolean {
+  const fixedLines = new Set(buildConfigXml([]).split("\n"));
+  return xml.split("\n").every((line) => {
+    if (fixedLines.has(line)) return true;
+    const match = RECORD_LINE.exec(line);
+    return match !== null && validateConfigRecords([{ from: match[1]!, to: match[2]! }]).length === 0;
+  });
+}
+
 export function buildConfigXml(records: readonly ConfigRecord[]): string {
   const issues = validateConfigRecords(records);
   if (issues.length > 0) throw new Error(`Invalid config.xml records:\n${formatIssues(issues)}`);

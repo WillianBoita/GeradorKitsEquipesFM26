@@ -1,7 +1,7 @@
 import { XMLParser, XMLValidator } from "fast-xml-parser";
 import { describe, expect, it } from "vitest";
 import type { KitType } from "../../src/core/kit.js";
-import { buildConfigXml, fmTargetPath, validateConfigRecords, type ConfigRecord } from "../../src/fm26/config-xml.js";
+import { buildConfigXml, fmTargetPath, isGeneratedConfigXml, validateConfigRecords, type ConfigRecord } from "../../src/fm26/config-xml.js";
 import type { RenderType } from "../../src/fm26/naming.js";
 
 const GALATICOS_2D: ConfigRecord[] = [
@@ -69,6 +69,22 @@ describe("validateConfigRecords", () => {
   it("flags a repeated to", () => {
     const issues = validateConfigRecords([GALATICOS_2D[0]!, { from: "kong_team_home_2d", to: "graphics/pictures/team/1/kits/home" }]);
     expect(issues).toEqual([{ rule: "duplicate-to", message: 'to="graphics/pictures/team/1/kits/home" appears in more than one record' }]);
+  });
+});
+
+describe("isGeneratedConfigXml", () => {
+  it("recognizes its own output, with and without records", () => {
+    expect(isGeneratedConfigXml(buildConfigXml(GALATICOS_2D))).toBe(true);
+    expect(isGeneratedConfigXml(buildConfigXml([]))).toBe(true);
+  });
+
+  it.each([
+    ["another pack's map", '<record>\n    <list id="maps">\n        <record from="foreign" to="graphics/pictures/clubs/1/logo"/>\n    </list>\n</record>\n'],
+    ["an extra tag", buildConfigXml(GALATICOS_2D).replace("</record>\n", '<boolean id="extra" value="true"/>\n</record>\n')],
+    ["a hand-edited target", buildConfigXml(GALATICOS_2D).replace("kits/home", "kits/fourth")],
+    ["free text", "hello"],
+  ])("rejects %s", (_label, xml) => {
+    expect(isGeneratedConfigXml(xml)).toBe(false);
   });
 });
 

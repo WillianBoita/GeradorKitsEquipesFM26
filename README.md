@@ -5,7 +5,7 @@ Guias: `fm26-procedural-kit-generator-guide.md` (arquitetura) e `fm26-kit-export
 
 ## Status
 
-Fase 3a concluída: gera os kits Home, Away e Third de um clube com a mesma paleta, valida a coerência das cores, renderiza um PNG 2D 414×414 por kit (com escudo, patrocinador e fabricante) e exporta todos os clubes para o FM26 numa pasta com os PNGs e um `config.xml` gerado. A textura 3D ainda não existe (Fase 3b). Ver `docs/superpowers/plans/2026-10-01-roadmap.md`.
+Fase 3a com código concluído, aguardando o teste no jogo: gera os kits Home, Away e Third de um clube com a mesma paleta, valida a coerência das cores, renderiza um PNG 2D 414×414 por kit (com escudo, patrocinador e fabricante) e exporta todos os clubes para o FM26 numa pasta com os PNGs e um `config.xml` gerado. A textura 3D ainda não existe (Fase 3b). Ver `docs/superpowers/plans/2026-10-01-roadmap.md`.
 
 ## Requisitos
 
@@ -138,9 +138,9 @@ O comando lê os `kit.json` salvos de **todos** os clubes de `clubs/`, renderiza
 
 Cada clube precisa de `fmUniqueId` e dos kits `home` e `away`; `third` é opcional. Dois clubes com o mesmo `fmUniqueId` são rejeitados. Se qualquer clube tiver problema, nada é gravado: o comando lista os erros de todos os clubes (`Error: [<id>] ...`) e termina com código 1. O export sobrescreve os arquivos que gera e nunca apaga nada da pasta.
 
-Opções: `--out <dir>` (pasta de saída; pode apontar direto para dentro do `graphics/` do jogo), `--clubs <dir>` e `--assets <dir>`.
+Opções: `--out <dir>` (pasta de saída; use uma pasta só do export, porque o comando se recusa a sobrescrever um `config.xml` que ele não gerou), `--clubs <dir>` e `--assets <dir>`.
 
-Instalação no jogo: copie a pasta `output/fm26_export/` para `Documents/Sports Interactive/Football Manager 26/graphics/kits/`. No FM26, em Preferências > Interface, desligue o cache de skin e recarregue a skin para o jogo ler o `config.xml` novo.
+Instalação no jogo (ainda não confirmada no FM26): copie a pasta `output/fm26_export/` para `Documents/Sports Interactive/Football Manager 26/graphics/kits/`. No FM26, em Preferências > Interface, desligue o cache de skin e recarregue a skin para o jogo ler o `config.xml` novo.
 
 ## Desenvolvimento
 

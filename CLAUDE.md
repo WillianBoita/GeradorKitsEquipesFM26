@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Visão geral
 
-CLI em TypeScript (ESM, Node >= 22.12) que gera uniformes aleatórios e reproduzíveis por seed para o Football Manager 2026. Estado atual: Fase 3a concluída. Cada clube ganha Home, Away e Third com a mesma paleta, validados por regras de coerência, e um PNG 2D 414×414 por kit com escudo, patrocinador e fabricante. `export` grava os PNGs 2D de todos os clubes e um `config.xml` único em `output/fm26_export/`. Textura 3D (Fase 3b) ainda não existe. Specs: `fm26-procedural-kit-generator-guide.md` (arquitetura), `fm26-kit-export-and-integration.md` (integração FM26) e `docs/superpowers/specs/`. Roadmap, decisões e pendências: `docs/superpowers/plans/2026-10-01-roadmap.md`. Leia o roadmap antes de iniciar qualquer fase nova.
+CLI em TypeScript (ESM, Node >= 22.12) que gera uniformes aleatórios e reproduzíveis por seed para o Football Manager 2026. Estado atual: Fase 3a com código concluído, falta o teste no jogo (passo 7 do plano da 3a). Cada clube ganha Home, Away e Third com a mesma paleta, validados por regras de coerência, e um PNG 2D 414×414 por kit com escudo, patrocinador e fabricante. `export` grava os PNGs 2D de todos os clubes e um `config.xml` único em `output/fm26_export/`. Textura 3D (Fase 3b) ainda não existe. Specs: `fm26-procedural-kit-generator-guide.md` (arquitetura), `fm26-kit-export-and-integration.md` (integração FM26) e `docs/superpowers/specs/`. Roadmap, decisões e pendências: `docs/superpowers/plans/2026-10-01-roadmap.md`. Leia o roadmap antes de iniciar qualquer fase nova.
 
 ## Comandos
 
@@ -48,6 +48,7 @@ Fluxo: `club.json` (identidade + pools de marcas) → `generateKitSet(identity, 
 
 - `fmUniqueId` é string numérica informada pelo usuário (`FmUniqueIdSchema` em `core/primitives.ts`); o código nunca o inventa nem o deriva do nome. O do `galaticos-fc` (`"1"`) é provisório.
 - O FM26 ignora `from` com subpasta: PNGs e `config.xml` ficam na mesma pasta, e o `from` é o `kitAssetName` sem `.png`. Não reintroduza subpastas no export.
+- `export` recusa sobrescrever um `config.xml` que não gerou (`isGeneratedConfigXml`), antes de gravar qualquer coisa. A garantia "tudo ou nada" cobre validação e renderização; uma falha de I/O no meio da gravação pode deixar PNGs novos com o `config.xml` antigo (rodar de novo resolve).
 - `export` é tudo ou nada e nunca apaga arquivos: PNG antigo sem registro fica inerte, porque o FM só aplica o que o `config.xml` mapeia.
 - `generate` carrega o registry uma vez, imprime `Seed: N (<id>)` antes de tudo por clube, renderiza todos os PNGs pedidos e só depois grava os `kit.json`, para não sobrescrever kits versionados se a renderização (ou a leitura de um logo) falhar. Mantenha essa ordem.
 - `generatedWith.seed` no `kit.json` é a seed do conjunto: `generate --club <id> --seed <ela>` reproduz o kit. `--type` só filtra o que é salvo; o conjunto inteiro é sempre gerado. No `--all --seed S`, cada clube usa `deriveSeed(S, id)`. Rótulos de `deriveSeed` em uso: `home`, `away`, `third`, `palette:<n>`, `sponsor`, `manufacturer` e o `id` do clube.
