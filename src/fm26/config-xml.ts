@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { KIT_TYPES, KitTypeSchema, type KitType } from "../core/kit.js";
-import { FM_ID_PART_LIMIT, FmRandomIdSchema, FmUniqueIdSchema, parseWith } from "../core/primitives.js";
+import { FmUniqueIdSchema, parseWith } from "../core/primitives.js";
 import { formatIssues, type ValidationIssue } from "../core/validation.js";
 import { RENDER_TYPES, type RenderType } from "./naming.js";
 
@@ -16,18 +16,9 @@ const INDENT = "    ";
 const FROM_PATTERN = /^[a-z0-9_]+$/;
 const TO_PATTERN = new RegExp(`^graphics/pictures/team/\\d+/(${Object.values(TARGET_FOLDERS).join("|")})/(${KIT_TYPES.join("|")})$`);
 
-// Inteiro de 64 bits: fica em string para não perder precisão.
-const FmTeamIdSchema = z.string().regex(/^\d+$/, "must be the numeric FM team id as a string");
-
-// O FM26 localiza a pasta do time por fmRandomId × 2³² + fmUniqueId, não só pelo Unique ID. O resultado passa de Number.MAX_SAFE_INTEGER.
-export function fmTeamId(fmUniqueId: string, fmRandomId: string): string {
-  const unique = BigInt(parseWith(FmUniqueIdSchema, fmUniqueId, "fmUniqueId"));
-  const random = BigInt(parseWith(FmRandomIdSchema, fmRandomId, "fmRandomId"));
-  return (random * BigInt(FM_ID_PART_LIMIT) + unique).toString();
-}
-
-export function fmTargetPath(fmTeamId: string, kitType: KitType, renderType: RenderType): string {
-  const id = parseWith(FmTeamIdSchema, fmTeamId, "fmTeamId");
+// O Unique ID do editor vai puro no caminho. O teste no jogo (2026-10-03) refutou a hipótese fmRandomId × 2³² + fmUniqueId: só o ID puro apareceu.
+export function fmTargetPath(fmUniqueId: string, kitType: KitType, renderType: RenderType): string {
+  const id = parseWith(FmUniqueIdSchema, fmUniqueId, "fmUniqueId");
   const type = parseWith(KitTypeSchema, kitType, "kit type");
   return `graphics/pictures/team/${id}/${TARGET_FOLDERS[parseWith(RenderTypeSchema, renderType, "render type")]}/${type}`;
 }
@@ -53,7 +44,7 @@ export function validateConfigRecords(records: readonly ConfigRecord[]): Validat
     if (!FROM_PATTERN.test(record.from))
       issues.push({ rule: "invalid-from", message: `"${record.from}" must contain only lowercase letters, digits and underscores` });
     if (!TO_PATTERN.test(record.to)) {
-      issues.push({ rule: "invalid-to", message: `"${record.to}" is not graphics/pictures/team/<fmTeamId>/<kits|kit_textures>/<home|away|third>` });
+      issues.push({ rule: "invalid-to", message: `"${record.to}" is not graphics/pictures/team/<fmUniqueId>/<kits|kit_textures>/<home|away|third>` });
     }
   }
   return [...issues, ...duplicates(records, "from"), ...duplicates(records, "to")];

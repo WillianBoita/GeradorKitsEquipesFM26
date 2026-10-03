@@ -22,7 +22,7 @@ FM26 Exporter
 
 ## 2. Identificação do clube
 
-Usar os dois IDs numéricos que o editor do FM mostra para o clube: **Unique ID** e **Random UID**.
+Usar o **Unique ID numérico do clube no FM**.
 
 Exemplo:
 
@@ -30,28 +30,20 @@ Exemplo:
 {
   "id": "galaticos-fc",
   "name": "Galáticos FC",
-  "fmUniqueId": "2000778260",
-  "fmRandomId": "249337767"
+  "fmUniqueId": "123456789"
 }
 ```
 
 Separar:
 
 - `id`: identificador interno e estável do projeto;
-- `fmUniqueId`: Unique ID do clube no editor do Football Manager;
-- `fmRandomId`: Random UID do clube no editor do Football Manager.
+- `fmUniqueId`: identificador real do clube no Football Manager.
 
-O FM26 não localiza a pasta do time pelo Unique ID sozinho. O ID usado no caminho (`fmTeamId`) é:
+O programa **não deve derivar nem inventar** o `fmUniqueId` a partir do nome.
 
-```text
-fmTeamId = fmRandomId × 4294967296 + fmUniqueId
-```
+O usuário deve obter o ID do clube efetivamente existente no FM/Editor e informá-lo ao projeto.
 
-Exemplo: `249337767 × 4294967296 + 2000778260 = 1070897556923446292`. Cada parte cabe em 32 bits (0 a 4294967295), e o resultado passa do maior inteiro exato de um `number` em JavaScript, por isso a conta usa `BigInt` e os IDs ficam em string.
-
-O programa **não deve derivar nem inventar** `fmUniqueId` nem `fmRandomId` a partir do nome.
-
-O usuário deve obter os IDs do clube efetivamente existente no FM/Editor e informá-los ao projeto. Os dois são obrigatórios no export: um `fmRandomId` ausente não vale 0, porque um caminho errado é ignorado pelo jogo sem aviso.
+O ID vai puro no caminho do `config.xml` (seção 5), sem conta nenhuma. Confirmado no jogo em 2026-10-03: o kit com `to="graphics/pictures/team/2000778260/kits/home"` (Unique ID do clube no editor) apareceu, e os registros com `Random UID × 4294967296 + Unique ID` no lugar do ID foram ignorados. O Random UID do editor não é usado.
 
 ## 3. Estrutura de dados
 
@@ -74,8 +66,7 @@ clubs/
 {
   "id": "galaticos-fc",
   "name": "Galáticos FC",
-  "fmUniqueId": "2000778260",
-  "fmRandomId": "249337767"
+  "fmUniqueId": "123456789"
 }
 ```
 
@@ -120,23 +111,21 @@ e não:
 from="galaticos_fc_home_3d.png"
 ```
 
-Os IDs do FM não precisam fazer parte do filename.
+O Unique ID não precisa fazer parte do filename.
 
 ## 5. Diretórios FM26
 
 ### 2D
 
 ```text
-graphics/pictures/team/{FM_TEAM_ID}/kits/{home|away|third}
+graphics/pictures/team/{FM_UNIQUE_ID}/kits/{home|away|third}
 ```
 
 ### 3D
 
 ```text
-graphics/pictures/team/{FM_TEAM_ID}/kit_textures/{home|away|third}
+graphics/pictures/team/{FM_UNIQUE_ID}/kit_textures/{home|away|third}
 ```
-
-`FM_TEAM_ID` é o `fmTeamId` da seção 2, não o Unique ID puro.
 
 Exemplo:
 
@@ -248,9 +237,7 @@ Também deve ser possível exportar vários clubes em conjunto e produzir um `co
 ```text
 load club.json
   ↓
-validate fmUniqueId + fmRandomId
-  ↓
-compute fmTeamId
+validate fmUniqueId
   ↓
 load generated kits
   ↓
@@ -270,9 +257,8 @@ O usuário não deve precisar editar o XML.
 ### Clube
 
 ```text
-fmUniqueId e fmRandomId existem?
-fmUniqueId e fmRandomId são numéricos e cabem em 32 bits?
-fmTeamId é único entre os clubes?
+fmUniqueId existe?
+fmUniqueId é numérico?
 id interno existe?
 nome existe?
 ```
@@ -300,7 +286,7 @@ PNG é válido?
 ```text
 XML é bem formado?
 todo `from` corresponde a um arquivo?
-todo `to` contém o fmTeamId correto?
+todo `to` contém o FM Unique ID correto?
 existem registros duplicados?
 ```
 
@@ -434,13 +420,13 @@ output/
 
 ## 16. Regras para o agente de desenvolvimento
 
-1. Nunca inventar um FM Unique ID ou Random UID.
-2. Nunca derivar os IDs do FM do nome do clube.
+1. Nunca inventar um FM Unique ID.
+2. Nunca derivar o Unique ID do nome do clube.
 3. Nunca exigir edição manual do `config.xml`.
 4. Nunca duplicar manualmente nomes de arquivos entre código e XML.
 5. Gerar o XML a partir dos dados do projeto.
-6. Manter `id` interno, `fmUniqueId` e `fmRandomId` separados.
-7. Não exigir os IDs do FM no filename.
+6. Manter `id` interno e `fmUniqueId` separados.
+7. Não exigir o Unique ID no filename.
 8. Validar IDs antes do export.
 9. Validar correspondência entre `from` e arquivos.
 10. Validar que o XML é bem formado.
@@ -480,7 +466,7 @@ project/
 O princípio central:
 
 ```text
-FM Unique ID + Random UID
+FM Unique ID
   ↓
 club.json
   ↓

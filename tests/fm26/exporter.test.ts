@@ -7,7 +7,7 @@ import { KIT_TYPES, type KitType } from "../../src/core/kit.js";
 import { buildConfigXml } from "../../src/fm26/config-xml.js";
 import {
   checkRenderedPng,
-  duplicateFmTeamIdIssues,
+  duplicateFmUniqueIdIssues,
   ExportAbortedError,
   exportKits,
   FM26_RENDER_SIZES,
@@ -20,11 +20,8 @@ import { GALATICOS_CLUB, KONG_CLUB, makeClubsDir } from "../fixtures/clubs.js";
 import { makeKit } from "../fixtures/kits.js";
 import { makeTempDir } from "../fixtures/temp.js";
 
-// fmRandomId diferente de zero: o `to` só bate se o exporter usar o ID de time (2 × 4294967296 + fmUniqueId), não o fmUniqueId puro.
-const GALATICOS_EXPORT = { ...GALATICOS_CLUB, fmUniqueId: "1", fmRandomId: "2" };
-const KONG_EXPORT = { ...KONG_CLUB, fmUniqueId: "2", fmRandomId: "2" };
-const GALATICOS_TEAM_ID = "8589934593";
-const KONG_TEAM_ID = "8589934594";
+const GALATICOS_EXPORT = { ...GALATICOS_CLUB, fmUniqueId: "1" };
+const KONG_EXPORT = { ...KONG_CLUB, fmUniqueId: "2" };
 
 function club(input: object): ClubIdentity {
   return parseClubIdentity(input);
@@ -43,19 +40,14 @@ describe("FM26_RENDER_SIZES", () => {
 });
 
 describe("validateExportClub", () => {
-  it("accepts a club with fmUniqueId, fmRandomId, home and away", () => {
+  it("accepts a club with fmUniqueId, home and away", () => {
     expect(validateExportClub(club(GALATICOS_EXPORT), ["home", "away"], "/clubs")).toEqual([]);
   });
 
-  it("requires the fmUniqueId and the fmRandomId", () => {
+  it("requires the fmUniqueId", () => {
     expect(validateExportClub(club(GALATICOS_CLUB), ["home", "away", "third"], "/clubs")).toEqual([
       { rule: "missing-fm-unique-id", message: 'Club "galaticos-fc" has no fmUniqueId' },
-      { rule: "missing-fm-random-id", message: 'Club "galaticos-fc" has no fmRandomId' },
     ]);
-  });
-
-  it("accepts an explicit fmRandomId of 0", () => {
-    expect(validateExportClub(club({ ...GALATICOS_EXPORT, fmRandomId: "0" }), ["home", "away"], "/clubs")).toEqual([]);
   });
 
   it("names the expected kit.json of every missing required kit", () => {
@@ -66,37 +58,26 @@ describe("validateExportClub", () => {
   });
 });
 
-describe("duplicateFmTeamIdIssues", () => {
-  it("is empty when every team id is unique or incomplete", () => {
-    const incomplete = [club({ ...KONG_CLUB, id: "no-id" }), club({ ...GALATICOS_CLUB, id: "no-random", fmUniqueId: "1" })];
-    expect(duplicateFmTeamIdIssues([club(GALATICOS_EXPORT), club(KONG_EXPORT), ...incomplete]).size).toBe(0);
+describe("duplicateFmUniqueIdIssues", () => {
+  it("is empty when every fmUniqueId is unique or absent", () => {
+    expect(duplicateFmUniqueIdIssues([club(GALATICOS_EXPORT), club(KONG_EXPORT), club({ ...KONG_CLUB, id: "no-id" })]).size).toBe(0);
   });
 
-  it("flags every club that shares a team id, naming the editor ids and the others", () => {
-    const issues = duplicateFmTeamIdIssues([club(GALATICOS_EXPORT), club({ ...KONG_EXPORT, fmUniqueId: "1" }), club({ ...KONG_EXPORT, id: "fnaf" })]);
-    const message = (other: string) => `fmTeamId "${GALATICOS_TEAM_ID}" (fmRandomId "2", fmUniqueId "1") is also used by club "${other}"`;
+  it("flags every club that shares an fmUniqueId, naming the others", () => {
+    const issues = duplicateFmUniqueIdIssues([club(GALATICOS_EXPORT), club({ ...KONG_EXPORT, fmUniqueId: "1" }), club({ ...KONG_EXPORT, id: "fnaf" })]);
     expect(Object.fromEntries(issues)).toEqual({
-      "galaticos-fc": [{ rule: "duplicate-fm-team-id", message: message("kong-team") }],
-      "kong-team": [{ rule: "duplicate-fm-team-id", message: message("galaticos-fc") }],
+      "galaticos-fc": [{ rule: "duplicate-fm-unique-id", message: 'fmUniqueId "1" is also used by club "kong-team"' }],
+      "kong-team": [{ rule: "duplicate-fm-unique-id", message: 'fmUniqueId "1" is also used by club "galaticos-fc"' }],
     });
   });
 
-  it("accepts clubs that share the fmUniqueId but not the fmRandomId", () => {
-    expect(duplicateFmTeamIdIssues([club(GALATICOS_EXPORT), club({ ...KONG_EXPORT, fmUniqueId: "1", fmRandomId: "3" })]).size).toBe(0);
-  });
-
-  it("lists every other club when three share a team id", () => {
-    const issues = duplicateFmTeamIdIssues([
+  it("lists every other club when three share an fmUniqueId", () => {
+    const issues = duplicateFmUniqueIdIssues([
       club(GALATICOS_EXPORT),
       club({ ...KONG_EXPORT, fmUniqueId: "1" }),
       club({ ...KONG_EXPORT, id: "fnaf", fmUniqueId: "1" }),
     ]);
-    expect(issues.get("fnaf")).toEqual([
-      {
-        rule: "duplicate-fm-team-id",
-        message: `fmTeamId "${GALATICOS_TEAM_ID}" (fmRandomId "2", fmUniqueId "1") is also used by club "galaticos-fc", "kong-team"`,
-      },
-    ]);
+    expect(issues.get("fnaf")).toEqual([{ rule: "duplicate-fm-unique-id", message: 'fmUniqueId "1" is also used by club "galaticos-fc", "kong-team"' }]);
   });
 });
 
@@ -168,10 +149,10 @@ async function expectAbort(promise: Promise<unknown>): Promise<ExportAbortedErro
   return error as ExportAbortedError;
 }
 
-function record(clubSlug: string, teamId: string, kitType: KitType, renderType: RenderType = "2d") {
+function record(clubSlug: string, fmUniqueId: string, kitType: KitType, renderType: RenderType = "2d") {
   return {
     from: `${clubSlug}_${kitType}_${renderType}`,
-    to: `graphics/pictures/team/${teamId}/${renderType === "2d" ? "kits" : "kit_textures"}/${kitType}`,
+    to: `graphics/pictures/team/${fmUniqueId}/${renderType === "2d" ? "kits" : "kit_textures"}/${kitType}`,
   };
 }
 
@@ -182,9 +163,7 @@ describe("exportKits", () => {
     const result = await exportKits({ clubsDir, outDir, renderTypes: ["2d"], renderKit: fakeRenderer().renderKit });
     expect((await readdir(outDir)).sort()).toEqual(["config.xml", "galaticos_fc_away_2d.png", "galaticos_fc_home_2d.png", "galaticos_fc_third_2d.png"]);
     expect(await sharp(path.join(outDir, "galaticos_fc_home_2d.png")).metadata()).toMatchObject({ format: "png", width: 414, height: 414 });
-    expect(await readFile(path.join(outDir, "config.xml"), "utf8")).toBe(
-      buildConfigXml(KIT_TYPES.map((kitType) => record("galaticos_fc", GALATICOS_TEAM_ID, kitType))),
-    );
+    expect(await readFile(path.join(outDir, "config.xml"), "utf8")).toBe(buildConfigXml(KIT_TYPES.map((kitType) => record("galaticos_fc", "1", kitType))));
     expect(result).toEqual({
       clubs: [{ club: parseClubIdentity(GALATICOS_EXPORT), kitTypes: ["home", "away", "third"] }],
       configFile: path.join(outDir, "config.xml"),
@@ -206,30 +185,20 @@ describe("exportKits", () => {
     const outDir = await outputDir();
     await exportKits({ clubsDir, outDir, renderTypes: ["2d", "3d"], renderKit: fakeRenderer().renderKit });
     const expected = [
-      ...(["2d", "3d"] as const).flatMap((renderType) => KIT_TYPES.map((kitType) => record("galaticos_fc", GALATICOS_TEAM_ID, kitType, renderType))),
-      ...(["2d", "3d"] as const).flatMap((renderType) => KIT_TYPES.map((kitType) => record("kong_team", KONG_TEAM_ID, kitType, renderType))),
+      ...(["2d", "3d"] as const).flatMap((renderType) => KIT_TYPES.map((kitType) => record("galaticos_fc", "1", kitType, renderType))),
+      ...(["2d", "3d"] as const).flatMap((renderType) => KIT_TYPES.map((kitType) => record("kong_team", "2", kitType, renderType))),
     ];
     expect(await readFile(path.join(outDir, "config.xml"), "utf8")).toBe(buildConfigXml(expected));
     expect(await sharp(path.join(outDir, "kong_team_away_3d.png")).metadata()).toMatchObject({ width: 1024, height: 1024 });
   });
 
   it("aborts without writing anything when a club has no fmUniqueId", async () => {
-    const clubsDir = await clubsWithKits({ "galaticos-fc": { ...GALATICOS_CLUB, fmRandomId: "2" } });
+    const clubsDir = await clubsWithKits({ "galaticos-fc": GALATICOS_CLUB });
     const outDir = await outputDir();
     const error = await expectAbort(exportKits({ clubsDir, outDir, renderTypes: ["2d"], renderKit: fakeRenderer().renderKit }));
     expect(error.message).toBe("Export aborted, nothing was written (1 of 1 clubs failed)");
     expect(error.failures).toEqual([{ clubId: "galaticos-fc", issues: [{ rule: "missing-fm-unique-id", message: 'Club "galaticos-fc" has no fmUniqueId' }] }]);
     expect(error.clubCount).toBe(1);
-    expect(await exists(outDir)).toBe(false);
-  });
-
-  it("aborts without writing anything when a club has no fmRandomId", async () => {
-    const clubsDir = await clubsWithKits({ "galaticos-fc": { ...GALATICOS_CLUB, fmUniqueId: "1" } });
-    const outDir = await outputDir();
-    const renderer = fakeRenderer();
-    const error = await expectAbort(exportKits({ clubsDir, outDir, renderTypes: ["2d"], renderKit: renderer.renderKit }));
-    expect(error.failures).toEqual([{ clubId: "galaticos-fc", issues: [{ rule: "missing-fm-random-id", message: 'Club "galaticos-fc" has no fmRandomId' }] }]);
-    expect(renderer.calls).toEqual([]);
     expect(await exists(outDir)).toBe(false);
   });
 
@@ -261,13 +230,13 @@ describe("exportKits", () => {
     expect(error.failures[0]?.issues.map((issue) => issue.rule)).toEqual(["invalid-file"]);
   });
 
-  it("rejects two clubs with the same team id", async () => {
+  it("rejects two clubs with the same fmUniqueId", async () => {
     const clubsDir = await clubsWithKits({ "galaticos-fc": GALATICOS_EXPORT, "kong-team": { ...KONG_EXPORT, fmUniqueId: "1" } });
     const outDir = await outputDir();
     const error = await expectAbort(exportKits({ clubsDir, outDir, renderTypes: ["2d"], renderKit: fakeRenderer().renderKit }));
     expect(error.failures.map((failure) => [failure.clubId, failure.issues.map((issue) => issue.rule)])).toEqual([
-      ["galaticos-fc", ["duplicate-fm-team-id"]],
-      ["kong-team", ["duplicate-fm-team-id"]],
+      ["galaticos-fc", ["duplicate-fm-unique-id"]],
+      ["kong-team", ["duplicate-fm-unique-id"]],
     ]);
     expect(await exists(outDir)).toBe(false);
   });
@@ -305,7 +274,7 @@ describe("exportKits", () => {
     const error = await expectAbort(exportKits({ clubsDir, outDir, renderTypes: ["2d"], renderKit: renderer.renderKit }));
     expect(error.message).toBe("Export aborted, nothing was written (2 of 3 clubs failed)");
     expect(error.failures.map((failure) => [failure.clubId, failure.issues.map((issue) => issue.rule)])).toEqual([
-      ["alpha-fc", ["missing-fm-unique-id", "missing-fm-random-id"]],
+      ["alpha-fc", ["missing-fm-unique-id"]],
       ["kong-team", ["missing-kit"]],
     ]);
     expect(renderer.calls).toEqual(["galaticos-fc home 2d", "galaticos-fc away 2d", "galaticos-fc third 2d"]);

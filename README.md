@@ -28,7 +28,6 @@ Crie `clubs/<id>/club.json`. O `id` usa só minúsculas, dígitos e `-`, e deve 
   "id": "meu-clube",
   "name": "Meu Clube",
   "fmUniqueId": "2000778260",
-  "fmRandomId": "249337767",
   "palette": { "primary": "#123456", "secondary": "#FFFFFF", "accent": "#FFD700" },
   "style": { "categories": ["modern"], "patternWeights": { "solid": 20, "stripes": 40, "sash": 40 } },
   "sponsors": { "luna-air": 3, "orbita-bank": 1 },
@@ -39,7 +38,7 @@ Crie `clubs/<id>/club.json`. O `id` usa só minúsculas, dígitos e `-`, e deve 
 - Só `id`, `name` e `palette.primary` são obrigatórios.
 - `secondary` e `accent` ausentes são derivados da cor primária.
 - As cores informadas precisam ser distinguíveis entre si (distância OKLab de pelo menos 0.15). Cores quase iguais são rejeitadas, porque cada uma vira a cor base de um kit.
-- `fmUniqueId` e `fmRandomId` são o Unique ID e o Random UID do clube no editor do FM26, como strings de dígitos de 0 a 4294967295. Informe você mesmo; o código nunca os inventa. Só o `export` os usa (seção 6); o `generate` apenas os valida.
+- `fmUniqueId` é o Unique ID do clube no editor do FM26, como string de dígitos de 0 a 4294967295. Informe você mesmo; o código nunca o inventa. Só o `export` o usa (seção 6); o `generate` apenas o valida. O Random UID do editor não é usado.
 - `patternWeights` aceita os padrões `solid`, `stripes` e `sash`, com pesos de 0 a 1.000.000. Sem ele, valem os pesos padrão (40/35/25).
 - `sponsors` e `manufacturers` são opcionais: IDs do registry de logos (seção 2) com pesos de 0 a 1.000.000. Cada geração sorteia um patrocinador e um fabricante para o conjunto: Home, Away e Third usam os mesmos. Sem a chave, os kits saem sem patrocinador ou sem fabricante.
 - Escudo: coloque um PNG com fundo transparente em `clubs/<id>/logo.png`. Ele aparece com as cores originais. Sem o arquivo, os kits saem sem escudo.
@@ -165,19 +164,19 @@ Confere o `club.json` e cada `kit.json` existente: schema, pasta certa, cores di
 
 ## 6. Exportar para o FM26
 
-Preencha `fmUniqueId` e `fmRandomId` no `club.json` de cada clube com o Unique ID e o Random UID do clube no editor do FM26 (o projeto nunca inventa esses números) e gere os kits. Depois:
+Preencha `fmUniqueId` no `club.json` de cada clube com o Unique ID do clube no editor do FM26 (o projeto nunca inventa esse número) e gere os kits. Depois:
 
 ```bash
 npm run export
 ```
 
-O comando lê os `kit.json` salvos de **todos** os clubes de `clubs/`, renderiza os PNGs 2D e grava tudo em `output/fm26_export/`: um PNG por kit (`galaticos_fc_home_2d.png`, ...) e um único `config.xml` que mapeia cada PNG para `graphics/pictures/team/<fmTeamId>/kits/<tipo>`. O `fmTeamId` é o ID que o FM26 usa para achar o time: `fmRandomId × 4294967296 + fmUniqueId` (no exemplo acima, `1070897556923446292`). Os PNGs ficam na mesma pasta do `config.xml` porque o FM26 ignora caminhos com subpasta no `from`.
+O comando lê os `kit.json` salvos de **todos** os clubes de `clubs/`, renderiza os PNGs 2D e grava tudo em `output/fm26_export/`: um PNG por kit (`galaticos_fc_home_2d.png`, ...) e um único `config.xml` que mapeia cada PNG para `graphics/pictures/team/<fmUniqueId>/kits/<tipo>`. Os PNGs ficam na mesma pasta do `config.xml` porque o FM26 ignora caminhos com subpasta no `from`.
 
-Cada clube precisa de `fmUniqueId`, `fmRandomId` (um Random UID 0 é escrito como `"0"`; ausente é erro) e dos kits `home` e `away`; `third` é opcional. Dois clubes com o mesmo `fmTeamId` são rejeitados. Se qualquer clube tiver problema, nada é gravado: o comando lista os erros de todos os clubes (`Error: [<id>] ...`) e termina com código 1. O export sobrescreve os arquivos que gera e nunca apaga nada da pasta.
+Cada clube precisa de `fmUniqueId` e dos kits `home` e `away`; `third` é opcional. Dois clubes com o mesmo `fmUniqueId` são rejeitados. Se qualquer clube tiver problema, nada é gravado: o comando lista os erros de todos os clubes (`Error: [<id>] ...`) e termina com código 1. O export sobrescreve os arquivos que gera e nunca apaga nada da pasta.
 
 Opções: `--out <dir>` (pasta de saída; use uma pasta só do export, porque o comando se recusa a sobrescrever um `config.xml` que ele não gerou), `--clubs <dir>` e `--assets <dir>`.
 
-Instalação no jogo (ainda não confirmada no FM26): copie a pasta `output/fm26_export/` para `Documents/Sports Interactive/Football Manager 26/graphics/kits/`. No FM26, em Preferências > Interface, desligue o cache de skin e recarregue a skin para o jogo ler o `config.xml` novo.
+Instalação no jogo: copie a pasta `output/fm26_export/` para dentro de `graphics/kits/` na pasta de usuário do FM26, `Documentos/Sports Interactive/Football Manager 26/` (o nome da subpasta é livre). É a pasta Documentos do Windows, a mesma em que o FM26 grava os saves (`games/`). Com o backup do OneDrive ligado, ela fica em `OneDrive/Documentos`, e o jogo ignora uma cópia em `C:/Users/<usuário>/Documents`. Ainda não confirmado: no FM26, em Preferências > Interface, desligue o cache de skin e recarregue a skin para o jogo ler o `config.xml` novo.
 
 ## Desenvolvimento
 

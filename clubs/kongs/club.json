@@ -2,7 +2,6 @@
   "id": "kongs",
   "name": "Kongs",
   "fmUniqueId": "2000778246",
-  "fmRandomId": "282836473",
   "palette": { "primary": "#0078BF", "secondary": "#000000", "accent": "#FFFFFF" },
   "style": { "categories": ["modern"], "patternWeights": { "solid": 20, "stripes": 50, "sash": 30 } },
   "sponsors": { "luna-air": 3, "orbita-bank": 1 },

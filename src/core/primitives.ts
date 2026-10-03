@@ -10,19 +10,12 @@ export const ClubIdSchema = z.string().regex(/^[a-z0-9][a-z0-9-]*$/, "must conta
 // Mesma regra do id de clube: o id de asset vira chave de pool e parte de mensagens.
 export const AssetIdSchema = ClubIdSchema;
 
-// O FM26 monta o ID do time como fmRandomId × 2³² + fmUniqueId: cada parte precisa caber em 32 bits para a conta ser única.
-export const FM_ID_PART_LIMIT = 2 ** 32;
-
-// String para não perder precisão em IDs grandes; nunca derivado do nome, sempre informado pelo usuário (valores do editor do FM).
-function fmIdPartSchema(label: string) {
-  return z
-    .string()
-    .regex(/^\d+$/, { error: `must be the numeric FM ${label} as a string`, abort: true })
-    .refine((value) => Number(value) < FM_ID_PART_LIMIT, `must be at most ${FM_ID_PART_LIMIT - 1}`);
-}
-
-export const FmUniqueIdSchema = fmIdPartSchema("Unique ID");
-export const FmRandomIdSchema = fmIdPartSchema("Random ID");
+// String para não perder precisão em IDs grandes; nunca derivado do nome, sempre informado pelo usuário (Unique ID do editor do FM).
+// O Unique ID é um inteiro de 32 bits: um valor maior é erro de digitação e geraria um caminho que o jogo ignora sem aviso.
+export const FmUniqueIdSchema = z
+  .string()
+  .regex(/^\d+$/, { error: "must be the numeric FM Unique ID as a string", abort: true })
+  .refine((value) => Number(value) < 2 ** 32, `must be at most ${2 ** 32 - 1}`);
 
 export const SeedSchema = z.number().int().min(0).max(MAX_SEED);
 

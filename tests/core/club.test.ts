@@ -30,34 +30,27 @@ describe("parseClubIdentity", () => {
     expect(() => parseClubIdentity({ ...galaticos, fmUniqueId: 123456789 })).toThrow(/fmUniqueId/);
   });
 
-  it("accepts fmRandomId as a numeric string", () => {
-    expect(parseClubIdentity({ ...galaticos, fmRandomId: "249337767" }).fmRandomId).toBe("249337767");
+  // O Unique ID do editor é um inteiro de 32 bits; um valor maior é erro de digitação.
+  it("accepts fmUniqueId from 0 to 4294967295", () => {
+    expect(parseClubIdentity({ ...galaticos, fmUniqueId: "0" }).fmUniqueId).toBe("0");
+    expect(parseClubIdentity({ ...galaticos, fmUniqueId: "4294967295" }).fmUniqueId).toBe("4294967295");
   });
 
-  it.each(["12a", "", "-1", "1.5"])("rejects non-numeric fmRandomId %j", (fmRandomId) => {
-    expect(() => parseClubIdentity({ ...galaticos, fmRandomId })).toThrow(/fmRandomId/);
-  });
-
-  it("rejects fmRandomId given as a JSON number", () => {
-    expect(() => parseClubIdentity({ ...galaticos, fmRandomId: 249337767 })).toThrow(/fmRandomId/);
-  });
-
-  // O FM soma os dois como partes de 32 bits de um único ID; acima disso a conta deixaria de ser única.
-  it.each(["fmUniqueId", "fmRandomId"])("accepts %s from 0 to 4294967295", (key) => {
-    expect(parseClubIdentity({ ...galaticos, [key]: "0" })).toMatchObject({ [key]: "0" });
-    expect(parseClubIdentity({ ...galaticos, [key]: "4294967295" })).toMatchObject({ [key]: "4294967295" });
-  });
-
-  it.each(["fmUniqueId", "fmRandomId"])("rejects %s above 4294967295 with a single issue", (key) => {
-    for (const value of ["4294967296", "9".repeat(400)]) {
-      const result = ClubIdentitySchema.safeParse({ ...galaticos, [key]: value });
-      expect(result.error?.issues.map((issue) => [issue.path, issue.message])).toEqual([[[key], "must be at most 4294967295"]]);
+  it("rejects fmUniqueId above 4294967295 with a single issue", () => {
+    for (const fmUniqueId of ["4294967296", "9".repeat(400)]) {
+      const result = ClubIdentitySchema.safeParse({ ...galaticos, fmUniqueId });
+      expect(result.error?.issues.map((issue) => [issue.path, issue.message])).toEqual([[["fmUniqueId"], "must be at most 4294967295"]]);
     }
   });
 
-  it.each(["fmUniqueId", "fmRandomId"])("reports a non-numeric %s once, without the range issue", (key) => {
-    const result = ClubIdentitySchema.safeParse({ ...galaticos, [key]: "12a" });
-    expect(result.error?.issues.map((issue) => issue.path)).toEqual([[key]]);
+  it("reports a non-numeric fmUniqueId once, without the range issue", () => {
+    const result = ClubIdentitySchema.safeParse({ ...galaticos, fmUniqueId: "12a" });
+    expect(result.error?.issues.map((issue) => issue.path)).toEqual([["fmUniqueId"]]);
+  });
+
+  // O teste no jogo (2026-10-03) mostrou que o FM26 acha o clube só pelo Unique ID: o Random ID não tem uso.
+  it("rejects fmRandomId", () => {
+    expect(() => parseClubIdentity({ ...galaticos, fmRandomId: "249337767" })).toThrow(/fmRandomId/);
   });
 
   it("rejects invalid internal ids", () => {
@@ -88,10 +81,6 @@ describe("parseClubIdentity", () => {
   it("rejects a misspelled fmUniqueId key", () => {
     const { fmUniqueId, ...rest } = galaticos;
     expect(() => parseClubIdentity({ ...rest, fmUniqueID: fmUniqueId })).toThrow(/fmUniqueID/);
-  });
-
-  it("rejects a misspelled fmRandomId key", () => {
-    expect(() => parseClubIdentity({ ...galaticos, fmRandomID: "1" })).toThrow(/fmRandomID/);
   });
 
   it("rejects a misspelled patternWeights key", () => {

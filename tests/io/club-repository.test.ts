@@ -13,7 +13,6 @@ describe("loadClub", () => {
     expect(club.name).toBe("Galáticos FC");
     expect(club.palette.primary).toBe("#191970");
     expect(club.fmUniqueId).toBe("2000778260");
-    expect(club.fmRandomId).toBe("249337767");
   });
 
   it("loads clubs from a custom directory", async () => {
