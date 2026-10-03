@@ -2,7 +2,7 @@
   "clubId": "kongs",
   "kitType": "home",
   "generatedWith": {
-    "seed": 44
+    "seed": 513348235
   },
   "colors": {
     "primary": "#0078bf",
@@ -14,13 +14,13 @@
     "base": "primary",
     "overlay": "secondary",
     "params": {
-      "width": 40.153,
-      "direction": 1
+      "width": 72.505,
+      "direction": 0
     }
   },
   "collar": {
     "style": "round",
-    "color": "accent"
+    "color": "secondary"
   },
   "sleeves": {
     "style": "match-body",

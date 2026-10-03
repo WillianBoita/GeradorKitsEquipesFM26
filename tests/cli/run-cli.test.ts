@@ -494,8 +494,11 @@ describe("runCli validate", () => {
 });
 
 describe("runCli export", () => {
-  // Clube com fmUniqueId e os três kits gerados pela seed 42; devolve também a pasta dos previews do generate.
-  async function exportableClubs(club: object = { ...GALATICOS_CLUB, fmUniqueId: "1" }, assets?: string): Promise<{ clubs: string; preview: string }> {
+  // ID de time no config.xml: 2 × 4294967296 + 1.
+  const FM_IDS = { fmUniqueId: "1", fmRandomId: "2" };
+
+  // Clube com fmUniqueId, fmRandomId e os três kits gerados pela seed 42; devolve também a pasta dos previews do generate.
+  async function exportableClubs(club: object = { ...GALATICOS_CLUB, ...FM_IDS }, assets?: string): Promise<{ clubs: string; preview: string }> {
     const clubs = await makeClubsDir({ "galaticos-fc": JSON.stringify(club) });
     const preview = await makeTempDir("cli");
     const assetArgs = assets === undefined ? [] : ["--assets", assets];
@@ -516,7 +519,7 @@ describe("runCli export", () => {
       expect(await sharp(path.join(out, `galaticos_fc_${kitType}_2d.png`)).metadata()).toMatchObject({ format: "png", width: 414, height: 414 });
     }
     const xml = await readFile(path.join(out, "config.xml"), "utf8");
-    expect(xml).toContain('<record from="galaticos_fc_away_2d" to="graphics/pictures/team/1/kits/away"/>');
+    expect(xml).toContain('<record from="galaticos_fc_away_2d" to="graphics/pictures/team/8589934593/kits/away"/>');
     expect(logs).toEqual(["Exported Galáticos FC: home, away, third", `Wrote 3 records to ${path.join(out, "config.xml")}`]);
     expect(errors).toEqual([]);
   });
@@ -530,13 +533,13 @@ describe("runCli export", () => {
     }
   });
 
-  it("aborts without writing anything when a club has no fmUniqueId", async () => {
+  it("aborts without writing anything when a club has no FM ids", async () => {
     const { clubs } = await exportableClubs(GALATICOS_CLUB);
     const out = await exportDir();
     const { io, logs, errors } = captureIo();
     expect(await runCli(["export", "--clubs", clubs, "--out", out], io)).toBe(1);
     expect(errors).toEqual([
-      'Error: [galaticos-fc] Club cannot be exported:\n  - missing-fm-unique-id: Club "galaticos-fc" has no fmUniqueId',
+      'Error: [galaticos-fc] Club cannot be exported:\n  - missing-fm-unique-id: Club "galaticos-fc" has no fmUniqueId\n  - missing-fm-random-id: Club "galaticos-fc" has no fmRandomId',
       "Error: Export aborted, nothing was written (1 of 1 clubs failed)",
     ]);
     expect(logs).toEqual([]);
@@ -544,7 +547,7 @@ describe("runCli export", () => {
   });
 
   it("reports a badge deleted after generate as a render failure with its path", async () => {
-    const clubs = await makeClubsDir({ "galaticos-fc": JSON.stringify({ ...GALATICOS_BRANDED_CLUB, fmUniqueId: "1" }) });
+    const clubs = await makeClubsDir({ "galaticos-fc": JSON.stringify({ ...GALATICOS_BRANDED_CLUB, ...FM_IDS }) });
     const assets = await makeAssetsDir();
     await writeClubLogo(clubs, "galaticos-fc");
     await runCli(

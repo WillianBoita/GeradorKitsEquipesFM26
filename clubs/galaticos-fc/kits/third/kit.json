@@ -2,7 +2,7 @@
   "clubId": "galaticos-fc",
   "kitType": "third",
   "generatedWith": {
-    "seed": 44
+    "seed": 3950324346
   },
   "colors": {
     "primary": "#191970",
@@ -14,12 +14,12 @@
     "base": "accent",
     "overlay": "primary",
     "params": {
-      "width": 53.238,
-      "direction": 1
+      "width": 93.067,
+      "direction": 0
     }
   },
   "collar": {
-    "style": "round",
+    "style": "v-neck",
     "color": "primary"
   },
   "sleeves": {
@@ -41,6 +41,6 @@
   },
   "manufacturer": {
     "id": "vertex",
-    "color": "secondary"
+    "color": "accent"
   }
 }

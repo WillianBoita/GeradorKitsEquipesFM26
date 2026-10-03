@@ -6,7 +6,7 @@ import { errorMessage } from "../core/errors.js";
 import { KIT_TYPES, type KitDefinition, type KitType } from "../core/kit.js";
 import type { ValidationIssue } from "../core/validation.js";
 import { kitDefinitionPath, listClubIds, loadClub, loadKit } from "../io/club-repository.js";
-import { buildConfigXml, fmTargetPath, isGeneratedConfigXml, type ConfigRecord } from "./config-xml.js";
+import { buildConfigXml, fmTargetPath, fmTeamId, isGeneratedConfigXml, type ConfigRecord } from "./config-xml.js";
 import { kitAssetName, type RenderType } from "./naming.js";
 
 // Resoluções exigidas pelo FM26 (spec de integração, seção 6), independentes do tamanho padrão de cada renderer.
@@ -19,6 +19,8 @@ const REQUIRED_KIT_TYPES: readonly KitType[] = ["home", "away"];
 export function validateExportClub(club: ClubIdentity, kitTypes: readonly KitType[], clubsDir: string): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   if (club.fmUniqueId === undefined) issues.push({ rule: "missing-fm-unique-id", message: `Club "${club.id}" has no fmUniqueId` });
+  // Sem padrão 0: um Random ID esquecido geraria um caminho que o jogo ignora sem aviso.
+  if (club.fmRandomId === undefined) issues.push({ rule: "missing-fm-random-id", message: `Club "${club.id}" has no fmRandomId` });
   for (const kitType of REQUIRED_KIT_TYPES) {
     if (kitTypes.includes(kitType)) continue;
     issues.push({ rule: "missing-kit", message: `Club "${club.id}" has no ${kitType} kit (expected ${kitDefinitionPath(club.id, kitType, clubsDir)})` });
@@ -26,18 +28,25 @@ export function validateExportClub(club: ClubIdentity, kitTypes: readonly KitTyp
   return issues;
 }
 
-// Mesmo ID em dois clubes geraria `to` duplicado e o FM aplicaria só um dos kits.
-export function duplicateFmUniqueIdIssues(clubs: readonly ClubIdentity[]): Map<string, ValidationIssue[]> {
-  const clubIdsByFmId = new Map<string, string[]>();
+// Clube sem um dos dois IDs não tem ID de time: ele já falha em validateExportClub.
+function clubFmTeamId(club: ClubIdentity): string | undefined {
+  return club.fmUniqueId !== undefined && club.fmRandomId !== undefined ? fmTeamId(club.fmUniqueId, club.fmRandomId) : undefined;
+}
+
+// Mesmo ID de time em dois clubes geraria `to` duplicado e o FM aplicaria só um dos kits. A conta é injetiva: mesmo ID = mesmo par.
+export function duplicateFmTeamIdIssues(clubs: readonly ClubIdentity[]): Map<string, ValidationIssue[]> {
+  const clubsByTeamId = new Map<string, ClubIdentity[]>();
   for (const club of clubs) {
-    if (club.fmUniqueId !== undefined) clubIdsByFmId.set(club.fmUniqueId, [...(clubIdsByFmId.get(club.fmUniqueId) ?? []), club.id]);
+    const teamId = clubFmTeamId(club);
+    if (teamId !== undefined) clubsByTeamId.set(teamId, [...(clubsByTeamId.get(teamId) ?? []), club]);
   }
   const issues = new Map<string, ValidationIssue[]>();
-  for (const [fmUniqueId, clubIds] of clubIdsByFmId) {
-    if (clubIds.length < 2) continue;
-    for (const clubId of clubIds) {
-      const others = clubIds.filter((other) => other !== clubId).map((other) => `"${other}"`);
-      issues.set(clubId, [{ rule: "duplicate-fm-unique-id", message: `fmUniqueId "${fmUniqueId}" is also used by club ${others.join(", ")}` }]);
+  for (const [teamId, sharing] of clubsByTeamId) {
+    if (sharing.length < 2) continue;
+    const editorIds = `fmRandomId "${sharing[0]!.fmRandomId}", fmUniqueId "${sharing[0]!.fmUniqueId}"`;
+    for (const club of sharing) {
+      const others = sharing.filter((other) => other !== club).map((other) => `"${other.id}"`);
+      issues.set(club.id, [{ rule: "duplicate-fm-team-id", message: `fmTeamId "${teamId}" (${editorIds}) is also used by club ${others.join(", ")}` }]);
     }
   }
   return issues;
@@ -147,7 +156,7 @@ async function loadExportClub(clubId: string, clubsDir: string): Promise<LoadedC
 }
 
 // Ordem dos registros: render (2d antes de 3d) e depois tipo de kit, como no exemplo do spec de integração.
-async function renderClub(club: ClubIdentity, fmUniqueId: string, kits: ClubKits, options: ExportOptions): Promise<RenderedClub> {
+async function renderClub(club: ClubIdentity, teamId: string, kits: ClubKits, options: ExportOptions): Promise<RenderedClub> {
   const files: ExportFile[] = [];
   const issues: ValidationIssue[] = [];
   for (const renderType of options.renderTypes) {
@@ -166,7 +175,7 @@ async function renderClub(club: ClubIdentity, fmUniqueId: string, kits: ClubKits
         issues.push(invalid);
         continue;
       }
-      const record = { from: kitAssetName(club.id, kitType, renderType), to: fmTargetPath(fmUniqueId, kitType, renderType) };
+      const record = { from: kitAssetName(club.id, kitType, renderType), to: fmTargetPath(teamId, kitType, renderType) };
       files.push({ file: exportFilePath(options.outDir, club.id, kitType, renderType), png, record });
     }
   }
@@ -179,16 +188,16 @@ export async function exportKits(options: ExportOptions): Promise<ExportResult> 
   if (clubIds.length === 0) throw new Error(`No clubs found in ${options.clubsDir}`);
   const loaded: LoadedClub[] = [];
   for (const clubId of clubIds) loaded.push(await loadExportClub(clubId, options.clubsDir));
-  const duplicates = duplicateFmUniqueIdIssues(loaded.flatMap((entry) => entry.club ?? []));
+  const duplicates = duplicateFmTeamIdIssues(loaded.flatMap((entry) => entry.club ?? []));
   const failures: ClubExportFailure[] = [];
   const exported: ExportedClub[] = [];
   const files: ExportFile[] = [];
   for (const entry of loaded) {
     const issues = [...entry.issues, ...(duplicates.get(entry.clubId) ?? [])];
-    const fmUniqueId = entry.club?.fmUniqueId;
+    const teamId = entry.club && clubFmTeamId(entry.club);
     // Clubes válidos renderizam mesmo depois de uma falha, para o usuário ver todos os problemas de uma vez.
-    if (entry.club && fmUniqueId !== undefined && issues.length === 0) {
-      const rendered = await renderClub(entry.club, fmUniqueId, entry.kits, options);
+    if (entry.club && teamId !== undefined && issues.length === 0) {
+      const rendered = await renderClub(entry.club, teamId, entry.kits, options);
       issues.push(...rendered.issues);
       files.push(...rendered.files);
       exported.push({ club: entry.club, kitTypes: KIT_TYPES.filter((kitType) => entry.kits[kitType] !== undefined) });
