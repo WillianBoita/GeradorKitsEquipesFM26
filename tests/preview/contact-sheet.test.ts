@@ -41,17 +41,28 @@ describe("buildContactSheetHtml", () => {
 });
 
 describe("kitDetails", () => {
-  it("lists the pattern with category and resolved params, the seed and the brands", () => {
+  it("lists the pattern with category and resolved params, the collar and sleeves, the seed and the brands", () => {
     const kit = makeKit({
       generatedWith: { seed: 42 },
       pattern: { id: "stripes", base: "primary", overlay: "secondary", params: { count: 7, ratio: 0.3 } },
       sponsor: { id: "luna-air", color: "accent" },
       manufacturer: { id: "vertex", color: "accent" },
     });
-    expect(kitDetails(kit)).toEqual(["stripes · classic · count 7, ratio 0.3", "seed 42", "sponsor luna-air", "manufacturer vertex"]);
+    expect(kitDetails(kit)).toEqual([
+      "stripes · classic · count 7, ratio 0.3",
+      "collar round · sleeves match-body · set-in",
+      "seed 42",
+      "sponsor luna-air",
+      "manufacturer vertex",
+    ]);
   });
 
-  it("omits what the kit does not have", () => {
-    expect(kitDetails(makeKit())).toEqual(["solid · classic"]);
+  it("omits what the kit does not have and reads a kit without cut as set-in", () => {
+    expect(kitDetails(makeKit())).toEqual(["solid · classic", "collar round · sleeves match-body · set-in"]);
+  });
+
+  it("shows the new collars and the raglan cut", () => {
+    const kit = makeKit({ collar: { style: "polo", color: "accent" }, sleeves: { style: "solid", cut: "raglan", color: "secondary", cuffColor: "accent" } });
+    expect(kitDetails(kit)[1]).toBe("collar polo · sleeves solid · raglan");
   });
 });

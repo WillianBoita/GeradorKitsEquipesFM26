@@ -1,4 +1,4 @@
-import type { KitDefinition, KitType } from "../core/kit.js";
+import { sleeveCut, type KitDefinition, type KitType } from "../core/kit.js";
 import { resolveParams } from "../patterns/params.js";
 import { getPatternTemplate } from "../patterns/registry.js";
 
@@ -32,7 +32,10 @@ export function kitDetails(kit: KitDefinition): string[] {
   const params = Object.entries(resolveParams(template, kit.pattern.params))
     .map(([key, value]) => `${key} ${value}`)
     .join(", ");
-  const lines = [[template.id, template.category, params].filter((part) => part !== "").join(" · ")];
+  const lines = [
+    [template.id, template.category, params].filter((part) => part !== "").join(" · "),
+    `collar ${kit.collar.style} · sleeves ${kit.sleeves.style} · ${sleeveCut(kit)}`,
+  ];
   if (kit.generatedWith) lines.push(`seed ${kit.generatedWith.seed}`);
   if (kit.sponsor) lines.push(`sponsor ${kit.sponsor.id}`);
   if (kit.manufacturer) lines.push(`manufacturer ${kit.manufacturer.id}`);
