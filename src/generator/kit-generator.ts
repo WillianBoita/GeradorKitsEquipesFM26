@@ -70,7 +70,7 @@ export function generateKit(identity: ClubIdentity, kitType: KitType, palette: P
   const { base, overlay } = KIT_ROLES[kitType];
   const trimRoles = COLOR_ROLES.filter((role) => role !== base);
   // A ordem das chamadas ao rng faz parte do contrato de reprodutibilidade: reordenar muda os kits gerados para a mesma seed.
-  const template = pickPattern(identity, rng);
+  const template = pickPattern(identity, kitType, rng);
   const params = randomParams(template, rng);
   const collarStyle = rng.pick(COLLAR_STYLES);
   const collarColor = rng.pick(trimRoles);
@@ -91,8 +91,8 @@ export function generateKit(identity: ClubIdentity, kitType: KitType, palette: P
   };
 }
 
-function pickPattern(identity: ClubIdentity, rng: Rng): PatternTemplate {
-  return rng.weighted(patternCandidates(identity));
+function pickPattern(identity: ClubIdentity, kitType: KitType, rng: Rng): PatternTemplate {
+  return rng.weighted(patternCandidates(identity, kitType));
 }
 
 function randomParams(template: PatternTemplate, rng: Rng): Record<string, number> {

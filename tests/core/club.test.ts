@@ -17,6 +17,21 @@ describe("parseClubIdentity", () => {
     expect(club.style.patternWeights).toEqual({ solid: 20, stripes: 40, sash: 40 });
   });
 
+  it("accepts traditions with forbidden patterns and patterns per kit type", () => {
+    const traditions = { forbiddenPatterns: ["sash"], patterns: { home: ["stripes", "pinstripes"] } };
+    expect(parseClubIdentity({ ...galaticos, traditions }).traditions).toEqual(traditions);
+  });
+
+  const INVALID_TRADITIONS: [string, object, RegExp][] = [
+    ["an unknown key", { forbidenPatterns: ["sash"] }, /forbidenPatterns/],
+    ["an unknown kit type", { patterns: { fourth: ["solid"] } }, /fourth/],
+    ["an empty pattern list", { patterns: { home: [] } }, /traditions\.patterns\.home/],
+  ];
+
+  it.each(INVALID_TRADITIONS)("rejects traditions with %s", (_label, traditions, error) => {
+    expect(() => parseClubIdentity({ ...galaticos, traditions })).toThrow(error);
+  });
+
   it("accepts an identity without fmUniqueId, secondary, accent or style", () => {
     const club = parseClubIdentity({ id: "minimal", name: "Minimal", palette: { primary: "#c8102e" } });
     expect(club).toEqual({ id: "minimal", name: "Minimal", palette: { primary: "#c8102e" }, style: { categories: [] } });

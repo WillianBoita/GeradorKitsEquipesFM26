@@ -381,6 +381,16 @@ describe("runCli validate", () => {
     return clubs;
   }
 
+  it("reports a hand-edited kit that breaks a club tradition", async () => {
+    const clubs = await generatedClubsDir();
+    await writeFile(path.join(clubs, "galaticos-fc", "club.json"), JSON.stringify({ ...GALATICOS_CLUB, traditions: { forbiddenPatterns: ["sash"] } }));
+    const home = parseKitDefinition(JSON.parse(await readFile(kitFile(clubs, "galaticos-fc", "home"), "utf8")));
+    await writeFile(kitFile(clubs, "galaticos-fc", "home"), JSON.stringify({ ...home, pattern: { ...home.pattern, id: "sash", params: {} } }));
+    const { io, errors } = captureIo();
+    expect(await runCli(["validate", "--club", "galaticos-fc", "--clubs", clubs], io)).toBe(1);
+    expect(errors[0]).toContain('  - forbidden-pattern: home kit uses pattern "sash", which traditions.forbiddenPatterns forbids');
+  });
+
   it("accepts freshly generated clubs", async () => {
     const { io, logs, errors } = captureIo();
     expect(await runCli(["validate", "--all", "--clubs", await generatedClubsDir()], io)).toBe(0);

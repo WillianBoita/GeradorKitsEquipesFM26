@@ -10,6 +10,7 @@ import {
   validateKit,
   validateKitAssets,
   validateKitSet,
+  validateKitTraditions,
   validatePalette,
 } from "../../src/core/validation.js";
 import { GALATICOS_CLUB } from "../fixtures/clubs.js";
@@ -244,5 +245,59 @@ describe("formatIssues", () => {
       { rule: "b", message: "second" },
     ];
     expect(formatIssues(issues)).toBe("  - a: first\n  - b: second");
+  });
+});
+
+describe("validateClub traditions", () => {
+  it("accepts valid traditions", () => {
+    expect(validateClub(club({ traditions: { forbiddenPatterns: ["sash"], patterns: { home: ["stripes"] } } }))).toEqual([]);
+  });
+
+  it("reports unknown patterns in traditions", () => {
+    const issues = validateClub(club({ traditions: { forbiddenPatterns: ["zigzag"], patterns: { away: ["zebra"] } } }));
+    expect(issues).toEqual([
+      { rule: "unknown-pattern", message: `traditions.forbiddenPatterns references unknown pattern "zigzag" (known: ${KNOWN_PATTERNS})` },
+      { rule: "unknown-pattern", message: `traditions.patterns.away references unknown pattern "zebra" (known: ${KNOWN_PATTERNS})` },
+    ]);
+  });
+
+  it("reports a pattern both allowed and forbidden", () => {
+    expect(validateClub(club({ traditions: { forbiddenPatterns: ["stripes"], patterns: { third: ["stripes", "solid"] } } }))).toEqual([
+      { rule: "tradition-conflict", message: 'traditions.patterns.third allows "stripes", which traditions.forbiddenPatterns forbids' },
+    ]);
+  });
+
+  it("reports kit types left without any pattern by the forbidden list", () => {
+    const traditions = { forbiddenPatterns: ["solid", "stripes", "sash"], patterns: { home: ["hoops"] } };
+    expect(validateClub(club({ traditions }))).toEqual([
+      { rule: "no-pattern-weight", message: "traditions.forbiddenPatterns leaves the away kit without a pattern with positive weight" },
+      { rule: "no-pattern-weight", message: "traditions.forbiddenPatterns leaves the third kit without a pattern with positive weight" },
+    ]);
+  });
+});
+
+describe("validateKitTraditions", () => {
+  const traditions = club({ traditions: { forbiddenPatterns: ["sash"], patterns: { home: ["stripes"] } } });
+  const kitWith = (kitType: "home" | "away", id: string) => makeKit({ kitType, pattern: { id, base: "primary", overlay: "secondary", params: {} } });
+
+  it("accepts kits that follow the traditions", () => {
+    expect(validateKitTraditions(traditions, kitWith("home", "stripes"))).toEqual([]);
+    expect(validateKitTraditions(traditions, kitWith("away", "solid"))).toEqual([]);
+  });
+
+  it("reports a forbidden pattern", () => {
+    expect(validateKitTraditions(traditions, kitWith("away", "sash"))).toEqual([
+      { rule: "forbidden-pattern", message: 'away kit uses pattern "sash", which traditions.forbiddenPatterns forbids' },
+    ]);
+  });
+
+  it("reports a pattern outside the list of its kit type", () => {
+    expect(validateKitTraditions(traditions, kitWith("home", "solid"))).toEqual([
+      { rule: "tradition-pattern", message: 'home kit uses pattern "solid", but traditions.patterns.home allows only stripes' },
+    ]);
+  });
+
+  it("ignores clubs without traditions", () => {
+    expect(validateKitTraditions(club(), kitWith("home", "sash"))).toEqual([]);
   });
 });

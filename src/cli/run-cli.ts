@@ -9,7 +9,16 @@ import { errorMessage } from "../core/errors.js";
 import { BRAND_LISTS, KIT_TYPES, KitDefinitionSchema, KitTypeSchema, type BrandKind, type KitDefinition, type KitType } from "../core/kit.js";
 import { parseWith } from "../core/primitives.js";
 import { deriveSeed, MAX_SEED } from "../core/random.js";
-import { formatIssues, validateClub, validateClubAssets, validateKit, validateKitAssets, validateKitSet, type ValidationIssue } from "../core/validation.js";
+import {
+  formatIssues,
+  validateClub,
+  validateClubAssets,
+  validateKit,
+  validateKitAssets,
+  validateKitSet,
+  validateKitTraditions,
+  type ValidationIssue,
+} from "../core/validation.js";
 import { ExportAbortedError, exportKits, type RenderKit } from "../fm26/exporter.js";
 import { generateKitSet } from "../generator/kit-generator.js";
 import { checkAssetFiles, loadKitLogos, type AssetDirs, type AssetRefs } from "../io/asset-repository.js";
@@ -163,7 +172,7 @@ async function validateClubFiles(clubId: string, dirs: AssetDirs, load: Registry
     }
   }
   const loaded = Object.values(kits);
-  issues.push(...loaded.flatMap((kit) => validateKit(kit)), ...validateKitSet(kits));
+  issues.push(...loaded.flatMap((kit) => [...validateKit(kit), ...validateKitTraditions(club, kit)]), ...validateKitSet(kits));
   // Sem registry não dá para conferir ids nem arquivos de logo; o erro do registry já explica o FAIL.
   if ("error" in load) {
     issues.push({ rule: "invalid-file", message: load.error });

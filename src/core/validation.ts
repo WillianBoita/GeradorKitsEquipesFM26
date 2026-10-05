@@ -1,5 +1,6 @@
 import { findAsset, knownAssetIds, type AssetRegistry } from "../assets/registry.js";
 import { listPatternTemplates } from "../patterns/registry.js";
+import { patternCandidates } from "../styles/pattern-weights.js";
 import { findStyleProfile, knownStyleIds } from "../styles/profiles.js";
 import type { ClubIdentity } from "./club.js";
 import { colorDistance, contrastRatio } from "./color.js";
@@ -36,6 +37,29 @@ export function validateColors(colors: Partial<Record<ColorRole, string>>): Vali
   });
 }
 
+function traditionIssues(identity: ClubIdentity, known: readonly string[]): ValidationIssue[] {
+  const traditions = identity.traditions;
+  if (!traditions) return [];
+  const forbidden = traditions.forbiddenPatterns ?? [];
+  const lists: [string, readonly string[]][] = [
+    ["traditions.forbiddenPatterns", forbidden],
+    ...KIT_TYPES.map((kitType): [string, readonly string[]] => [`traditions.patterns.${kitType}`, traditions.patterns?.[kitType] ?? []]),
+  ];
+  const issues: ValidationIssue[] = [];
+  for (const [field, ids] of lists) {
+    for (const id of ids) {
+      if (!known.includes(id)) issues.push({ rule: "unknown-pattern", message: `${field} references unknown pattern "${id}" (known: ${known.join(", ")})` });
+    }
+  }
+  for (const kitType of KIT_TYPES) {
+    for (const id of traditions.patterns?.[kitType] ?? []) {
+      if (forbidden.includes(id))
+        issues.push({ rule: "tradition-conflict", message: `traditions.patterns.${kitType} allows "${id}", which traditions.forbiddenPatterns forbids` });
+    }
+  }
+  return issues;
+}
+
 export function validateClub(identity: ClubIdentity): ValidationIssue[] {
   const known = knownPatternIds();
   const weights = identity.style.patternWeights;
@@ -56,6 +80,17 @@ export function validateClub(identity: ClubIdentity): ValidationIssue[] {
     const pool = identity[BRAND_LISTS[kind]];
     if (pool && !Object.values(pool).some((weight) => weight > 0)) {
       issues.push({ rule: "no-asset-weight", message: `${BRAND_LISTS[kind]} gives no ${kind} a positive weight` });
+    }
+  }
+  issues.push(...traditionIssues(identity, known));
+  const traditions = identity.traditions;
+  // Os candidatos dependem de estilos e pesos válidos; quebrados, as regras acima já explicam o problema.
+  if (traditions?.forbiddenPatterns && !issues.some((issue) => issue.rule === "unknown-style" || issue.rule === "no-pattern-weight")) {
+    for (const kitType of KIT_TYPES) {
+      if (traditions.patterns?.[kitType]) continue;
+      if (!patternCandidates(identity, kitType).some(([, weight]) => weight > 0)) {
+        issues.push({ rule: "no-pattern-weight", message: `traditions.forbiddenPatterns leaves the ${kitType} kit without a pattern with positive weight` });
+      }
     }
   }
   return [...issues, ...validateColors(identity.palette)];
@@ -128,6 +163,25 @@ export function validateKitAssets(kit: KitDefinition, registry: AssetRegistry): 
     if (!logo || findAsset(registry, kind, logo.id)) return [];
     return [{ rule: "unknown-asset", message: `${kit.kitType} kit references unknown ${kind} "${logo.id}" (known: ${knownAssetIds(registry, kind)})` }];
   });
+}
+
+// Pega kit.json editado à mão; o generator já respeita as tradições ao sortear.
+export function validateKitTraditions(identity: ClubIdentity, kit: KitDefinition): ValidationIssue[] {
+  const traditions = identity.traditions;
+  if (!traditions) return [];
+  const issues: ValidationIssue[] = [];
+  const pattern = kit.pattern.id;
+  if (traditions.forbiddenPatterns?.includes(pattern)) {
+    issues.push({ rule: "forbidden-pattern", message: `${kit.kitType} kit uses pattern "${pattern}", which traditions.forbiddenPatterns forbids` });
+  }
+  const allowed = traditions.patterns?.[kit.kitType];
+  if (allowed && !allowed.includes(pattern)) {
+    issues.push({
+      rule: "tradition-pattern",
+      message: `${kit.kitType} kit uses pattern "${pattern}", but traditions.patterns.${kit.kitType} allows only ${allowed.join(", ")}`,
+    });
+  }
+  return issues;
 }
 
 export function validateKitSet(kits: Partial<Record<KitType, KitDefinition>>): ValidationIssue[] {

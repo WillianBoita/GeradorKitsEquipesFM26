@@ -35,9 +35,44 @@ describe("resolvePatternWeights", () => {
 });
 
 describe("patternCandidates", () => {
+  const withTraditions = (traditions: object) => parseClubIdentity({ ...GALATICOS_CLUB, traditions });
+  const positive = (candidates: ReturnType<typeof patternCandidates>) =>
+    candidates.filter(([, weight]) => weight > 0).map(([template, weight]) => [template.id, weight]);
+
   it("lists every registered pattern in registry order, with zero for the missing ones", () => {
-    const candidates = patternCandidates(club({ categories: [], patternWeights: { sash: 3 } }));
+    const candidates = patternCandidates(club({ categories: [], patternWeights: { sash: 3 } }), "home");
     expect(candidates.map(([template]) => template.id)).toEqual(listPatternTemplates().map((template) => template.id));
-    expect(candidates.filter(([, weight]) => weight > 0).map(([template, weight]) => [template.id, weight])).toEqual([["sash", 3]]);
+    expect(positive(candidates)).toEqual([["sash", 3]]);
+  });
+
+  it("gives forbidden patterns zero weight", () => {
+    expect(positive(patternCandidates(withTraditions({ forbiddenPatterns: ["sash"] }), "away"))).toEqual([
+      ["solid", 20],
+      ["stripes", 40],
+    ]);
+  });
+
+  it("keeps only the patterns listed for the kit type, in registry order", () => {
+    const club = withTraditions({ patterns: { home: ["sash", "stripes"] } });
+    expect(patternCandidates(club, "home").map(([template, weight]) => [template.id, weight])).toEqual([
+      ["stripes", 40],
+      ["sash", 40],
+    ]);
+    expect(patternCandidates(club, "away")).toHaveLength(listPatternTemplates().length);
+  });
+
+  it("draws uniformly from a list whose weights are all zero", () => {
+    expect(patternCandidates(withTraditions({ patterns: { home: ["hoops", "halves"] } }), "home").map(([template, weight]) => [template.id, weight])).toEqual([
+      ["hoops", 1],
+      ["halves", 1],
+    ]);
+  });
+
+  it("never revives a forbidden pattern in the uniform draw", () => {
+    const club = withTraditions({ forbiddenPatterns: ["halves"], patterns: { home: ["hoops", "halves"] } });
+    expect(patternCandidates(club, "home").map(([template, weight]) => [template.id, weight])).toEqual([
+      ["hoops", 1],
+      ["halves", 0],
+    ]);
   });
 });

@@ -290,3 +290,39 @@ describe("generateKitSet Phase 3b baseline", () => {
     );
   });
 });
+
+describe("generateKitSet traditions", () => {
+  const traditional = (traditions: object): ClubIdentity => parseClubIdentity({ ...GALATICOS_CLUB, traditions });
+
+  it("never picks a forbidden pattern", () => {
+    const club = traditional({ forbiddenPatterns: ["sash"] });
+    for (let seed = 0; seed < 200; seed++) {
+      for (const kit of Object.values(generateKitSet(club, seed))) expect(kit.pattern.id).not.toBe("sash");
+    }
+  });
+
+  it("picks the home pattern from its list, even when the weights leave it out", () => {
+    const club = traditional({ patterns: { home: ["hoops", "pinstripes"] } });
+    const ids = new Set(Array.from({ length: 200 }, (_, seed) => generateKitSet(club, seed).home.pattern.id));
+    expect(ids).toEqual(new Set(["hoops", "pinstripes"]));
+  });
+
+  it("keeps the other kit types on the club weights", () => {
+    const club = traditional({ patterns: { home: ["hoops"] } });
+    for (let seed = 0; seed < 50; seed++) {
+      const withTradition = generateKitSet(club, seed);
+      const plain = generateKitSet(identity, seed);
+      expect(withTradition.away).toEqual(plain.away);
+      expect(withTradition.third).toEqual(plain.third);
+    }
+  });
+
+  it("generates the same kits as a club without traditions when traditions is empty", () => {
+    const club = traditional({});
+    for (let seed = 0; seed < 50; seed++) expect(generateKitSet(club, seed)).toEqual(generateKitSet(identity, seed));
+  });
+
+  it("rejects conflicting traditions before generating", () => {
+    expect(() => generateKitSet(traditional({ forbiddenPatterns: ["hoops"], patterns: { home: ["hoops"] } }), 1)).toThrow(/tradition-conflict/);
+  });
+});
