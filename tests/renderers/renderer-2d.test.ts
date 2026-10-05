@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { XMLValidator } from "fast-xml-parser";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
@@ -202,5 +203,26 @@ describe("renderKit2dPng logos", () => {
     const kit = makeKit({ badge: true, sponsor: { id: "luna-air", color: "accent", outline: "secondary" } });
     const logos = { badge: await makeLogoPng(40, 40, "#00ff00"), ...sponsorLogo() };
     expect((await renderKit2dPng(kit, { logos })).equals(await renderKit2dPng(kit, { logos }))).toBe(true);
+  });
+});
+
+// Guarda da Fase 3b: passa antes e depois da camada de desenho compartilhada; o SVG 2D dos padrões atuais não pode mudar.
+describe("renderKit2dSvg Phase 3b baseline", () => {
+  it("keeps the SVG of every current pattern, collar and sleeve style", () => {
+    const kits = ["solid", "stripes", "sash"].flatMap((id) =>
+      (["round", "v-neck"] as const).flatMap((collar) =>
+        (["match-body", "solid"] as const).map((sleeves) =>
+          makeKit({
+            pattern: { id, base: "primary", overlay: "secondary", params: {} },
+            collar: { style: collar, color: "accent" },
+            sleeves: { style: sleeves, color: "secondary", cuffColor: "accent" },
+          }),
+        ),
+      ),
+    );
+    const digest = createHash("sha256")
+      .update(kits.map((kit) => renderKit2dSvg(kit)).join("\n"))
+      .digest("hex");
+    expect(digest).toBe("acdafaa885203f9f125260033f4ef9b225720ea04165ad11f244a57e6ce96d40");
   });
 });

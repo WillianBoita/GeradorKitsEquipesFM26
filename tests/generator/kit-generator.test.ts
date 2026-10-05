@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { parseClubIdentity, type ClubIdentity } from "../../src/core/club.js";
 import { KIT_TYPES, parseKitDefinition } from "../../src/core/kit.js";
@@ -241,5 +242,23 @@ describe("generateKitSet logos", () => {
 
   it("rejects pools without a positive weight", () => {
     expect(() => generateKitSet({ ...branded, manufacturers: { vertex: 0 } }, 1)).toThrow(/no-asset-weight/);
+  });
+});
+
+function setsDigest(club: ClubIdentity, badge: boolean): string {
+  const sets = Array.from({ length: 30 }, (_, seed) => generateKitSet(club, seed, { badge }));
+  return createHash("sha256").update(JSON.stringify(sets)).digest("hex");
+}
+
+// Guarda da Fase 3b: passa antes e depois de padrões, perfis e tradições; estes clubes não podem mudar de kit para a mesma seed.
+describe("generateKitSet Phase 3b baseline", () => {
+  it("keeps the sets of a club with pattern weights and brands", () => {
+    expect(setsDigest(branded, true)).toBe("a2633676e2aa3350ebc307ebcb9703442abbd64b45d68c0f44999582f73cc08a");
+  });
+
+  it("keeps the sets of a club without categories or pattern weights", () => {
+    expect(setsDigest(parseClubIdentity({ ...GALATICOS_CLUB, style: { categories: [] } }), false)).toBe(
+      "e69b9a924a8b3943500bf9730e543e41c7c6b6fca9fe0c95deff9d9907507eb5",
+    );
   });
 });
