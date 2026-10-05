@@ -18,7 +18,7 @@ describe("resolvePatternWeights", () => {
   it("normalizes a single profile", () => {
     const weights = resolvePatternWeights(club({ categories: ["modern"] }));
     expect(weights.diagonal).toBeCloseTo(0.2);
-    expect(Object.values(weights).reduce((sum, weight) => sum + weight, 0)).toBeCloseTo(1);
+    expect(Object.values(weights).reduce<number>((sum, weight) => sum + (weight ?? 0), 0)).toBeCloseTo(1);
   });
 
   it("averages the normalized profiles", () => {

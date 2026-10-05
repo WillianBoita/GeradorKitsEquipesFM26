@@ -4,6 +4,8 @@ export interface StyleProfile {
   patternWeights: Record<string, number>;
 }
 
+export type Weights<K extends string> = Partial<Record<K, number>>;
+
 // Clube sem categories nem patternWeights usa classic: são os pesos de antes dos perfis, então as seeds antigas geram os mesmos kits.
 export const DEFAULT_STYLE_PROFILE = "classic";
 
