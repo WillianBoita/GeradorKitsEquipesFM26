@@ -2,11 +2,13 @@ import sharp from "sharp";
 import { BRAND_KINDS, resolveLogoColor, type KitDefinition, type LogoSlot } from "../core/kit.js";
 import { fillSvg, kitDesign } from "./kit-design.js";
 import { badgeLayer, brandLogoLayers, type LogoLayer, type PixelBox } from "./logo-image.js";
-import { bodyPath, collarPath, CUFFS_PATH, LOGO_BOXES, outlinePath, SHIRT_2D_VIEWBOX, SLEEVES_PATH, type LogoBox } from "./shirt-2d-shape.js";
+import { bodyPath, collarPath, collarTrimPath, CUFFS_PATH, LOGO_BOXES, outlinePath, SHIRT_2D_VIEWBOX, SLEEVES_PATH, type LogoBox } from "./shirt-2d-shape.js";
 
 export const KIT_2D_SIZE = 414;
 // Espessura do contorno dos logos no viewBox 414; escala com o tamanho do PNG.
 const OUTLINE_WIDTH = 2;
+// Traço escuro da silhueta, repetido nas peças da gola polo: o mesmo texto mantém o SVG das golas antigas igual.
+const OUTLINE_STROKE = 'stroke="#000000" stroke-opacity="0.35" stroke-width="2" stroke-linejoin="round"';
 
 export interface KitLogoImages {
   badge?: Buffer;
@@ -23,6 +25,7 @@ export function renderKit2dSvg(kit: KitDefinition, options: Render2dOptions = {}
   const size = options.size ?? KIT_2D_SIZE;
   const view = SHIRT_2D_VIEWBOX;
   const design = kitDesign(kit);
+  const trim = collarTrimPath(kit.collar.style);
   // Manga lisa continua um <path> preenchido, como antes da camada: o SVG 2D não pode mudar (guarda da Fase 3b).
   const sleeves =
     design.sleeves.kind === "solid"
@@ -35,7 +38,8 @@ export function renderKit2dSvg(kit: KitDefinition, options: Render2dOptions = {}
     sleeves,
     `<path d="${CUFFS_PATH}" fill="none" stroke="${design.cuffs}" stroke-width="8"/>`,
     `<path d="${collarPath(kit.collar.style)}" fill="none" stroke="${design.collar}" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>`,
-    `<path d="${outlinePath(kit.collar.style)}" fill="none" stroke="#000000" stroke-opacity="0.35" stroke-width="2" stroke-linejoin="round"/>`,
+    trim === undefined ? "" : `<path d="${trim}" fill="${design.collar}" ${OUTLINE_STROKE}/>`,
+    `<path d="${outlinePath(kit.collar.style)}" fill="none" ${OUTLINE_STROKE}/>`,
     "</svg>",
   ].join("");
 }

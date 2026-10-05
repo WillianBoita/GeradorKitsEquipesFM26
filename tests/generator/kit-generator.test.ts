@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { parseClubIdentity, type ClubIdentity } from "../../src/core/club.js";
-import { KIT_TYPES, parseKitDefinition, visibleRoles } from "../../src/core/kit.js";
+import { COLLAR_STYLES, KIT_TYPES, parseKitDefinition, visibleRoles } from "../../src/core/kit.js";
 import { resolvePalette } from "../../src/core/palette.js";
 import { createRng, deriveSeed } from "../../src/core/random.js";
 import { validateKit, validateKitSet, validatePalette } from "../../src/core/validation.js";
@@ -156,6 +156,12 @@ describe("generateKitSet", () => {
     expect(solidShare([])).toBeGreaterThan(0.4);
   });
 
+  it("draws every collar for a retro club", () => {
+    const club = parseClubIdentity({ ...GALATICOS_CLUB, style: { categories: ["retro"] } });
+    const styles = new Set(Array.from({ length: 50 }, (_, seed) => Object.values(generateKitSet(club, seed)).map((kit) => kit.collar.style)).flat());
+    expect(styles).toEqual(new Set(COLLAR_STYLES));
+  });
+
   it("rejects invalid clubs before generating anything", () => {
     expect(() => generateKitSet(withWeights({ zigzag: 1 }), 1)).toThrow(
       'Club "galaticos-fc" is invalid:\n  - unknown-pattern: style.patternWeights references unknown pattern "zigzag"',
@@ -294,7 +300,7 @@ function setsDigest(club: ClubIdentity, badge: boolean): string {
 // O branded (categoria modern) muda de propósito quando a Fase 4a muda os pesos de gola e manga dos perfis; atualize o hash só nessas mudanças.
 describe("generateKitSet Phase 3b baseline", () => {
   it("keeps the sets of a club with pattern weights and brands", () => {
-    expect(setsDigest(branded, true)).toBe("95aad27f38c91c01d03bc0a3dfec0c06251c23894c4ad90f32c0887cf7652372");
+    expect(setsDigest(branded, true)).toBe("d5d08db803c5e7b1d595a0e142b26dcfa8badca2cee208a4e7e9296990b32cf0");
   });
 
   it("keeps the sets of a club without categories or pattern weights", () => {

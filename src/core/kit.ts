@@ -3,7 +3,8 @@ import { AssetIdSchema, ClubIdSchema, HexColorSchema, parseWith, SeedSchema } fr
 
 export const KIT_TYPES = ["home", "away", "third"] as const;
 export const COLOR_ROLES = ["primary", "secondary", "accent"] as const;
-export const COLLAR_STYLES = ["round", "v-neck"] as const;
+// Valores novos no fim: a ordem participa do sorteio (src/styles/component-weights.ts).
+export const COLLAR_STYLES = ["round", "v-neck", "polo", "polo-v"] as const;
 export const SLEEVE_STYLES = ["match-body", "solid"] as const;
 // Logos de marca: o id aponta para o registry de assets.
 export const BRAND_KINDS = ["sponsor", "manufacturer"] as const;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { KIT_TYPES, parseKitDefinition, resolveLogoColor, visibleRoles } from "../../src/core/kit.js";
+import { COLLAR_STYLES, KIT_TYPES, parseKitDefinition, resolveLogoColor, visibleRoles } from "../../src/core/kit.js";
 import { MAX_SEED } from "../../src/core/random.js";
 import { makeKit } from "../fixtures/kits.js";
 
@@ -27,6 +27,14 @@ describe("parseKitDefinition", () => {
   it("reports the path of invalid colors", () => {
     const kit = makeKit({ colors: { primary: "blue", secondary: "#ffffff", accent: "#000000" } });
     expect(() => parseKitDefinition(kit)).toThrow(/colors\.primary/);
+  });
+
+  it.each(COLLAR_STYLES)("accepts the %s collar", (style) => {
+    expect(parseKitDefinition(makeKit({ collar: { style, color: "accent" } })).collar.style).toBe(style);
+  });
+
+  it("rejects unknown collars and names the path", () => {
+    expect(() => parseKitDefinition({ ...makeKit(), collar: { style: "polo-x", color: "accent" } })).toThrow(/collar\.style/);
   });
 
   it("rejects unknown color roles", () => {

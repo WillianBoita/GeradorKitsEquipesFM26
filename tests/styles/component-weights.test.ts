@@ -18,6 +18,12 @@ describe("collarCandidates", () => {
   it("lists every collar in enum order", () => {
     expect(collarCandidates(club(["modern"])).map(([style]) => style)).toEqual([...COLLAR_STYLES]);
   });
+
+  it("offers the polo collars through the retro profile", () => {
+    const candidates = collarCandidates(club(["retro"]));
+    expect(candidates.map(([style]) => style)).toEqual(["round", "v-neck", "polo", "polo-v"]);
+    expect(candidates.map(([, weight]) => weight)).toEqual([0.15, 0.15, 0.35, 0.35]);
+  });
 });
 
 describe("sleeveStyleCandidates", () => {

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { XMLValidator } from "fast-xml-parser";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
+import { COLLAR_STYLES } from "../../src/core/kit.js";
 import { KIT_2D_SIZE, renderKit2dPng, renderKit2dSvg, type KitLogoImages } from "../../src/renderers/renderer-2d.js";
 import { LOGO_BOXES } from "../../src/renderers/shirt-2d-shape.js";
 import { LOGO_SVG, makeLogoPng } from "../fixtures/assets.js";
@@ -62,7 +63,7 @@ describe("renderKit2dSvg", () => {
     expect(renderKit2dSvg(makeKit())).toContain('width="414" height="414"');
   });
 
-  it.each(["round", "v-neck"] as const)("renders the %s collar", (style) => {
+  it.each(COLLAR_STYLES)("renders the %s collar", (style) => {
     expect(XMLValidator.validate(renderKit2dSvg(makeKit({ collar: { style, color: "accent" } })))).toBe(true);
   });
 
@@ -138,6 +139,17 @@ describe("renderKit2dPng", () => {
     expect(await pixelAt(vNeck, 207, 103)).toEqual(ACCENT);
   });
 
+  it("paints the polo placket with the collar color", async () => {
+    expect(await pixelAt(await renderKit2dPng(makeKit({ collar: { style: "polo", color: "accent" } })), 207, 115)).toEqual(ACCENT);
+  });
+
+  // (185, 80) fica na aba esquerda, longe dos contornos dela e do traço do V.
+  it("cuts the polo-v as deep as the v-neck and covers its flaps with the collar color", async () => {
+    const png = await renderKit2dPng(makeKit({ collar: { style: "polo-v", color: "accent" } }));
+    expect((await pixelAt(png, 207, 88))[3]).toBe(0);
+    expect(await pixelAt(png, 185, 80)).toEqual(ACCENT);
+  });
+
   // A cor base precisa dominar a camisa; senão o Away (base secondary) pode parecer o Home e o kit-clash não percebe.
   it.each([3, 4, 5, 8, 15])("keeps the widest stripes (count %d) below half of the torso", async (count) => {
     const kit = makeKit({ pattern: { id: "stripes", base: "primary", overlay: "secondary", params: { count, ratio: 1 } } });
@@ -150,7 +162,7 @@ describe("renderKit2dPng", () => {
   });
 
   // Cada caixa de logo fica inteira sobre o corpo liso: nenhuma toca gola, manga, contorno ou fundo transparente.
-  it.each(["round", "v-neck"] as const)("keeps every logo box on the plain body with the %s collar", async (style) => {
+  it.each(COLLAR_STYLES)("keeps every logo box on the plain body with the %s collar", async (style) => {
     expect(await logoBoxMismatches(await renderKit2dPng(makeKit({ collar: { style, color: "accent" } })))).toBe(0);
   });
 
