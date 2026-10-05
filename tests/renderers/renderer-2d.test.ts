@@ -34,6 +34,21 @@ async function torsoOverlayShare(png: Buffer): Promise<number> {
   return overlay / total;
 }
 
+// Pixels das caixas de logo que não são a cor base lisa.
+async function logoBoxMismatches(png: Buffer): Promise<number> {
+  const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  let off = 0;
+  for (const box of Object.values(LOGO_BOXES)) {
+    for (let y = box.y; y < box.y + box.height; y++) {
+      for (let x = box.x; x < box.x + box.width; x++) {
+        const index = (y * info.width + x) * info.channels;
+        if ([data[index], data[index + 1], data[index + 2], data[index + 3]].join() !== PRIMARY.join()) off++;
+      }
+    }
+  }
+  return off;
+}
+
 describe("renderKit2dSvg", () => {
   it("produces valid SVG", () => {
     expect(XMLValidator.validate(renderKit2dSvg(makeKit()))).toBe(true);
@@ -136,18 +151,53 @@ describe("renderKit2dPng", () => {
 
   // Cada caixa de logo fica inteira sobre o corpo liso: nenhuma toca gola, manga, contorno ou fundo transparente.
   it.each(["round", "v-neck"] as const)("keeps every logo box on the plain body with the %s collar", async (style) => {
-    const png = await renderKit2dPng(makeKit({ collar: { style, color: "accent" } }));
-    const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-    let off = 0;
-    for (const box of Object.values(LOGO_BOXES)) {
-      for (let y = box.y; y < box.y + box.height; y++) {
-        for (let x = box.x; x < box.x + box.width; x++) {
-          const index = (y * info.width + x) * info.channels;
-          if ([data[index], data[index + 1], data[index + 2], data[index + 3]].join() !== PRIMARY.join()) off++;
-        }
-      }
-    }
-    expect(off).toBe(0);
+    expect(await logoBoxMismatches(await renderKit2dPng(makeKit({ collar: { style, color: "accent" } })))).toBe(0);
+  });
+
+  // Piores casos medidos no protótipo da Fase 3b; valores acima do máximo passam pelo clamp de resolveParams.
+  const WIDEST: [string, Record<string, number>][] = [
+    ["pinstripes", { count: 12, ratio: 1 }],
+    ["pinstripes", { count: 23, ratio: 1 }],
+    ["pinstripes", { count: 30, ratio: 1 }],
+    ["hoops", { count: 4, ratio: 1 }],
+    ["hoops", { count: 7, ratio: 1 }],
+    ["hoops", { count: 12, ratio: 1 }],
+    ["diagonal", { count: 4, ratio: 1, direction: 1 }],
+    ["diagonal", { count: 8, ratio: 1, direction: 0 }],
+    ["diagonal", { count: 12, ratio: 1, direction: 0 }],
+    ["chevron", { depth: 0.35, width: 1 }],
+    ["chevron", { depth: 1, width: 1 }],
+    ["chest-band", { position: 0.35, width: 1 }],
+    ["chest-band", { position: 0.475, width: 1 }],
+    ["chest-band", { position: 1, width: 1 }],
+    ["center-band", { width: 1 }],
+    ["gradient", { start: 0 }],
+  ];
+
+  it.each(WIDEST)("keeps the widest %s %j below half of the torso", async (id, params) => {
+    const kit = makeKit({ pattern: { id, base: "primary", overlay: "secondary", params } });
+    expect(await torsoOverlayShare(await renderKit2dPng(kit))).toBeLessThan(0.5);
+  });
+
+  // Equilibrados: as duas cores dividem o tronco; o ciclo de papéis ainda separa os kits do conjunto (spec da 3b, seção 4.2).
+  const BALANCED: [string, Record<string, number>][] = [
+    ["checkers", { size: 0 }],
+    ["checkers", { size: 0.064 }],
+    ["checkers", { size: 0.105 }],
+    ["checkers", { size: 1 }],
+    ["halves", { side: 0 }],
+    ["halves", { side: 1 }],
+  ];
+
+  it.each(BALANCED)("keeps the balanced %s %j at about half of the torso", async (id, params) => {
+    const kit = makeKit({ pattern: { id, base: "primary", overlay: "secondary", params } });
+    expect(await torsoOverlayShare(await renderKit2dPng(kit))).toBeLessThanOrEqual(0.51);
+  });
+
+  // start abaixo do mínimo vira 0.58 pelo clamp: o degradê começa abaixo da caixa do patrocinador (y 229).
+  it("keeps every logo box on the plain base with the earliest gradient", async () => {
+    const kit = makeKit({ pattern: { id: "gradient", base: "primary", overlay: "secondary", params: { start: 0 } } });
+    expect(await logoBoxMismatches(await renderKit2dPng(kit))).toBe(0);
   });
 });
 

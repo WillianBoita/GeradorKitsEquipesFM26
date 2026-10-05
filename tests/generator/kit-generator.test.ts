@@ -6,6 +6,7 @@ import { resolvePalette } from "../../src/core/palette.js";
 import { createRng, deriveSeed } from "../../src/core/random.js";
 import { validateKit, validateKitSet, validatePalette } from "../../src/core/validation.js";
 import { generateKit, generateKitSet, generatePalette, MAX_PALETTE_ATTEMPTS } from "../../src/generator/kit-generator.js";
+import { getPatternTemplate } from "../../src/patterns/registry.js";
 import { GALATICOS_BRANDED_CLUB, GALATICOS_CLUB } from "../fixtures/clubs.js";
 
 const identity: ClubIdentity = parseClubIdentity(GALATICOS_CLUB);
@@ -20,6 +21,27 @@ function withPalette(palette: ClubIdentity["palette"]): ClubIdentity {
 }
 
 describe("generateKitSet", () => {
+  const NEW_PATTERN_IDS = ["pinstripes", "hoops", "diagonal", "chevron", "chest-band", "center-band", "checkers", "halves", "gradient"];
+
+  it.each(NEW_PATTERN_IDS)("generates valid %s kits with params inside the template ranges", (id) => {
+    const template = getPatternTemplate(id);
+    const club: ClubIdentity = { ...branded, style: { ...branded.style, patternWeights: { [id]: 1 } } };
+    for (let seed = 0; seed < 20; seed++) {
+      const set = generateKitSet(club, seed, { badge: true });
+      for (const kit of Object.values(set)) {
+        expect(kit.pattern.id).toBe(id);
+        expect(validateKit(kit)).toEqual([]);
+        for (const [key, spec] of Object.entries(template.parameters)) {
+          const value = kit.pattern.params[key]!;
+          expect(value).toBeGreaterThanOrEqual(spec.min);
+          expect(value).toBeLessThanOrEqual(spec.max);
+          if (spec.integer) expect(Number.isInteger(value)).toBe(true);
+        }
+      }
+      expect(validateKitSet(set)).toEqual([]);
+    }
+  });
+
   it("returns the same set for the same seed", () => {
     expect(generateKitSet(identity, 42)).toEqual(generateKitSet(identity, 42));
   });

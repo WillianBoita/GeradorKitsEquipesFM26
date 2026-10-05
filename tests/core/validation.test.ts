@@ -16,6 +16,7 @@ import { GALATICOS_CLUB } from "../fixtures/clubs.js";
 import { makeKit } from "../fixtures/kits.js";
 
 const PALETTE = { primary: "#123456", secondary: "#ffffff", accent: "#ffd700" };
+const KNOWN_PATTERNS = "solid, stripes, sash, pinstripes, hoops, diagonal, chevron, chest-band, center-band, checkers, halves, gradient";
 
 const REGISTRY: AssetRegistry = {
   sponsors: [
@@ -65,7 +66,7 @@ describe("validateClub", () => {
 
   it("reports unknown patterns", () => {
     const issues = validateClub(club({ style: { categories: [], patternWeights: { zigzag: 1, solid: 1 } } }));
-    expect(issues).toEqual([{ rule: "unknown-pattern", message: 'style.patternWeights references unknown pattern "zigzag" (known: solid, stripes, sash)' }]);
+    expect(issues).toEqual([{ rule: "unknown-pattern", message: `style.patternWeights references unknown pattern "zigzag" (known: ${KNOWN_PATTERNS})` }]);
   });
 
   it("reports clubs without any positive weight on a known pattern", () => {
@@ -120,7 +121,7 @@ describe("validateKit", () => {
 
   it("reports unknown patterns", () => {
     const kit = makeKit({ pattern: { id: "zigzag", base: "primary", overlay: "secondary", params: {} } });
-    expect(validateKit(kit)).toEqual([{ rule: "unknown-pattern", message: 'home kit uses unknown pattern "zigzag" (known: solid, stripes, sash)' }]);
+    expect(validateKit(kit)).toEqual([{ rule: "unknown-pattern", message: `home kit uses unknown pattern "zigzag" (known: ${KNOWN_PATTERNS})` }]);
   });
 
   it("reports base and overlay using the same role", () => {

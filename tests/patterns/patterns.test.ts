@@ -77,13 +77,28 @@ describe.each(listPatternTemplates().map((template) => [template.id, template] a
   });
 });
 
+const ALL_PATTERN_IDS = [
+  "solid",
+  "stripes",
+  "sash",
+  "pinstripes",
+  "hoops",
+  "diagonal",
+  "chevron",
+  "chest-band",
+  "center-band",
+  "checkers",
+  "halves",
+  "gradient",
+];
+
 describe("registry", () => {
-  it("lists the MVP patterns", () => {
-    expect(listPatternTemplates().map((template) => template.id)).toEqual(["solid", "stripes", "sash"]);
+  it("lists the patterns in registry order", () => {
+    expect(listPatternTemplates().map((template) => template.id)).toEqual(ALL_PATTERN_IDS);
   });
 
   it("throws a helpful error for unknown ids", () => {
-    expect(() => getPatternTemplate("zigzag")).toThrow('Unknown pattern "zigzag". Known patterns: solid, stripes, sash');
+    expect(() => getPatternTemplate("zigzag")).toThrow(`Unknown pattern "zigzag". Known patterns: ${ALL_PATTERN_IDS.join(", ")}`);
   });
 });
 
@@ -128,5 +143,88 @@ describe("colorAt", () => {
     expect(sash.colorAt(300, 114, geometry({ width: 70, direction: 0 }))).toBe("base");
     expect(sash.colorAt(300, 114, geometry({ width: 70, direction: 1 }))).toBe("overlay");
     expect(sash.colorAt(300, 300, geometry({ width: 70, direction: 1 }))).toBe("base");
+  });
+});
+
+describe("new patterns colorAt", () => {
+  const at = (id: string, params: Record<string, number>, x: number, y: number) => getPatternTemplate(id).colorAt(x, y, { width: SIZE, height: SIZE, params });
+
+  it("draws pinstripes with the stripes geometry", () => {
+    const params = { count: 20, ratio: 0.12 };
+    for (let x = 0; x < SIZE; x += 3) expect(at("pinstripes", params, x, 100)).toBe(at("stripes", params, x, 100));
+  });
+
+  it("finds the hoops and the gaps between them", () => {
+    expect(at("hoops", { count: 4, ratio: 0.3 }, 100, 50)).toBe("overlay");
+    expect(at("hoops", { count: 4, ratio: 0.3 }, 100, 10)).toBe("base");
+  });
+
+  it("runs a diagonal stripe through the center and follows the direction", () => {
+    expect(at("diagonal", { count: 7, ratio: 0.3, direction: 0 }, 207, 207)).toBe("overlay");
+    expect(at("diagonal", { count: 7, ratio: 0.3, direction: 0 }, 177, 237)).toBe("base");
+    expect(at("diagonal", { count: 7, ratio: 0.3, direction: 1 }, 177, 237)).toBe("overlay");
+  });
+
+  it("draws the chevron vertex at the depth and its arms at 45 degrees", () => {
+    const params = { depth: 0.45, width: 0.1 };
+    expect(at("chevron", params, 207, 186)).toBe("overlay");
+    expect(at("chevron", params, 207, 250)).toBe("base");
+    expect(at("chevron", params, 307, 86)).toBe("overlay");
+    expect(at("chevron", params, 307, 186)).toBe("base");
+  });
+
+  it("places the chest band and the center band", () => {
+    expect(at("chest-band", { position: 0.45, width: 0.15 }, 10, 186)).toBe("overlay");
+    expect(at("chest-band", { position: 0.45, width: 0.15 }, 10, 240)).toBe("base");
+    expect(at("center-band", { width: 0.14 }, 207, 10)).toBe("overlay");
+    expect(at("center-band", { width: 0.14 }, 250, 10)).toBe("base");
+  });
+
+  it("alternates the checkers around a corner at the center", () => {
+    expect(at("checkers", { size: 0.1 }, 208, 208)).toBe("base");
+    expect(at("checkers", { size: 0.1 }, 250, 208)).toBe("overlay");
+    expect(at("checkers", { size: 0.1 }, 206, 208)).toBe("overlay");
+  });
+
+  it("paints the halves on the chosen side", () => {
+    expect(at("halves", { side: 0 }, 100, 207)).toBe("overlay");
+    expect(at("halves", { side: 0 }, 300, 207)).toBe("base");
+    expect(at("halves", { side: 1 }, 100, 207)).toBe("base");
+    expect(at("halves", { side: 1 }, 300, 207)).toBe("overlay");
+  });
+
+  it("fades the gradient from the base to the overlay below the start", () => {
+    const params = { start: 0.65 };
+    expect(at("gradient", params, 207, 100)).toBe("base");
+    expect(at("gradient", params, 207, 272)).toBe("base");
+    expect(at("gradient", params, 207, 370)).toBe("overlay");
+    expect(at("gradient", params, 207, 400)).toBe("overlay");
+  });
+});
+
+describe("new patterns render", () => {
+  it("draws one rect per hoop", () => {
+    expect(renderWith(getPatternTemplate("hoops"), { count: 5 }).match(/<rect /g)).toHaveLength(5);
+  });
+
+  it("rotates the diagonal stripes according to direction", () => {
+    expect(renderWith(getPatternTemplate("diagonal"), { direction: 0 })).toContain("rotate(45)");
+    expect(renderWith(getPatternTemplate("diagonal"), { direction: 1 })).toContain("rotate(-45)");
+  });
+
+  it("draws the chevron as one polygon", () => {
+    expect(renderWith(getPatternTemplate("chevron"), {}).match(/<polygon /g)).toHaveLength(1);
+  });
+
+  it("splits the halves at the middle", () => {
+    expect(renderWith(getPatternTemplate("halves"), { side: 0 })).toBe('<rect x="0" y="0" width="207" height="414" fill="#ffffff"/>');
+    expect(renderWith(getPatternTemplate("halves"), { side: 1 })).toBe('<rect x="207" y="0" width="207" height="414" fill="#ffffff"/>');
+  });
+
+  // O renderer 2D desenha o fill duas vezes (corpo e mangas match-body): um id no SVG ficaria repetido.
+  it("draws the gradient with opacity bands, without defs or ids", () => {
+    const svg = renderWith(getPatternTemplate("gradient"), {});
+    expect(svg).toContain("fill-opacity");
+    expect(svg).not.toMatch(/<defs|\sid=/);
   });
 });
