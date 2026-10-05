@@ -11,7 +11,6 @@ export const stripesPattern: PatternTemplate = {
   id: "stripes",
   name: "Vertical stripes",
   category: "classic",
-  defaultWeight: 35,
   parameters: { count: { min: 3, max: 15, default: 7, integer: true }, ratio: { min: 0.2, max: 0.4, default: 0.3 } },
   render(context) {
     const { period, stripeWidth, offset } = stripeLayout(context);

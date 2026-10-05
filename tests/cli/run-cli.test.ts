@@ -77,6 +77,15 @@ describe("parseSeed", () => {
 });
 
 describe("runCli generate --club", () => {
+  it("reports an unknown style category before generating anything", async () => {
+    const clubs = await makeClubsDir({ "galaticos-fc": JSON.stringify({ ...GALATICOS_CLUB, style: { categories: ["Modern"] } }) });
+    const { io, errors } = captureIo();
+    const args = ["generate", "--club", "galaticos-fc", "--seed", "1", "--clubs", clubs, "--assets", await makeAssetsDir(), "--out", await makeTempDir("cli")];
+    expect(await runCli(args, io)).toBe(1);
+    expect(errors[0]).toContain('unknown-style: style.categories references unknown style "Modern" (known: classic, traditional, modern, retro)');
+    expect(await exists(kitFile(clubs, "galaticos-fc", "home"))).toBe(false);
+  });
+
   it("saves home, away and third definitions and writes their named 2D PNGs", async () => {
     const [clubs, out] = [await galaticosClubsDir(), await makeTempDir("cli")];
     const { io, logs } = captureIo();

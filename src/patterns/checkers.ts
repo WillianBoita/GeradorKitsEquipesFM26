@@ -10,7 +10,6 @@ export const checkersPattern: PatternTemplate = {
   id: "checkers",
   name: "Checkers",
   category: "modern",
-  defaultWeight: 0,
   parameters: { size: { min: 0.06, max: 0.15, default: 0.1 } },
   render({ width, height, overlay, params }) {
     const side = params.size * width;

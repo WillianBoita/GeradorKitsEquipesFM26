@@ -132,10 +132,16 @@ describe("generateKitSet", () => {
     }
   });
 
-  it("uses template default weights when the club defines none", () => {
-    const { patternWeights: _ignored, ...style } = identity.style;
-    const ids = new Set(Array.from({ length: 200 }, (_, seed) => generateKitSet({ ...identity, style }, seed).home.pattern.id));
+  it("uses the classic profile when the club configures no style", () => {
+    const club = parseClubIdentity({ ...GALATICOS_CLUB, style: { categories: [] } });
+    const ids = new Set(Array.from({ length: 200 }, (_, seed) => generateKitSet(club, seed).home.pattern.id));
     expect(ids).toEqual(new Set(["solid", "stripes", "sash"]));
+  });
+
+  it("draws from the profiles listed in categories", () => {
+    const club = parseClubIdentity({ ...GALATICOS_CLUB, style: { categories: ["retro"] } });
+    const ids = new Set(Array.from({ length: 300 }, (_, seed) => generateKitSet(club, seed).home.pattern.id));
+    expect(ids).toEqual(new Set(["hoops", "chest-band", "center-band", "chevron", "stripes", "solid"]));
   });
 
   it("rejects invalid clubs before generating anything", () => {

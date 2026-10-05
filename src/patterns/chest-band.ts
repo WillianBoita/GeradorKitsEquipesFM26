@@ -5,7 +5,6 @@ export const chestBandPattern: PatternTemplate = {
   id: "chest-band",
   name: "Chest band",
   category: "retro",
-  defaultWeight: 0,
   parameters: { position: { min: 0.35, max: 0.6, default: 0.45 }, width: { min: 0.1, max: 0.22, default: 0.15 } },
   render({ width, height, overlay, params }) {
     const band = params.width * height;

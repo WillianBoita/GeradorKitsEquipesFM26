@@ -11,7 +11,6 @@ export const diagonalPattern: PatternTemplate = {
   id: "diagonal",
   name: "Diagonal stripes",
   category: "modern",
-  defaultWeight: 0,
   parameters: {
     count: { min: 4, max: 12, default: 7, integer: true },
     ratio: { min: 0.2, max: 0.4, default: 0.3 },

@@ -1,5 +1,6 @@
 import { findAsset, knownAssetIds, type AssetRegistry } from "../assets/registry.js";
 import { listPatternTemplates } from "../patterns/registry.js";
+import { findStyleProfile, knownStyleIds } from "../styles/profiles.js";
 import type { ClubIdentity } from "./club.js";
 import { colorDistance, contrastRatio } from "./color.js";
 import { BRAND_KINDS, BRAND_LISTS, COLOR_ROLES, KIT_TYPES, resolveLogoColor, type ColorRole, type KitDefinition, type KitType } from "./kit.js";
@@ -39,6 +40,10 @@ export function validateClub(identity: ClubIdentity): ValidationIssue[] {
   const known = knownPatternIds();
   const weights = identity.style.patternWeights;
   const issues: ValidationIssue[] = [];
+  for (const id of identity.style.categories) {
+    if (!findStyleProfile(id))
+      issues.push({ rule: "unknown-style", message: `style.categories references unknown style "${id}" (known: ${knownStyleIds().join(", ")})` });
+  }
   for (const id of Object.keys(weights ?? {})) {
     if (!known.includes(id)) {
       issues.push({ rule: "unknown-pattern", message: `style.patternWeights references unknown pattern "${id}" (known: ${known.join(", ")})` });

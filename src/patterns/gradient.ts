@@ -17,7 +17,6 @@ export const gradientPattern: PatternTemplate = {
   id: "gradient",
   name: "Gradient",
   category: "modern",
-  defaultWeight: 0,
   // start mínimo 0.58 fica abaixo da caixa do patrocinador (y 229 = 0.553): os logos do 2D ficam sempre sobre a base pura.
   parameters: { start: { min: 0.58, max: 0.72, default: 0.65 } },
   render(context) {

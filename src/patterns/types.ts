@@ -22,7 +22,6 @@ export interface PatternTemplate {
   id: string;
   name: string;
   category: string;
-  defaultWeight: number;
   parameters: Record<string, PatternParameter>;
   render(context: PatternRenderContext): string;
   // Espelha render(): diz qual camada pinta o ponto. Mede o fundo atrás dos logos; um teste de pixel garante a coerência.

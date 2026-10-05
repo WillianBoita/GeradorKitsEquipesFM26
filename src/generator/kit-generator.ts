@@ -14,8 +14,8 @@ import { backgroundRoles, chooseLogoColors, type LogoColors } from "../core/logo
 import { resolvePalette, type Palette } from "../core/palette.js";
 import { createRng, deriveSeed, type Rng } from "../core/random.js";
 import { formatIssues, validateClub, validatePalette, type ValidationIssue } from "../core/validation.js";
-import { listPatternTemplates } from "../patterns/registry.js";
 import type { PatternTemplate } from "../patterns/types.js";
+import { patternCandidates } from "../styles/pattern-weights.js";
 
 export type KitSet = Record<KitType, KitDefinition>;
 
@@ -92,8 +92,7 @@ export function generateKit(identity: ClubIdentity, kitType: KitType, palette: P
 }
 
 function pickPattern(identity: ClubIdentity, rng: Rng): PatternTemplate {
-  const weights = identity.style.patternWeights;
-  return rng.weighted(listPatternTemplates().map((template) => [template, weights ? (weights[template.id] ?? 0) : template.defaultWeight] as const));
+  return rng.weighted(patternCandidates(identity));
 }
 
 function randomParams(template: PatternTemplate, rng: Rng): Record<string, number> {

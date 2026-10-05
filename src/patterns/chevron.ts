@@ -5,7 +5,6 @@ export const chevronPattern: PatternTemplate = {
   id: "chevron",
   name: "Chevron",
   category: "retro",
-  defaultWeight: 0,
   parameters: { depth: { min: 0.35, max: 0.6, default: 0.45 }, width: { min: 0.06, max: 0.14, default: 0.1 } },
   render({ width, height, overlay, params }) {
     const center = width / 2;

@@ -11,7 +11,6 @@ export const hoopsPattern: PatternTemplate = {
   id: "hoops",
   name: "Hoops",
   category: "classic",
-  defaultWeight: 0,
   parameters: { count: { min: 4, max: 12, default: 8, integer: true }, ratio: { min: 0.2, max: 0.4, default: 0.3 } },
   render(context) {
     const { period, hoopHeight, offset } = hoopLayout(context);

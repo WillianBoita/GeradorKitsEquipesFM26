@@ -5,7 +5,6 @@ export const halvesPattern: PatternTemplate = {
   id: "halves",
   name: "Halves",
   category: "modern",
-  defaultWeight: 0,
   parameters: { side: { min: 0, max: 1, default: 0, integer: true } },
   render({ width, height, overlay, params }) {
     const half = width / 2;

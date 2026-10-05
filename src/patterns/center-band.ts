@@ -5,7 +5,6 @@ export const centerBandPattern: PatternTemplate = {
   id: "center-band",
   name: "Center band",
   category: "retro",
-  defaultWeight: 0,
   parameters: { width: { min: 0.08, max: 0.2, default: 0.14 } },
   render({ width, height, overlay, params }) {
     const band = params.width * width;

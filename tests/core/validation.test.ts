@@ -60,6 +60,12 @@ describe("validateClub", () => {
     expect(validateClub(club())).toEqual([]);
   });
 
+  it("reports unknown style categories", () => {
+    expect(validateClub(club({ style: { categories: ["modern", "dark"] } }))).toEqual([
+      { rule: "unknown-style", message: 'style.categories references unknown style "dark" (known: classic, traditional, modern, retro)' },
+    ]);
+  });
+
   it("accepts clubs without pattern weights", () => {
     expect(validateClub(club({ style: { categories: [] } }))).toEqual([]);
   });
