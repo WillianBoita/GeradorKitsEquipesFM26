@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseClubIdentity } from "../../src/core/club.js";
 import { COLLAR_STYLES } from "../../src/core/kit.js";
-import { collarCandidates, sleeveStyleCandidates } from "../../src/styles/component-weights.js";
+import { collarCandidates, sleeveCutCandidates, sleeveStyleCandidates } from "../../src/styles/component-weights.js";
 import { GALATICOS_CLUB } from "../fixtures/clubs.js";
 
 const club = (categories: string[]) => parseClubIdentity({ ...GALATICOS_CLUB, style: { categories } });
@@ -38,5 +38,20 @@ describe("sleeveStyleCandidates", () => {
     const [[, matchBody], [, solid]] = sleeveStyleCandidates(club(["modern"]));
     expect(matchBody).toBeCloseTo(0.8);
     expect(solid).toBeCloseTo(0.2);
+  });
+});
+
+describe("sleeveCutCandidates", () => {
+  it("keeps a club without categories on set-in sleeves", () => {
+    expect(sleeveCutCandidates(club([]))).toEqual([
+      ["set-in", 1],
+      ["raglan", 0],
+    ]);
+  });
+
+  it("splits the modern profile between set-in and raglan", () => {
+    const [[, setIn], [, raglan]] = sleeveCutCandidates(club(["modern"]));
+    expect(setIn).toBeCloseTo(0.5);
+    expect(raglan).toBeCloseTo(0.5);
   });
 });

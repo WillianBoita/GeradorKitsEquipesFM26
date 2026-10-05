@@ -1,5 +1,5 @@
 import type { ClubIdentity } from "../core/club.js";
-import { COLLAR_STYLES, SLEEVE_STYLES, type CollarStyle, type SleeveStyle } from "../core/kit.js";
+import { COLLAR_STYLES, SLEEVE_CUTS, SLEEVE_STYLES, type CollarStyle, type SleeveCut, type SleeveStyle } from "../core/kit.js";
 import { resolveProfileWeights } from "./profile-weights.js";
 import type { Weights } from "./profiles.js";
 
@@ -19,5 +19,12 @@ export function sleeveStyleCandidates(identity: ClubIdentity): [SleeveStyle, num
   return candidates(
     SLEEVE_STYLES,
     resolveProfileWeights(identity, (profile) => profile.sleeveStyleWeights),
+  );
+}
+
+export function sleeveCutCandidates(identity: ClubIdentity): [SleeveCut, number][] {
+  return candidates(
+    SLEEVE_CUTS,
+    resolveProfileWeights(identity, (profile) => profile.sleeveCutWeights),
   );
 }

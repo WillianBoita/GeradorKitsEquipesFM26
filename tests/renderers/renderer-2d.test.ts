@@ -2,9 +2,9 @@ import { createHash } from "node:crypto";
 import { XMLValidator } from "fast-xml-parser";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
-import { COLLAR_STYLES } from "../../src/core/kit.js";
+import { COLLAR_STYLES, SLEEVE_CUTS } from "../../src/core/kit.js";
 import { KIT_2D_SIZE, renderKit2dPng, renderKit2dSvg, type KitLogoImages } from "../../src/renderers/renderer-2d.js";
-import { LOGO_BOXES } from "../../src/renderers/shirt-2d-shape.js";
+import { LOGO_BOXES, RAGLAN_SEAMS_PATH } from "../../src/renderers/shirt-2d-shape.js";
 import { LOGO_SVG, makeLogoPng } from "../fixtures/assets.js";
 import { makeKit } from "../fixtures/kits.js";
 
@@ -61,6 +61,16 @@ describe("renderKit2dSvg", () => {
 
   it("uses the default 414 size", () => {
     expect(renderKit2dSvg(makeKit())).toContain('width="414" height="414"');
+  });
+
+  it("draws the raglan seams only on raglan sleeves", () => {
+    expect(renderKit2dSvg(makeKit({ sleeves: { style: "match-body", cut: "raglan", color: "secondary", cuffColor: "accent" } }))).toContain(RAGLAN_SEAMS_PATH);
+    expect(renderKit2dSvg(makeKit())).not.toContain(RAGLAN_SEAMS_PATH);
+  });
+
+  it("renders a declared set-in cut exactly as a kit without cut", () => {
+    const declared = makeKit({ sleeves: { style: "match-body", cut: "set-in", color: "secondary", cuffColor: "accent" } });
+    expect(renderKit2dSvg(declared)).toBe(renderKit2dSvg(makeKit()));
   });
 
   it.each(COLLAR_STYLES)("renders the %s collar", (style) => {
@@ -150,6 +160,14 @@ describe("renderKit2dPng", () => {
     expect(await pixelAt(png, 185, 80)).toEqual(ACCENT);
   });
 
+  // (270, 66) fica no triângulo do ombro que a raglan tira do corpo, longe da costura e do contorno.
+  it("paints the shoulder with the sleeve color only on raglan sleeves", async () => {
+    const raglan = await renderKit2dPng(makeKit({ sleeves: { style: "solid", cut: "raglan", color: "accent", cuffColor: "secondary" } }));
+    const setIn = await renderKit2dPng(makeKit({ sleeves: { style: "solid", cut: "set-in", color: "accent", cuffColor: "secondary" } }));
+    expect(await pixelAt(raglan, 270, 66)).toEqual(ACCENT);
+    expect(await pixelAt(setIn, 270, 66)).toEqual(PRIMARY);
+  });
+
   // A cor base precisa dominar a camisa; senão o Away (base secondary) pode parecer o Home e o kit-clash não percebe.
   it.each([3, 4, 5, 8, 15])("keeps the widest stripes (count %d) below half of the torso", async (count) => {
     const kit = makeKit({ pattern: { id: "stripes", base: "primary", overlay: "secondary", params: { count, ratio: 1 } } });
@@ -161,9 +179,13 @@ describe("renderKit2dPng", () => {
     expect(await torsoOverlayShare(await renderKit2dPng(kit))).toBeLessThan(0.5);
   });
 
-  // Cada caixa de logo fica inteira sobre o corpo liso: nenhuma toca gola, manga, contorno ou fundo transparente.
-  it.each(COLLAR_STYLES)("keeps every logo box on the plain body with the %s collar", async (style) => {
-    expect(await logoBoxMismatches(await renderKit2dPng(makeKit({ collar: { style, color: "accent" } })))).toBe(0);
+  // Cada caixa de logo fica inteira sobre o corpo liso: nenhuma toca gola, manga, costura, contorno ou fundo transparente.
+  // Manga lisa em accent denuncia uma raglan que invada a caixa.
+  const SHAPES = COLLAR_STYLES.flatMap((collar) => SLEEVE_CUTS.map((cut) => [collar, cut] as const));
+
+  it.each(SHAPES)("keeps every logo box on the plain body with the %s collar and %s sleeves", async (style, cut) => {
+    const kit = makeKit({ collar: { style, color: "accent" }, sleeves: { style: "solid", cut, color: "accent", cuffColor: "secondary" } });
+    expect(await logoBoxMismatches(await renderKit2dPng(kit))).toBe(0);
   });
 
   // Piores casos medidos no protótipo da Fase 3b; valores acima do máximo passam pelo clamp de resolveParams.

@@ -1,4 +1,4 @@
-import type { CollarStyle, SleeveStyle } from "../core/kit.js";
+import type { CollarStyle, SleeveCut, SleeveStyle } from "../core/kit.js";
 
 export interface StyleProfile {
   id: string;
@@ -6,6 +6,7 @@ export interface StyleProfile {
   patternWeights: Record<string, number>;
   collarWeights: Weights<CollarStyle>;
   sleeveStyleWeights: Weights<SleeveStyle>;
+  sleeveCutWeights: Weights<SleeveCut>;
 }
 
 export type Weights<K extends string> = Partial<Record<K, number>>;
@@ -21,6 +22,7 @@ export const STYLE_PROFILES: readonly StyleProfile[] = [
     patternWeights: { solid: 40, stripes: 35, sash: 25 },
     collarWeights: { round: 1, "v-neck": 1 },
     sleeveStyleWeights: { "match-body": 1, solid: 1 },
+    sleeveCutWeights: { "set-in": 1 },
   },
   {
     id: "traditional",
@@ -28,6 +30,7 @@ export const STYLE_PROFILES: readonly StyleProfile[] = [
     patternWeights: { solid: 30, stripes: 25, pinstripes: 15, hoops: 15, sash: 10, halves: 5 },
     collarWeights: { round: 35, "v-neck": 25, polo: 25, "polo-v": 15 },
     sleeveStyleWeights: { "match-body": 75, solid: 25 },
+    sleeveCutWeights: { "set-in": 90, raglan: 10 },
   },
   {
     id: "modern",
@@ -35,6 +38,7 @@ export const STYLE_PROFILES: readonly StyleProfile[] = [
     patternWeights: { solid: 10, diagonal: 20, gradient: 20, checkers: 15, halves: 15, chevron: 10, sash: 10 },
     collarWeights: { round: 40, "v-neck": 40, "polo-v": 20 },
     sleeveStyleWeights: { "match-body": 80, solid: 20 },
+    sleeveCutWeights: { "set-in": 50, raglan: 50 },
   },
   {
     id: "retro",
@@ -42,6 +46,7 @@ export const STYLE_PROFILES: readonly StyleProfile[] = [
     patternWeights: { hoops: 20, "chest-band": 20, "center-band": 20, chevron: 20, stripes: 10, solid: 10 },
     collarWeights: { round: 15, "v-neck": 15, polo: 35, "polo-v": 35 },
     sleeveStyleWeights: { "match-body": 70, solid: 30 },
+    sleeveCutWeights: { "set-in": 80, raglan: 20 },
   },
 ];
 

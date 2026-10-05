@@ -162,6 +162,21 @@ describe("generateKitSet", () => {
     expect(styles).toEqual(new Set(COLLAR_STYLES));
   });
 
+  it("writes the sleeve cut only for raglan sleeves", () => {
+    const modern = parseClubIdentity({ ...GALATICOS_CLUB, style: { categories: ["modern"] } });
+    const kits = Array.from({ length: 50 }, (_, seed) => Object.values(generateKitSet(modern, seed))).flat();
+    expect(kits.some((kit) => kit.sleeves.cut === "raglan")).toBe(true);
+    expect(kits.some((kit) => !("cut" in kit.sleeves))).toBe(true);
+    for (const kit of kits) expect(kit.sleeves.cut).not.toBe("set-in");
+  });
+
+  it("keeps a club without categories on set-in sleeves", () => {
+    const classic = parseClubIdentity({ ...GALATICOS_CLUB, style: { categories: [] } });
+    for (let seed = 0; seed < 50; seed++) {
+      for (const kit of Object.values(generateKitSet(classic, seed))) expect(kit.sleeves).not.toHaveProperty("cut");
+    }
+  });
+
   it("rejects invalid clubs before generating anything", () => {
     expect(() => generateKitSet(withWeights({ zigzag: 1 }), 1)).toThrow(
       'Club "galaticos-fc" is invalid:\n  - unknown-pattern: style.patternWeights references unknown pattern "zigzag"',
@@ -300,7 +315,7 @@ function setsDigest(club: ClubIdentity, badge: boolean): string {
 // O branded (categoria modern) muda de propósito quando a Fase 4a muda os pesos de gola e manga dos perfis; atualize o hash só nessas mudanças.
 describe("generateKitSet Phase 3b baseline", () => {
   it("keeps the sets of a club with pattern weights and brands", () => {
-    expect(setsDigest(branded, true)).toBe("d5d08db803c5e7b1d595a0e142b26dcfa8badca2cee208a4e7e9296990b32cf0");
+    expect(setsDigest(branded, true)).toBe("8da3fe27c60340321d4eddef3086752f5b05ecb9b4564c8a04d1979f58ecec9a");
   });
 
   it("keeps the sets of a club without categories or pattern weights", () => {

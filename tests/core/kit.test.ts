@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COLLAR_STYLES, KIT_TYPES, parseKitDefinition, resolveLogoColor, visibleRoles } from "../../src/core/kit.js";
+import { COLLAR_STYLES, KIT_TYPES, parseKitDefinition, resolveLogoColor, SLEEVE_CUTS, sleeveCut, visibleRoles } from "../../src/core/kit.js";
 import { MAX_SEED } from "../../src/core/random.js";
 import { makeKit } from "../fixtures/kits.js";
 
@@ -31,6 +31,16 @@ describe("parseKitDefinition", () => {
 
   it.each(COLLAR_STYLES)("accepts the %s collar", (style) => {
     expect(parseKitDefinition(makeKit({ collar: { style, color: "accent" } })).collar.style).toBe(style);
+  });
+
+  it.each(SLEEVE_CUTS)("accepts the %s sleeve cut and keeps it through a JSON round trip", (cut) => {
+    const kit = makeKit({ sleeves: { style: "solid", cut, color: "secondary", cuffColor: "accent" } });
+    expect(parseKitDefinition(JSON.parse(JSON.stringify(kit)))).toEqual(kit);
+  });
+
+  it("rejects unknown sleeve cuts and names the path", () => {
+    const sleeves = { style: "solid", cut: "puffed", color: "secondary", cuffColor: "accent" };
+    expect(() => parseKitDefinition({ ...makeKit(), sleeves })).toThrow(/sleeves\.cut/);
   });
 
   it("rejects unknown collars and names the path", () => {
@@ -124,5 +134,15 @@ describe("visibleRoles", () => {
   it("counts the collar and the cuffs", () => {
     const kit = makeKit({ collar: { style: "round", color: "secondary" }, sleeves: { style: "match-body", color: "secondary", cuffColor: "secondary" } });
     expect(visibleRoles(kit)).toEqual(["primary", "secondary"]);
+  });
+});
+
+describe("sleeveCut", () => {
+  it("reads a kit without cut as set-in", () => {
+    expect(sleeveCut(makeKit())).toBe("set-in");
+  });
+
+  it("returns the declared cut", () => {
+    expect(sleeveCut(makeKit({ sleeves: { style: "solid", cut: "raglan", color: "secondary", cuffColor: "accent" } }))).toBe("raglan");
   });
 });

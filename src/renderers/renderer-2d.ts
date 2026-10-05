@@ -1,8 +1,19 @@
 import sharp from "sharp";
-import { BRAND_KINDS, resolveLogoColor, type KitDefinition, type LogoSlot } from "../core/kit.js";
+import { BRAND_KINDS, resolveLogoColor, sleeveCut, type KitDefinition, type LogoSlot } from "../core/kit.js";
 import { fillSvg, kitDesign } from "./kit-design.js";
 import { badgeLayer, brandLogoLayers, type LogoLayer, type PixelBox } from "./logo-image.js";
-import { bodyPath, collarPath, collarTrimPath, CUFFS_PATH, LOGO_BOXES, outlinePath, SHIRT_2D_VIEWBOX, SLEEVES_PATH, type LogoBox } from "./shirt-2d-shape.js";
+import {
+  bodyPath,
+  collarPath,
+  collarTrimPath,
+  CUFFS_PATH,
+  LOGO_BOXES,
+  outlinePath,
+  RAGLAN_SEAMS_PATH,
+  SHIRT_2D_VIEWBOX,
+  sleevesPath,
+  type LogoBox,
+} from "./shirt-2d-shape.js";
 
 export const KIT_2D_SIZE = 414;
 // Espessura do contorno dos logos no viewBox 414; escala com o tamanho do PNG.
@@ -26,16 +37,20 @@ export function renderKit2dSvg(kit: KitDefinition, options: Render2dOptions = {}
   const view = SHIRT_2D_VIEWBOX;
   const design = kitDesign(kit);
   const trim = collarTrimPath(kit.collar.style);
+  const cut = sleeveCut(kit);
+  const sleevesShape = sleevesPath(cut);
   // Manga lisa continua um <path> preenchido, como antes da camada: o SVG 2D não pode mudar (guarda da Fase 3b).
   const sleeves =
     design.sleeves.kind === "solid"
-      ? `<path d="${SLEEVES_PATH}" fill="${design.sleeves.color}"/>`
+      ? `<path d="${sleevesShape}" fill="${design.sleeves.color}"/>`
       : `<g clip-path="url(#sleeves)">${fillSvg(design.sleeves, view, view)}</g>`;
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${view} ${view}">`,
-    `<defs><clipPath id="body"><path d="${bodyPath(kit.collar.style)}"/></clipPath><clipPath id="sleeves"><path d="${SLEEVES_PATH}"/></clipPath></defs>`,
+    `<defs><clipPath id="body"><path d="${bodyPath(kit.collar.style, cut)}"/></clipPath><clipPath id="sleeves"><path d="${sleevesShape}"/></clipPath></defs>`,
     `<g clip-path="url(#body)">${fillSvg(design.body, view, view)}</g>`,
     sleeves,
+    // Sem a costura, a raglan com manga match-body sairia igual à set-in.
+    cut === "raglan" ? `<path d="${RAGLAN_SEAMS_PATH}" fill="none" ${OUTLINE_STROKE}/>` : "",
     `<path d="${CUFFS_PATH}" fill="none" stroke="${design.cuffs}" stroke-width="8"/>`,
     `<path d="${collarPath(kit.collar.style)}" fill="none" stroke="${design.collar}" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>`,
     trim === undefined ? "" : `<path d="${trim}" fill="${design.collar}" ${OUTLINE_STROKE}/>`,

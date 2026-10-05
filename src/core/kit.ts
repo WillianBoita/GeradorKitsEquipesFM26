@@ -6,6 +6,7 @@ export const COLOR_ROLES = ["primary", "secondary", "accent"] as const;
 // Valores novos no fim: a ordem participa do sorteio (src/styles/component-weights.ts).
 export const COLLAR_STYLES = ["round", "v-neck", "polo", "polo-v"] as const;
 export const SLEEVE_STYLES = ["match-body", "solid"] as const;
+export const SLEEVE_CUTS = ["set-in", "raglan"] as const;
 // Logos de marca: o id aponta para o registry de assets.
 export const BRAND_KINDS = ["sponsor", "manufacturer"] as const;
 // Nome da lista no registry e do pool no club.json para cada tipo de marca.
@@ -25,7 +26,7 @@ export const KitDefinitionSchema = z.strictObject({
   colors: z.strictObject({ primary: HexColorSchema, secondary: HexColorSchema, accent: HexColorSchema }),
   pattern: z.strictObject({ id: z.string().min(1), base: ColorRoleSchema, overlay: ColorRoleSchema, params: z.record(z.string(), z.number()).default({}) }),
   collar: z.strictObject({ style: z.enum(COLLAR_STYLES), color: ColorRoleSchema }),
-  sleeves: z.strictObject({ style: z.enum(SLEEVE_STYLES), color: ColorRoleSchema, cuffColor: ColorRoleSchema }),
+  sleeves: z.strictObject({ style: z.enum(SLEEVE_STYLES), cut: z.enum(SLEEVE_CUTS).optional(), color: ColorRoleSchema, cuffColor: ColorRoleSchema }),
   shorts: z.strictObject({ color: ColorRoleSchema }),
   socks: z.strictObject({ color: ColorRoleSchema }),
   badge: z.boolean().optional(),
@@ -37,6 +38,7 @@ export type KitType = z.infer<typeof KitTypeSchema>;
 export type ColorRole = z.infer<typeof ColorRoleSchema>;
 export type CollarStyle = (typeof COLLAR_STYLES)[number];
 export type SleeveStyle = (typeof SLEEVE_STYLES)[number];
+export type SleeveCut = (typeof SLEEVE_CUTS)[number];
 export type BrandKind = (typeof BRAND_KINDS)[number];
 export type LogoSlot = "badge" | BrandKind;
 export type LogoColor = z.infer<typeof LogoColorSchema>;
@@ -53,6 +55,11 @@ export function isColorRole(value: string): value is ColorRole {
 
 export function resolveLogoColor(kit: KitDefinition, value: LogoColor): string {
   return isColorRole(value) ? kit.colors[value] : value;
+}
+
+// Kit sem cut é set-in: os kit.json de antes da Fase 4a não declaram o corte.
+export function sleeveCut(kit: KitDefinition): SleeveCut {
+  return kit.sleeves.cut ?? "set-in";
 }
 
 // Papéis que aparecem na camisa (o PNG 2D mostra só ela). O overlay só pinta o corpo fora do padrão solid, e a manga lisa tem cor própria.

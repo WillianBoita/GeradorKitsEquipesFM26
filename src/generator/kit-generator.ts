@@ -5,7 +5,7 @@ import { resolvePalette, type Palette } from "../core/palette.js";
 import { createRng, deriveSeed, type Rng } from "../core/random.js";
 import { formatIssues, validateClub, validatePalette, type ValidationIssue } from "../core/validation.js";
 import type { PatternTemplate } from "../patterns/types.js";
-import { collarCandidates, sleeveStyleCandidates } from "../styles/component-weights.js";
+import { collarCandidates, sleeveCutCandidates, sleeveStyleCandidates } from "../styles/component-weights.js";
 import { patternCandidates } from "../styles/pattern-weights.js";
 
 export type KitSet = Record<KitType, KitDefinition>;
@@ -69,6 +69,8 @@ export function generateKit(identity: ClubIdentity, kitType: KitType, palette: P
   const cuffColor = rng.pick(trimRoles);
   const shortsColor = rng.pick([base, overlay]);
   const socksColor = rng.pick([shortsColor, base]);
+  // Último sorteio: o corte entrou na Fase 4a e não pode deslocar os sorteios anteriores.
+  const cut = rng.weighted(sleeveCutCandidates(identity));
   const kit: KitDefinition = {
     clubId: identity.id,
     kitType,
@@ -76,7 +78,8 @@ export function generateKit(identity: ClubIdentity, kitType: KitType, palette: P
     colors: { ...palette },
     pattern: { id: template.id, base, overlay, params },
     collar: { style: collarStyle, color: collarColor },
-    sleeves: { style: sleeveStyle, color: overlay, cuffColor },
+    // cut só aparece na raglan: o kit.json de quem não sorteia raglan fica igual ao de antes da 4a.
+    sleeves: { style: sleeveStyle, ...(cut === "raglan" ? { cut } : {}), color: overlay, cuffColor },
     shorts: { color: shortsColor },
     socks: { color: socksColor },
   };

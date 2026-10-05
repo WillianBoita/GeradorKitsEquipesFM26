@@ -1,4 +1,4 @@
-import type { CollarStyle, LogoSlot } from "../core/kit.js";
+import type { CollarStyle, LogoSlot, SleeveCut } from "../core/kit.js";
 
 // Coordenadas no viewBox 414×414; o renderer escala via width/height do SVG.
 export const SHIRT_2D_VIEWBOX = 414;
@@ -23,10 +23,20 @@ const COLLARS: Record<CollarStyle, CollarShape> = {
   "polo-v": { neckline: V_NECKLINE, trim: "M163 46 L207 100 L198 100 L140 58 Z M251 46 L207 100 L216 100 L274 58 Z" },
 };
 
-const TORSO = "L300 62 L302 146 L302 382 L112 382 L112 146 L114 62 Z";
+// Na raglan o decote vai direto às axilas: os triângulos dos ombros saem do corpo e entram nas mangas.
+const TORSO: Record<SleeveCut, string> = {
+  "set-in": "L300 62 L302 146 L302 382 L112 382 L112 146 L114 62 Z",
+  raglan: "L302 146 L302 382 L112 382 L112 146 Z",
+};
+
 const SILHOUETTE = "L300 62 L378 140 L346 178 L302 146 L302 382 L112 382 L112 146 L68 178 L36 140 L114 62 Z";
 
-export const SLEEVES_PATH = "M300 62 L378 140 L346 178 L302 146 Z M114 62 L36 140 L68 178 L112 146 Z";
+const SLEEVES: Record<SleeveCut, string> = {
+  "set-in": "M300 62 L378 140 L346 178 L302 146 Z M114 62 L36 140 L68 178 L112 146 Z",
+  raglan: "M249 48 L300 62 L378 140 L346 178 L302 146 Z M165 48 L114 62 L36 140 L68 178 L112 146 Z",
+};
+
+export const RAGLAN_SEAMS_PATH = "M249 48 L302 146 M165 48 L112 146";
 export const CUFFS_PATH = "M374 137 L342 175 M40 137 L72 175";
 
 export interface LogoBox {
@@ -51,8 +61,12 @@ export function collarTrimPath(style: CollarStyle): string | undefined {
   return COLLARS[style].trim;
 }
 
-export function bodyPath(style: CollarStyle): string {
-  return `${COLLARS[style].neckline} ${TORSO}`;
+export function bodyPath(style: CollarStyle, cut: SleeveCut): string {
+  return `${COLLARS[style].neckline} ${TORSO[cut]}`;
+}
+
+export function sleevesPath(cut: SleeveCut): string {
+  return SLEEVES[cut];
 }
 
 export function outlinePath(style: CollarStyle): string {
