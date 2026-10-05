@@ -23,6 +23,7 @@
   },
   "sleeves": {
     "style": "match-body",
+    "cut": "raglan",
     "color": "primary",
     "cuffColor": "primary"
   },

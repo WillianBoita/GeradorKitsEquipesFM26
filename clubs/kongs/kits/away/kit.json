@@ -19,7 +19,7 @@
     }
   },
   "collar": {
-    "style": "round",
+    "style": "v-neck",
     "color": "primary"
   },
   "sleeves": {

@@ -19,11 +19,11 @@
     }
   },
   "collar": {
-    "style": "round",
+    "style": "v-neck",
     "color": "secondary"
   },
   "sleeves": {
-    "style": "solid",
+    "style": "match-body",
     "color": "primary",
     "cuffColor": "secondary"
   },
