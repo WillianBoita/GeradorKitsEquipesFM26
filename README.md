@@ -5,7 +5,7 @@ Guias: `fm26-procedural-kit-generator-guide.md` (arquitetura) e `fm26-kit-export
 
 ## Status
 
-Fase 3a com código concluído, aguardando o teste no jogo: gera os kits Home, Away e Third de um clube com a mesma paleta, valida a coerência das cores, renderiza um PNG 2D 414×414 por kit (com escudo, patrocinador e fabricante) e exporta todos os clubes para o FM26 numa pasta com os PNGs e um `config.xml` gerado. A textura 3D ainda não existe (Fase 3b). Ver `docs/superpowers/plans/2026-10-01-roadmap.md`.
+Fase 3a concluída e testada no jogo: gera os kits Home, Away e Third de um clube com a mesma paleta, valida a coerência das cores, renderiza um PNG 2D 414×414 por kit (com escudo, patrocinador e fabricante) e exporta todos os clubes para o FM26 numa pasta com os PNGs e um `config.xml` gerado. A textura 3D ainda não existe (Fase 3b). Ver `docs/superpowers/plans/2026-10-01-roadmap.md`.
 
 ## Requisitos
 
@@ -176,7 +176,7 @@ Cada clube precisa de `fmUniqueId` e dos kits `home` e `away`; `third` é opcion
 
 Opções: `--out <dir>` (pasta de saída; use uma pasta só do export, porque o comando se recusa a sobrescrever um `config.xml` que ele não gerou), `--clubs <dir>` e `--assets <dir>`.
 
-Instalação no jogo: copie a pasta `output/fm26_export/` para dentro de `graphics/kits/` na pasta de usuário do FM26, `Documentos/Sports Interactive/Football Manager 26/` (o nome da subpasta é livre). É a pasta Documentos do Windows, a mesma em que o FM26 grava os saves (`games/`). Com o backup do OneDrive ligado, ela fica em `OneDrive/Documentos`, e o jogo ignora uma cópia em `C:/Users/<usuário>/Documents`. Ainda não confirmado: no FM26, em Preferências > Interface, desligue o cache de skin e recarregue a skin para o jogo ler o `config.xml` novo.
+Instalação no jogo: copie a pasta `output/fm26_export/` para dentro de `graphics/kits/` na pasta de usuário do FM26, `Documentos/Sports Interactive/Football Manager 26/` (o nome da subpasta é livre). É a pasta Documentos do Windows, a mesma em que o FM26 grava os saves (`games/`). Com o backup do OneDrive ligado, ela fica em `OneDrive/Documentos`, e o jogo ignora uma cópia em `C:/Users/<usuário>/Documents`. No teste, os kits apareceram no jogo sem desligar o cache de skin nem recarregar a skin.
 
 ## Desenvolvimento
 
