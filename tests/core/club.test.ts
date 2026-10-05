@@ -123,4 +123,9 @@ describe("parseClubIdentity", () => {
   it("rejects a misspelled pool key", () => {
     expect(() => parseClubIdentity({ ...galaticos, sponsor: { "luna-air": 1 } })).toThrow(/sponsor/);
   });
+
+  it("accepts a required color role and rejects anything else", () => {
+    expect(parseClubIdentity({ ...galaticos, traditions: { requiredColor: "accent" } }).traditions).toEqual({ requiredColor: "accent" });
+    expect(() => parseClubIdentity({ ...galaticos, traditions: { requiredColor: "gold" } })).toThrow(/requiredColor/);
+  });
 });

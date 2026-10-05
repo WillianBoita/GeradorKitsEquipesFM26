@@ -52,3 +52,11 @@ export function isColorRole(value: string): value is ColorRole {
 export function resolveLogoColor(kit: KitDefinition, value: LogoColor): string {
   return isColorRole(value) ? kit.colors[value] : value;
 }
+
+// Papéis que aparecem na camisa (o PNG 2D mostra só ela). O overlay só pinta o corpo fora do padrão solid, e a manga lisa tem cor própria.
+export function visibleRoles(kit: KitDefinition): ColorRole[] {
+  const roles: ColorRole[] = [kit.pattern.base, kit.collar.color, kit.sleeves.cuffColor];
+  if (kit.pattern.id !== "solid") roles.push(kit.pattern.overlay);
+  if (kit.sleeves.style === "solid") roles.push(kit.sleeves.color);
+  return COLOR_ROLES.filter((role) => roles.includes(role));
+}

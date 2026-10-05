@@ -4,7 +4,7 @@ import { patternCandidates } from "../styles/pattern-weights.js";
 import { findStyleProfile, knownStyleIds } from "../styles/profiles.js";
 import type { ClubIdentity } from "./club.js";
 import { colorDistance, contrastRatio } from "./color.js";
-import { BRAND_KINDS, BRAND_LISTS, COLOR_ROLES, KIT_TYPES, resolveLogoColor, type ColorRole, type KitDefinition, type KitType } from "./kit.js";
+import { BRAND_KINDS, BRAND_LISTS, COLOR_ROLES, KIT_TYPES, resolveLogoColor, visibleRoles, type ColorRole, type KitDefinition, type KitType } from "./kit.js";
 import { backgroundRoles, MIN_LOGO_CONTRAST } from "./logo-colors.js";
 import type { Palette } from "./palette.js";
 
@@ -179,6 +179,13 @@ export function validateKitTraditions(identity: ClubIdentity, kit: KitDefinition
     issues.push({
       rule: "tradition-pattern",
       message: `${kit.kitType} kit uses pattern "${pattern}", but traditions.patterns.${kit.kitType} allows only ${allowed.join(", ")}`,
+    });
+  }
+  const required = traditions.requiredColor;
+  if (required !== undefined && !visibleRoles(kit).includes(required)) {
+    issues.push({
+      rule: "required-color",
+      message: `${kit.kitType} kit does not show ${required} ${kit.colors[required]} (traditions.requiredColor) on the pattern, sleeves, collar or cuffs`,
     });
   }
   return issues;

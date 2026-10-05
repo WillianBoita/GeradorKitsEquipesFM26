@@ -300,4 +300,13 @@ describe("validateKitTraditions", () => {
   it("ignores clubs without traditions", () => {
     expect(validateKitTraditions(club(), kitWith("home", "sash"))).toEqual([]);
   });
+
+  it("reports a kit that does not show the required color", () => {
+    const required = club({ traditions: { requiredColor: "accent" } });
+    const hidden = makeKit({ collar: { style: "round", color: "secondary" }, sleeves: { style: "match-body", color: "secondary", cuffColor: "secondary" } });
+    expect(validateKitTraditions(required, hidden)).toEqual([
+      { rule: "required-color", message: "home kit does not show accent #ffd700 (traditions.requiredColor) on the pattern, sleeves, collar or cuffs" },
+    ]);
+    expect(validateKitTraditions(required, makeKit())).toEqual([]);
+  });
 });

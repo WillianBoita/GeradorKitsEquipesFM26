@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ColorRoleSchema } from "./kit.js";
 import { AssetIdSchema, ClubIdSchema, FmUniqueIdSchema, HexColorSchema, parseWith } from "./primitives.js";
 
 // O teto mantém finita a soma dos pesos em rng.weighted.
@@ -13,6 +14,7 @@ const TraditionsSchema = z.strictObject({
   patterns: z
     .strictObject({ home: PatternIdListSchema.min(1).optional(), away: PatternIdListSchema.min(1).optional(), third: PatternIdListSchema.min(1).optional() })
     .optional(),
+  requiredColor: ColorRoleSchema.optional(),
 });
 
 export const ClubIdentitySchema = z.strictObject({

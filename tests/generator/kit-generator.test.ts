@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { parseClubIdentity, type ClubIdentity } from "../../src/core/club.js";
-import { KIT_TYPES, parseKitDefinition } from "../../src/core/kit.js";
+import { KIT_TYPES, parseKitDefinition, visibleRoles } from "../../src/core/kit.js";
 import { resolvePalette } from "../../src/core/palette.js";
 import { createRng, deriveSeed } from "../../src/core/random.js";
 import { validateKit, validateKitSet, validatePalette } from "../../src/core/validation.js";
@@ -324,5 +324,25 @@ describe("generateKitSet traditions", () => {
 
   it("rejects conflicting traditions before generating", () => {
     expect(() => generateKitSet(traditional({ forbiddenPatterns: ["hoops"], patterns: { home: ["hoops"] } }), 1)).toThrow(/tradition-conflict/);
+  });
+
+  it("shows the required color on every kit, changing only the collar", () => {
+    const club = traditional({ requiredColor: "accent" });
+    let changed = 0;
+    for (let seed = 0; seed < 200; seed++) {
+      const withTradition = generateKitSet(club, seed);
+      const plain = generateKitSet(identity, seed);
+      for (const kitType of KIT_TYPES) {
+        expect(visibleRoles(withTradition[kitType])).toContain("accent");
+        expect({ ...withTradition[kitType], collar: plain[kitType].collar }).toEqual(plain[kitType]);
+        if (withTradition[kitType].collar.color !== plain[kitType].collar.color) changed++;
+      }
+    }
+    expect(changed).toBeGreaterThan(0);
+  });
+
+  it("leaves a kit alone when its base already is the required color", () => {
+    const club = traditional({ requiredColor: "primary" });
+    for (let seed = 0; seed < 50; seed++) expect(generateKitSet(club, seed).home).toEqual(generateKitSet(identity, seed).home);
   });
 });

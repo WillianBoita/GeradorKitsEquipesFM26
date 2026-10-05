@@ -5,6 +5,7 @@ import {
   COLLAR_STYLES,
   COLOR_ROLES,
   SLEEVE_STYLES,
+  visibleRoles,
   type BrandKind,
   type ColorRole,
   type KitDefinition,
@@ -78,7 +79,7 @@ export function generateKit(identity: ClubIdentity, kitType: KitType, palette: P
   const cuffColor = rng.pick(trimRoles);
   const shortsColor = rng.pick([base, overlay]);
   const socksColor = rng.pick([shortsColor, base]);
-  return {
+  const kit: KitDefinition = {
     clubId: identity.id,
     kitType,
     generatedWith: { seed },
@@ -89,6 +90,11 @@ export function generateKit(identity: ClubIdentity, kitType: KitType, palette: P
     shorts: { color: shortsColor },
     socks: { color: socksColor },
   };
+  const required = identity.traditions?.requiredColor;
+  // Depois de todos os sorteios e sem chamada extra ao rng: o resto do kit fica igual ao de um clube sem a tradição.
+  // A gola sempre aceita o papel: ele não é a base, que é sempre visível.
+  if (required !== undefined && !visibleRoles(kit).includes(required)) kit.collar.color = required;
+  return kit;
 }
 
 function pickPattern(identity: ClubIdentity, kitType: KitType, rng: Rng): PatternTemplate {

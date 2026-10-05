@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { KIT_TYPES, parseKitDefinition, resolveLogoColor } from "../../src/core/kit.js";
+import { KIT_TYPES, parseKitDefinition, resolveLogoColor, visibleRoles } from "../../src/core/kit.js";
 import { MAX_SEED } from "../../src/core/random.js";
 import { makeKit } from "../fixtures/kits.js";
 
@@ -96,5 +96,25 @@ describe("resolveLogoColor", () => {
   it("resolves palette roles and keeps hex colors", () => {
     expect(resolveLogoColor(makeKit(), "accent")).toBe("#ffd700");
     expect(resolveLogoColor(makeKit(), "#000000")).toBe("#000000");
+  });
+});
+
+describe("visibleRoles", () => {
+  it("hides the overlay of a solid pattern with match-body sleeves", () => {
+    expect(visibleRoles(makeKit())).toEqual(["primary", "accent"]);
+  });
+
+  it("shows the color of solid sleeves", () => {
+    expect(visibleRoles(makeKit({ sleeves: { style: "solid", color: "secondary", cuffColor: "accent" } }))).toEqual(["primary", "secondary", "accent"]);
+  });
+
+  it("shows the overlay of a pattern", () => {
+    const kit = makeKit({ pattern: { id: "stripes", base: "primary", overlay: "secondary", params: {} } });
+    expect(visibleRoles(kit)).toEqual(["primary", "secondary", "accent"]);
+  });
+
+  it("counts the collar and the cuffs", () => {
+    const kit = makeKit({ collar: { style: "round", color: "secondary" }, sleeves: { style: "match-body", color: "secondary", cuffColor: "secondary" } });
+    expect(visibleRoles(kit)).toEqual(["primary", "secondary"]);
   });
 });
