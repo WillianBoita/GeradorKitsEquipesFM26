@@ -10,12 +10,11 @@
     "accent": "#d4af37"
   },
   "pattern": {
-    "id": "sash",
+    "id": "checkers",
     "base": "primary",
     "overlay": "secondary",
     "params": {
-      "width": 63.916,
-      "direction": 1
+      "size": 0.104
     }
   },
   "collar": {
@@ -23,7 +22,7 @@
     "color": "accent"
   },
   "sleeves": {
-    "style": "match-body",
+    "style": "solid",
     "color": "secondary",
     "cuffColor": "secondary"
   },

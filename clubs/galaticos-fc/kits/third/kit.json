@@ -10,22 +10,21 @@
     "accent": "#d4af37"
   },
   "pattern": {
-    "id": "sash",
+    "id": "gradient",
     "base": "accent",
     "overlay": "primary",
     "params": {
-      "width": 93.067,
-      "direction": 0
+      "start": 0.706
     }
   },
   "collar": {
-    "style": "v-neck",
-    "color": "primary"
+    "style": "round",
+    "color": "secondary"
   },
   "sleeves": {
     "style": "match-body",
     "color": "primary",
-    "cuffColor": "secondary"
+    "cuffColor": "primary"
   },
   "shorts": {
     "color": "primary"
@@ -36,11 +35,10 @@
   "badge": true,
   "sponsor": {
     "id": "luna-air",
-    "color": "accent",
-    "outline": "primary"
+    "color": "secondary"
   },
   "manufacturer": {
     "id": "vertex",
-    "color": "accent"
+    "color": "secondary"
   }
 }

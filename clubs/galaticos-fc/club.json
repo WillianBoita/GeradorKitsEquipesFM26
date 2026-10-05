@@ -3,7 +3,7 @@
   "name": "Galáticos FC",
   "fmUniqueId": "2000778260",
   "palette": { "primary": "#191970", "secondary": "#000000", "accent": "#D4AF37" },
-  "style": { "categories": ["modern"], "patternWeights": { "solid": 15, "stripes": 15, "sash": 70 } },
+  "style": { "categories": ["modern"] },
   "sponsors": { "luna-air": 3, "orbita-bank": 1 },
   "manufacturers": { "vertex": 1 }
 }

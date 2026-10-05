@@ -10,12 +10,12 @@
     "accent": "#ffffff"
   },
   "pattern": {
-    "id": "sash",
+    "id": "pinstripes",
     "base": "secondary",
     "overlay": "accent",
     "params": {
-      "width": 90.096,
-      "direction": 1
+      "count": 27,
+      "ratio": 0.166
     }
   },
   "collar": {
@@ -36,10 +36,10 @@
   "badge": true,
   "sponsor": {
     "id": "luna-air",
-    "color": "primary"
+    "color": "accent"
   },
   "manufacturer": {
     "id": "vertex",
-    "color": "accent"
+    "color": "primary"
   }
 }

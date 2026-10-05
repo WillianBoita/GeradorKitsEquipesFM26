@@ -10,12 +10,12 @@
     "accent": "#ffffff"
   },
   "pattern": {
-    "id": "sash",
+    "id": "hoops",
     "base": "primary",
     "overlay": "secondary",
     "params": {
-      "width": 72.505,
-      "direction": 0
+      "count": 9,
+      "ratio": 0.232
     }
   },
   "collar": {

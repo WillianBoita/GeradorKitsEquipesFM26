@@ -10,12 +10,12 @@
     "accent": "#ffffff"
   },
   "pattern": {
-    "id": "stripes",
+    "id": "pinstripes",
     "base": "accent",
     "overlay": "primary",
     "params": {
-      "count": 11,
-      "ratio": 0.215
+      "count": 23,
+      "ratio": 0.089
     }
   },
   "collar": {
