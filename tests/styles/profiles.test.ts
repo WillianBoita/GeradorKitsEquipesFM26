@@ -28,6 +28,22 @@ describe("STYLE_PROFILES", () => {
     expect(DEFAULT_STYLE_PROFILE).toBe("classic");
     expect(getStyleProfile("classic").patternWeights).toEqual({ solid: 40, stripes: 35, sash: 25 });
   });
+
+  // Pesos iguais com rng.weighted escolhem o mesmo índice que o rng.pick de antes dos perfis.
+  it("keeps classic collars and sleeve styles even", () => {
+    expect(getStyleProfile("classic").collarWeights).toEqual({ round: 1, "v-neck": 1 });
+    expect(getStyleProfile("classic").sleeveStyleWeights).toEqual({ "match-body": 1, solid: 1 });
+  });
+
+  it("gives every profile a positive weight in each component table", () => {
+    for (const profile of STYLE_PROFILES) {
+      for (const table of [profile.collarWeights, profile.sleeveStyleWeights]) {
+        const weights = Object.values(table);
+        expect(weights.length).toBeGreaterThan(0);
+        for (const weight of weights) expect(weight).toBeGreaterThan(0);
+      }
+    }
+  });
 });
 
 describe("getStyleProfile", () => {

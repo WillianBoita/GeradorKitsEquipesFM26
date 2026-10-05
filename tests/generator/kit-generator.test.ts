@@ -11,6 +11,8 @@ import { GALATICOS_BRANDED_CLUB, GALATICOS_CLUB } from "../fixtures/clubs.js";
 
 const identity: ClubIdentity = parseClubIdentity(GALATICOS_CLUB);
 const branded: ClubIdentity = parseClubIdentity(GALATICOS_BRANDED_CLUB);
+// Sem categories, gola e manga seguem classic, que reproduz o rng.pick de antes dos perfis; os pesos de padrão do clube continuam valendo.
+const classicStyled: ClubIdentity = parseClubIdentity({ ...GALATICOS_CLUB, style: { categories: [], patternWeights: GALATICOS_CLUB.style.patternWeights } });
 
 function withWeights(patternWeights: Record<string, number>): ClubIdentity {
   return { ...identity, style: { ...identity.style, patternWeights } };
@@ -144,6 +146,16 @@ describe("generateKitSet", () => {
     expect(ids).toEqual(new Set(["hoops", "chest-band", "center-band", "chevron", "stripes", "solid"]));
   });
 
+  it("draws plain sleeves less often for a modern club than for a classic one", () => {
+    const solidShare = (categories: string[]) => {
+      const club = parseClubIdentity({ ...GALATICOS_CLUB, style: { categories } });
+      const kits = Array.from({ length: 100 }, (_, seed) => Object.values(generateKitSet(club, seed))).flat();
+      return kits.filter((kit) => kit.sleeves.style === "solid").length / kits.length;
+    };
+    expect(solidShare(["modern"])).toBeLessThan(0.3);
+    expect(solidShare([])).toBeGreaterThan(0.4);
+  });
+
   it("rejects invalid clubs before generating anything", () => {
     expect(() => generateKitSet(withWeights({ zigzag: 1 }), 1)).toThrow(
       'Club "galaticos-fc" is invalid:\n  - unknown-pattern: style.patternWeights references unknown pattern "zigzag"',
@@ -188,7 +200,7 @@ describe("generateKit", () => {
 describe("generateKitSet logos", () => {
   // Guarda: passa antes e depois desta tarefa; a 2b não pode mudar o desenho dos kits já versionados.
   it("keeps the Phase 2a design for seed 42", () => {
-    const { home, away, third } = generateKitSet(identity, 42);
+    const { home, away, third } = generateKitSet(classicStyled, 42);
     expect(home).toMatchObject({
       pattern: { id: "sash", base: "primary", overlay: "secondary", params: { width: 86.656, direction: 0 } },
       collar: { style: "round", color: "accent" },
@@ -278,10 +290,11 @@ function setsDigest(club: ClubIdentity, badge: boolean): string {
   return createHash("sha256").update(JSON.stringify(sets)).digest("hex");
 }
 
-// Guarda da Fase 3b: passa antes e depois de padrões, perfis e tradições; estes clubes não podem mudar de kit para a mesma seed.
+// Guarda da Fase 3b: o clube sem categories (perfil classic) não pode mudar de kit para a mesma seed.
+// O branded (categoria modern) muda de propósito quando a Fase 4a muda os pesos de gola e manga dos perfis; atualize o hash só nessas mudanças.
 describe("generateKitSet Phase 3b baseline", () => {
   it("keeps the sets of a club with pattern weights and brands", () => {
-    expect(setsDigest(branded, true)).toBe("a2633676e2aa3350ebc307ebcb9703442abbd64b45d68c0f44999582f73cc08a");
+    expect(setsDigest(branded, true)).toBe("95aad27f38c91c01d03bc0a3dfec0c06251c23894c4ad90f32c0887cf7652372");
   });
 
   it("keeps the sets of a club without categories or pattern weights", () => {

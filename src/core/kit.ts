@@ -35,6 +35,7 @@ export const KitDefinitionSchema = z.strictObject({
 export type KitType = z.infer<typeof KitTypeSchema>;
 export type ColorRole = z.infer<typeof ColorRoleSchema>;
 export type CollarStyle = (typeof COLLAR_STYLES)[number];
+export type SleeveStyle = (typeof SLEEVE_STYLES)[number];
 export type BrandKind = (typeof BRAND_KINDS)[number];
 export type LogoSlot = "badge" | BrandKind;
 export type LogoColor = z.infer<typeof LogoColorSchema>;

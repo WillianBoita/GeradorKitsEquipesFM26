@@ -1,21 +1,11 @@
 import type { ClubIdentity } from "../core/club.js";
-import {
-  BRAND_KINDS,
-  BRAND_LISTS,
-  COLLAR_STYLES,
-  COLOR_ROLES,
-  SLEEVE_STYLES,
-  visibleRoles,
-  type BrandKind,
-  type ColorRole,
-  type KitDefinition,
-  type KitType,
-} from "../core/kit.js";
+import { BRAND_KINDS, BRAND_LISTS, COLOR_ROLES, visibleRoles, type BrandKind, type ColorRole, type KitDefinition, type KitType } from "../core/kit.js";
 import { backgroundRoles, chooseLogoColors, type LogoColors } from "../core/logo-colors.js";
 import { resolvePalette, type Palette } from "../core/palette.js";
 import { createRng, deriveSeed, type Rng } from "../core/random.js";
 import { formatIssues, validateClub, validatePalette, type ValidationIssue } from "../core/validation.js";
 import type { PatternTemplate } from "../patterns/types.js";
+import { collarCandidates, sleeveStyleCandidates } from "../styles/component-weights.js";
 import { patternCandidates } from "../styles/pattern-weights.js";
 
 export type KitSet = Record<KitType, KitDefinition>;
@@ -73,9 +63,9 @@ export function generateKit(identity: ClubIdentity, kitType: KitType, palette: P
   // A ordem das chamadas ao rng faz parte do contrato de reprodutibilidade: reordenar muda os kits gerados para a mesma seed.
   const template = pickPattern(identity, kitType, rng);
   const params = randomParams(template, rng);
-  const collarStyle = rng.pick(COLLAR_STYLES);
+  const collarStyle = rng.weighted(collarCandidates(identity));
   const collarColor = rng.pick(trimRoles);
-  const sleeveStyle = rng.pick(SLEEVE_STYLES);
+  const sleeveStyle = rng.weighted(sleeveStyleCandidates(identity));
   const cuffColor = rng.pick(trimRoles);
   const shortsColor = rng.pick([base, overlay]);
   const socksColor = rng.pick([shortsColor, base]);
