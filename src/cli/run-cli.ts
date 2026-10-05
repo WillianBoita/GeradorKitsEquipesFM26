@@ -3,7 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { loadAssetRegistry, type AssetRegistry } from "../assets/registry.js";
-import { ASSETS_DIR, CLUBS_DIR, FM26_EXPORT_DIR, kitRenderPath, OUTPUT_DIR } from "../config/paths.js";
+import { ASSETS_DIR, CLUBS_DIR, FM26_EXPORT_DIR, kitRenderPath, OUTPUT_DIR, PREVIEW_FILE, samplesPreviewPath } from "../config/paths.js";
 import type { ClubIdentity } from "../core/club.js";
 import { errorMessage } from "../core/errors.js";
 import { BRAND_LISTS, KIT_TYPES, KitDefinitionSchema, KitTypeSchema, type BrandKind, type KitDefinition, type KitType } from "../core/kit.js";
@@ -15,6 +15,7 @@ import { generateKitSet } from "../generator/kit-generator.js";
 import { checkAssetFiles, loadKitLogos, type AssetDirs, type AssetRefs } from "../io/asset-repository.js";
 import { hasClubLogo, listClubIds, loadClub, loadKit, saveKit } from "../io/club-repository.js";
 import { readJsonFile } from "../io/json-file.js";
+import { buildContactSheetHtml, kitDetails, type PreviewKit, type PreviewSection } from "../preview/contact-sheet.js";
 import { renderKit2dPng } from "../renderers/renderer-2d.js";
 
 export interface CliIo {
@@ -36,6 +37,7 @@ export const USAGE = [
   "  kit-generator render --definition <kit.json> --out <file.png> [--clubs <dir>] [--assets <dir>]",
   "  kit-generator validate (--club <id> | --all) [--clubs <dir>] [--assets <dir>]",
   "  kit-generator export [--out <dir>] [--clubs <dir>] [--assets <dir>]",
+  "  kit-generator preview [--club <id> [--samples <n>]] [--out <file>] [--clubs <dir>] [--assets <dir>]",
 ].join("\n");
 
 export function parseSeed(value: string | undefined): number {
@@ -44,7 +46,7 @@ export function parseSeed(value: string | undefined): number {
   return Number(value);
 }
 
-async function writeOutput(file: string, content: Buffer): Promise<void> {
+async function writeOutput(file: string, content: string | Buffer): Promise<void> {
   await mkdir(path.dirname(file), { recursive: true });
   await writeFile(file, content);
 }
@@ -223,6 +225,99 @@ async function exportCommand(args: string[], io: CliIo): Promise<number> {
   }
 }
 
+const MAX_SAMPLES = 100;
+
+export function parseSamples(value: string): number {
+  if (!/^\d+$/.test(value) || Number(value) < 1 || Number(value) > MAX_SAMPLES) {
+    throw new Error(`Invalid samples "${value}": expected an integer between 1 and ${MAX_SAMPLES}`);
+  }
+  return Number(value);
+}
+
+interface ContactSheet {
+  title: string;
+  sections: PreviewSection[];
+}
+
+async function previewKit(kit: KitDefinition, registry: AssetRegistry, dirs: AssetDirs): Promise<PreviewKit> {
+  const png = await renderKit2dPng(kit, { logos: await loadKitLogos(kit, registry, dirs) });
+  return { kitType: kit.kitType, png, details: kitDetails(kit) };
+}
+
+async function savedKitsSection(clubId: string, registry: AssetRegistry, dirs: AssetDirs): Promise<PreviewSection> {
+  const club = await loadClub(clubId, dirs.clubsDir);
+  const kits: PreviewKit[] = [];
+  for (const kitType of KIT_TYPES) {
+    const kit = await loadKit(club.id, kitType, dirs.clubsDir);
+    if (kit) kits.push(await previewKit(kit, registry, dirs));
+  }
+  return { title: `${club.name} (${club.id})`, kits };
+}
+
+// Sem --club, um clube com erro não esconde os outros, como no generate --all.
+async function allSavedKitsSheet(clubsDir: string, registry: AssetRegistry, dirs: AssetDirs, io: CliIo): Promise<{ sheet: ContactSheet; failed: number }> {
+  const clubIds = await listClubIds(clubsDir);
+  if (clubIds.length === 0) throw new Error(`No clubs found in ${clubsDir}`);
+  const sections: PreviewSection[] = [];
+  let failed = 0;
+  for (const clubId of clubIds) {
+    try {
+      sections.push(await savedKitsSection(clubId, registry, dirs));
+    } catch (error) {
+      failed++;
+      io.error(`Error: [${clubId}] ${errorMessage(error)}`);
+    }
+  }
+  return { sheet: { title: "Saved kits", sections }, failed };
+}
+
+async function samplesSheet(clubId: string, samples: number, registry: AssetRegistry, dirs: AssetDirs): Promise<ContactSheet> {
+  const club = await loadClub(clubId, dirs.clubsDir);
+  const assetIssues = validateClubAssets(club, registry);
+  if (assetIssues.length > 0) throw new Error(`Club "${club.id}" is invalid:\n${formatIssues(assetIssues)}`);
+  const badge = await hasClubLogo(club.id, dirs.clubsDir);
+  const sections: PreviewSection[] = [];
+  // Seeds 0..n-1 diretas, sem deriveSeed: "generate --club <id> --seed <n>" salva o conjunto escolhido no preview.
+  for (let seed = 0; seed < samples; seed++) {
+    const set = generateKitSet(club, seed, { badge });
+    const kits: PreviewKit[] = [];
+    for (const kitType of KIT_TYPES) kits.push(await previewKit(set[kitType], registry, dirs));
+    sections.push({ title: `Seed ${seed}`, kits });
+  }
+  return { title: `${club.name}: seeds 0 to ${samples - 1}`, sections };
+}
+
+async function previewCommand(args: string[], io: CliIo): Promise<number> {
+  const options = {
+    club: { type: "string" },
+    samples: { type: "string" },
+    out: { type: "string" },
+    clubs: { type: "string", default: CLUBS_DIR },
+    assets: { type: "string", default: ASSETS_DIR },
+  } as const;
+  const { values } = parseArgs({ args, options, strict: true });
+  if (values.samples !== undefined && values.club === undefined) throw new Error("--samples requires --club");
+  const samples = values.samples === undefined ? undefined : parseSamples(values.samples);
+  const registry = await loadAssetRegistry(values.assets);
+  const dirs: AssetDirs = { assetsDir: values.assets, clubsDir: values.clubs };
+  let sheet: ContactSheet;
+  let failed = 0;
+  let defaultOut = PREVIEW_FILE;
+  if (values.club !== undefined && samples !== undefined) {
+    sheet = await samplesSheet(values.club, samples, registry, dirs);
+    defaultOut = samplesPreviewPath(values.club);
+  } else if (values.club !== undefined) {
+    sheet = { title: "Saved kits", sections: [await savedKitsSection(values.club, registry, dirs)] };
+  } else {
+    ({ sheet, failed } = await allSavedKitsSheet(values.clubs, registry, dirs, io));
+  }
+  const out = path.resolve(values.out ?? defaultOut);
+  await writeOutput(out, buildContactSheetHtml(sheet.title, sheet.sections));
+  const kitCount = sheet.sections.reduce((sum, section) => sum + section.kits.length, 0);
+  io.log(`Wrote ${out} (${kitCount} kits)`);
+  return failed === 0 ? 0 : 1;
+}
+
 export async function runCli(argv: string[], io: CliIo = console): Promise<number> {
   const [command, ...args] = argv;
   try {
@@ -230,6 +325,7 @@ export async function runCli(argv: string[], io: CliIo = console): Promise<numbe
     if (command === "render") return await renderCommand(args, io);
     if (command === "validate") return await validateCommand(args, io);
     if (command === "export") return await exportCommand(args, io);
+    if (command === "preview") return await previewCommand(args, io);
     io.error(USAGE);
     return 1;
   } catch (error) {

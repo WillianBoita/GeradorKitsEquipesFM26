@@ -10,6 +10,8 @@ import {
   FM26_EXPORT_DIR,
   kitRenderPath,
   OUTPUT_DIR,
+  PREVIEW_FILE,
+  samplesPreviewPath,
 } from "../../src/config/paths.js";
 import { ClubIdSchema } from "../../src/core/primitives.js";
 
@@ -51,5 +53,20 @@ describe("FM26 export paths", () => {
 
   it("rejects invalid club ids", () => {
     expect(() => exportFilePath("/tmp/out", "../escape", "home", "2d")).toThrow(/Invalid club id/);
+  });
+});
+
+describe("preview paths", () => {
+  it("places the saved-kits preview inside output/ with a name no club id can take", () => {
+    expect(PREVIEW_FILE).toBe(path.join(OUTPUT_DIR, "kit_preview.html"));
+    expect(ClubIdSchema.safeParse("kit_preview.html").success).toBe(false);
+  });
+
+  it("names the samples preview after the club slug", () => {
+    expect(samplesPreviewPath("galaticos-fc")).toBe(path.join(OUTPUT_DIR, "kit_preview_galaticos_fc.html"));
+  });
+
+  it("rejects invalid club ids in the samples preview path", () => {
+    expect(() => samplesPreviewPath("../escape")).toThrow(/Invalid club id/);
   });
 });

@@ -1,4 +1,4 @@
-import { access, readFile, rm, unlink, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, rm, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
@@ -579,6 +579,96 @@ describe("runCli export", () => {
   });
 });
 
+describe("runCli preview", () => {
+  async function generatedSetup(): Promise<{ clubs: string; assets: string }> {
+    const setup = await brandedSetup();
+    await runCli(["generate", "--all", "--seed", "3", "--clubs", setup.clubs, "--assets", setup.assets, "--out", await makeTempDir("cli")], captureIo().io);
+    return setup;
+  }
+
+  async function preview(setup: { clubs: string; assets: string }, ...extra: string[]) {
+    const out = path.join(await makeTempDir("cli"), "preview.html");
+    const capture = captureIo();
+    const code = await runCli(["preview", "--clubs", setup.clubs, "--assets", setup.assets, "--out", out, ...extra], capture.io);
+    return { code, out, ...capture };
+  }
+
+  function imageCount(html: string): number {
+    return html.match(/<img src="data:image\/png;base64,/g)?.length ?? 0;
+  }
+
+  it("writes the saved kits of every club into one HTML file", async () => {
+    const { code, out, logs, errors } = await preview(await generatedSetup());
+    expect(code).toBe(0);
+    const html = await readFile(out, "utf8");
+    expect(imageCount(html)).toBe(3);
+    expect(html).toContain("<h2>Galáticos FC (galaticos-fc)</h2>");
+    expect(html).toContain(`seed ${deriveSeed(3, "galaticos-fc")}`);
+    expect(logs).toEqual([`Wrote ${out} (3 kits)`]);
+    expect(errors).toEqual([]);
+  });
+
+  it("omits kit types that were never saved", async () => {
+    const setup = await generatedSetup();
+    await rm(kitFile(setup.clubs, "galaticos-fc", "third"));
+    const { code, out, errors } = await preview(setup);
+    expect(code).toBe(0);
+    expect(imageCount(await readFile(out, "utf8"))).toBe(2);
+    expect(errors).toEqual([]);
+  });
+
+  it("skips a broken club, keeps the others and exits with 1", async () => {
+    const setup = await generatedSetup();
+    await mkdir(path.join(setup.clubs, "kong-team"));
+    await writeFile(path.join(setup.clubs, "kong-team", "club.json"), "{ not json");
+    const { code, out, errors } = await preview(setup);
+    expect(code).toBe(1);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatch(/^Error: \[kong-team\] Invalid JSON in/);
+    expect(imageCount(await readFile(out, "utf8"))).toBe(3);
+  });
+
+  it("generates seed samples of one club without saving any kit", async () => {
+    const setup = await brandedSetup();
+    const { code, out, logs } = await preview(setup, "--club", "galaticos-fc", "--samples", "3");
+    expect(code).toBe(0);
+    const html = await readFile(out, "utf8");
+    expect(imageCount(html)).toBe(9);
+    for (const seed of [0, 1, 2]) expect(html).toContain(`<h2>Seed ${seed}</h2>`);
+    expect(logs).toEqual([`Wrote ${out} (9 kits)`]);
+    for (const kitType of KIT_TYPES) expect(await exists(kitFile(setup.clubs, "galaticos-fc", kitType))).toBe(false);
+  });
+
+  it("aborts without writing when the single club fails", async () => {
+    const { code, out, errors } = await preview(await brandedSetup(), "--club", "nope");
+    expect(code).toBe(1);
+    expect(errors[0]).toMatch(/^Error: Club "nope" not found/);
+    expect(await exists(out)).toBe(false);
+  });
+
+  const INVALID_OPTIONS: [string[], string][] = [
+    [["--samples", "3"], "Error: --samples requires --club"],
+    [["--club", "galaticos-fc", "--samples", "0"], 'Error: Invalid samples "0": expected an integer between 1 and 100'],
+    [["--club", "galaticos-fc", "--samples", "101"], 'Error: Invalid samples "101": expected an integer between 1 and 100'],
+    [["--club", "galaticos-fc", "--samples", "abc"], 'Error: Invalid samples "abc": expected an integer between 1 and 100'],
+  ];
+
+  it.each(INVALID_OPTIONS)("rejects %j", async (extra, message) => {
+    const { code, out, errors } = await preview(await brandedSetup(), ...extra);
+    expect(code).toBe(1);
+    expect(errors).toEqual([message]);
+    expect(await exists(out)).toBe(false);
+  });
+
+  it("reports an --out that is a directory", async () => {
+    const setup = await generatedSetup();
+    const { io, errors } = captureIo();
+    expect(await runCli(["preview", "--clubs", setup.clubs, "--assets", setup.assets, "--out", await makeTempDir("cli")], io)).toBe(1);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatch(/^Error: EISDIR/);
+  });
+});
+
 describe("runCli usage", () => {
   it.each([[[]], [["explode"]]])("prints usage for %j", async (argv) => {
     const { io, errors } = captureIo();
@@ -588,5 +678,9 @@ describe("runCli usage", () => {
 
   it("documents the export command", () => {
     expect(USAGE).toContain("kit-generator export [--out <dir>] [--clubs <dir>] [--assets <dir>]");
+  });
+
+  it("documents the preview command", () => {
+    expect(USAGE).toContain("kit-generator preview [--club <id> [--samples <n>]] [--out <file>] [--clubs <dir>] [--assets <dir>]");
   });
 });
