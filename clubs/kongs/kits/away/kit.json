@@ -18,6 +18,16 @@
       "ratio": 0.166
     }
   },
+  "layers": [
+    {
+      "id": "shoulder-line",
+      "color": "primary",
+      "params": {
+        "position": 0.212,
+        "thickness": 0.015
+      }
+    }
+  ],
   "collar": {
     "style": "v-neck",
     "color": "primary"
