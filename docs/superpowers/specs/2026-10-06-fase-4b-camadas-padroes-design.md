@@ -24,7 +24,7 @@ Critério de sucesso:
 Dentro:
 
 - Campo `layers` opcional no `kit.json`, máximo 2 camadas, cor por papel.
-- Flag `layerable` nos templates de padrão.
+- Região `layerSlot` nos templates de padrão (o template que a declara é `layerable`).
 - Sorteio das camadas por perfil (`layerCountWeights`, `layerWeights`).
 - Regras de validação das camadas.
 - Renderer 2D e contact sheet.
@@ -57,7 +57,7 @@ layers: z.array(LayerSchema).max(MAX_LAYERS).optional(),
 - As camadas são desenhadas em ordem, uma sobre a outra, depois do padrão principal.
 - `visibleRoles` inclui a cor de cada camada, então `traditions.requiredColor` pode ser satisfeito por uma camada.
 
-`src/patterns/types.ts`: `PatternTemplate` ganha `layerable?: boolean`. Um template `layerable` é um padrão completo (`render()` e `colorAt`):
+`src/patterns/types.ts`: `PatternTemplate` ganha `layerSlot?: "sides" | "shoulders" | "lower"`, a região do tronco que a camada ocupa. Template com `layerSlot` é `layerable`; `listLayerTemplates()` (em `registry.ts`) lista esses templates na ordem do registry. Um template `layerable` é um padrão completo (`render()` e `colorAt`):
 
 - Como camada, o `render()` recebe `overlay` igual à cor da camada e desenha só os elementos do overlay; o `<rect>` da base, que hoje vem de `fillSvg`, não é desenhado. O `colorAt` diz onde a camada pinta (`overlay`) e serve a `layer-logo-overlap` e aos testes, nunca a `backgroundRoles`.
 - Como padrão principal ele também funciona, então o `patternWeights` de um `club.json` pode usá-lo. Os perfis põem os 8 `layerable` só em `layerWeights`.
@@ -66,10 +66,10 @@ layers: z.array(LayerSchema).max(MAX_LAYERS).optional(),
 
 `validateKit` ganha as regras abaixo, cada uma com um teste de erro:
 
-- `unknown-layer`: id desconhecido no registry ou template sem `layerable`.
+- `unknown-layer`: id desconhecido no registry ou template sem `layerSlot`.
 - `layer-duplicate`: dois ids iguais, ou id igual a `pattern.id`.
 - `layer-color`: cor igual a `pattern.base` ou a `pattern.overlay`. Com `pattern.id === "solid"` só `pattern.base` conta, porque o overlay não é pintado. Os papéis têm ΔE ≥ `MIN_COLOR_DISTANCE` por `validatePalette`, então o contraste da camada vem por construção.
-- `layer-logo-overlap`: o `colorAt` da camada, nos parâmetros resolvidos do kit, devolve `overlay` em algum ponto de uma caixa de `LOGO_BOXES` (mesma grade 24×24 de `backgroundRoles`). É uma rede de segurança além do teste genérico de pixel por padrão, que já impede isso nos extremos dos ranges.
+- `layer-logo-overlap`: o `colorAt` da camada, nos parâmetros resolvidos do kit, devolve `overlay` em algum ponto de uma caixa de `LOGO_BOXES` (mesma grade 24×24 de `backgroundRoles`). É uma rede de segurança além do teste genérico de pixel por padrão, que já impede isso nos extremos dos ranges. A regra mede qualquer id do registry, inclusive um sem `layerSlot` (que também recebe `unknown-layer`); só um id fora do registry fica sem medida.
 
 Tradições:
 
@@ -86,7 +86,7 @@ As camadas são o **último sorteio** de `generateKit`, depois do `cut` e antes 
 
 1. Quantidade, por `rng.weighted` sobre `layerCountCandidates(identity)` (0, 1 ou 2), em `component-weights.ts`.
 2. Para cada camada:
-   - O id, por `rng.weighted` sobre `layerCandidates(identity, exclude)`, na ordem do registry. A função exclui ids em `forbiddenPatterns` e os de `exclude` (o `pattern.id` e os ids já sorteados).
+   - O id, por `rng.weighted` sobre `layerCandidates(identity, exclude)`, na ordem do registry. A função zera ids em `forbiddenPatterns` e toda camada cuja região já está ocupada por um id de `exclude` (o `pattern.id` e os ids já sorteados): duas camadas na mesma região se sobrepõem (duas formas no tronco, a linha atravessando a forma), o que o protótipo mostrou feio.
    - A cor, por `rng.pick` entre os papéis livres (≠ `pattern.base` e ≠ `pattern.overlay`; em `solid`, só ≠ `pattern.base`). Fora do `solid` só sobra um papel, então as duas camadas têm a mesma cor; o `rng.pick` roda assim mesmo, para a ordem das chamadas não depender do padrão.
    - Os parâmetros, por `randomParams`.
 3. Sem candidato de id, a camada é descartada, sem erro.
@@ -116,20 +116,20 @@ Os dois degradês entram em `patternWeights` de `modern` (e, com peso menor, `re
 
 Todos os tamanhos em fração de `width`/`height`, no fim do array do `registry.ts` (a ordem participa do sorteio), com `parameters` de min/max/default e `colorAt` quando principal.
 
-Principais (2 cores, não `layerable`), no estilo de `gradient.ts` (faixas de opacidade, sem `<defs>`, limiar 0.5 no `colorAt`):
+Principais (2 cores, não `layerable`), no estilo de `gradient.ts` (faixas de opacidade, sem `<defs>`, limiar 0.5 no `colorAt`, com a divisão em faixas num helper comum aos três degradês). As bordas das faixas são inclinadas ou curvas, e o antialias delas soma duas faixas no mesmo pixel; o grupo usa `shape-rendering="crispEdges"`, e os anéis do radial são paths `evenodd` que repetem o mesmo círculo dos dois lados de cada borda:
 
 - `gradient-diagonal`: degradê na diagonal do corpo.
 - `gradient-radial`: degradê radial com centro e raio parametrizados.
 
 Ambos mantêm a base pura sob as caixas de logo, como o `gradient` (início do degradê abaixo do patrocinador), e ficam abaixo de metade do tronco de overlay (teste de pixel).
 
-`layerable`:
+`layerable`, com a região entre parênteses:
 
-- `side-lines`: uma faixa vertical larga em cada lateral, rente à borda do tronco (painel lateral).
-- `double-pinline`: dois filetes verticais finos e paralelos em cada lado, entre o painel lateral e as caixas de logo (x < 145 e x > 269 no viewBox 414).
-- `shoulder-line`: filete horizontal na altura dos ombros, acima das caixas de logo (y < 102).
-- `torso-circle`, `torso-diamond`, `torso-cross`, `torso-triangle`: forma centrada no tronco, abaixo do patrocinador (a caixa termina em y = 229, 0.553 da altura).
-- `hoop-line`: filete horizontal abaixo do patrocinador.
+- `side-lines` (`sides`): uma faixa vertical larga em cada lateral, rente à borda do tronco (painel lateral).
+- `double-pinline` (`sides`): dois filetes verticais finos e paralelos em cada lado, entre o painel lateral e as caixas de logo (x < 145 e x > 269 no viewBox 414).
+- `shoulder-line` (`shoulders`): filete horizontal na altura dos ombros, acima das caixas de logo (y < 102).
+- `torso-circle`, `torso-diamond`, `torso-cross`, `torso-triangle` (`lower`): contorno da forma centrado no tronco, abaixo do patrocinador (a caixa termina em y = 229, 0.553 da altura).
+- `hoop-line` (`lower`): filete horizontal abaixo do patrocinador.
 
 A geometria exata de cada um (coordenadas e ranges) fica no plano, validada pelos testes da seção 8.
 
@@ -146,19 +146,21 @@ A geometria exata de cada um (coordenadas e ranges) fica no plano, validada pelo
 - Padrões principais novos: `colorAt` espelha `render()` (teste de pixel genérico existente), overlay abaixo de metade do tronco.
 - Schema: `layers` opcional, máximo 2, cor e id válidos; `kit.json` antigo continua passando.
 - Cada regra nova de `validateKit` (seção 4) com um caso de erro; tradições com camadas.
-- Generator: guardas `Phase 3b baseline` inalteradas; determinismo por seed; propriedade em milhares de kits: camada nunca repete `base`/`overlay`, nunca repete id, `layer-logo-overlap` nunca ocorre.
+- Generator: a guarda `Phase 3b baseline` do clube sem categorias e a de SVG inalteradas (a do clube `branded`, `modern`, muda de propósito, como na 4a); determinismo por seed; propriedade em milhares de kits: camada nunca repete `base`/`overlay`, nunca repete id nem região, `layer-logo-overlap` nunca ocorre.
 - Perfis: todo id de `layerWeights` existe no registry e é `layerable`; nenhum perfil põe `layerable` em `patternWeights`; todo perfil fora o `classic` tem peso positivo em 1 camada; `classic` tem só `{ 0: 1 }` e gera sempre 0 camadas.
 - Renderer: PNG sem camadas idêntico ao de antes; PNG com camada tem a cor da camada no centro de um pixel esperado.
 
 ## 9. Ordem de entrega
 
-1. Schema, validação, `kitDesign` e renderer de camadas, com um padrão `layerable` de prova (`side-lines`).
-2. Generator e perfis (contagem, `layerWeights`, médias).
-3. Os demais 9 padrões, pesos nos perfis e contact sheet.
-4. Docs (`CLAUDE.md`, roadmap) e inspeção visual dos PNGs.
+Os perfis só podem citar padrões registrados, então os padrões vêm antes das tabelas de camada:
+
+1. `layerSlot`, os 8 padrões de camada e os 2 degradês (com os pesos deles em `patternWeights`).
+2. Schema, validação, `kitDesign` e renderer de camadas.
+3. Perfis (contagem, `layerWeights`, médias) e generator.
+4. Contact sheet, docs (`CLAUDE.md`, roadmap) e inspeção visual dos PNGs.
 
 ## 10. Riscos
 
-- Combinação feia: contida por `layerable` (só padrões finos), máximo de 2 camadas, `layerWeights` por perfil e ids distintos. Revisão visual pelo `preview --samples 24` na etapa 4.
+- Combinação feia: contida por `layerable` (só padrões finos), máximo de 2 camadas, `layerWeights` por perfil, ids distintos e uma camada por região. Revisão visual pelo `preview --samples 24` na etapa 4.
 - Seeds de clubes com `categories` mudam de novo (documentado, seção 5.2).
 - No 3D (3c), camadas serão desenhadas por ilha da UV; linhas e degradês não continuam entre frente, costas e mangas.
