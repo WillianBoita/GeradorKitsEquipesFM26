@@ -135,9 +135,16 @@ const ALL_PATTERN_IDS = [
   "halves",
   "gradient",
   "side-lines",
+  "double-pinline",
+  "shoulder-line",
+  "hoop-line",
+  "torso-circle",
+  "torso-diamond",
+  "torso-triangle",
+  "torso-cross",
 ];
 
-const LAYER_PATTERN_IDS = ["side-lines"];
+const LAYER_PATTERN_IDS = ["side-lines", "double-pinline", "shoulder-line", "hoop-line", "torso-circle", "torso-diamond", "torso-triangle", "torso-cross"];
 
 describe("registry", () => {
   it("lists the layer patterns in registry order", () => {
@@ -278,6 +285,14 @@ describe("new patterns render", () => {
     expect(svg).toContain("fill-opacity");
     expect(svg).not.toMatch(/<defs|\sid=/);
   });
+
+  it("draws the layer patterns with the expected elements", () => {
+    expect(renderWith(getPatternTemplate("double-pinline"), {}).match(/<rect /g)).toHaveLength(4);
+    expect(renderWith(getPatternTemplate("torso-circle"), {}).match(/<circle /g)).toHaveLength(1);
+    expect(renderWith(getPatternTemplate("torso-diamond"), {})).toContain('fill-rule="evenodd"');
+    expect(renderWith(getPatternTemplate("torso-triangle"), {})).toContain('fill-rule="evenodd"');
+    expect(renderWith(getPatternTemplate("torso-cross"), {}).match(/<rect /g)).toHaveLength(2);
+  });
 });
 
 describe("layer patterns colorAt", () => {
@@ -292,5 +307,39 @@ describe("layer patterns colorAt", () => {
     expect(at("side-lines", { width: 0.02 }, 298, 200)).toBe("overlay");
     expect(at("side-lines", { width: 0.02 }, 130, 200)).toBe("base");
     expect(at("side-lines", { width: 0.02 }, 100, 200)).toBe("base");
+  });
+
+  // Defaults: filetes em x 128,1–131 e 134,8–137,7 à esquerda e 276,3–279,2 e 283–285,9 à direita.
+  it("paints two thin lines on each side, inside the side panel area", () => {
+    expect(at("double-pinline", {}, 129.5, 300)).toBe("overlay");
+    expect(at("double-pinline", {}, 133, 300)).toBe("base");
+    expect(at("double-pinline", {}, 136, 300)).toBe("overlay");
+    expect(at("double-pinline", {}, 284, 300)).toBe("overlay");
+    expect(at("double-pinline", {}, 140, 300)).toBe("base");
+  });
+
+  it("places the shoulder line above the logos and the hoop line below the sponsor", () => {
+    expect(at("shoulder-line", {}, 207, 82)).toBe("overlay");
+    expect(at("shoulder-line", {}, 207, 90)).toBe("base");
+    expect(at("hoop-line", {}, 207, 298)).toBe("overlay");
+    expect(at("hoop-line", {}, 207, 310)).toBe("base");
+  });
+
+  // Defaults: centro (207, 306,4), raio 49,7, contorno de 7,5 px.
+  it("outlines the torso shapes around their center", () => {
+    expect(at("torso-circle", {}, 253, 306)).toBe("overlay");
+    expect(at("torso-circle", {}, 237, 306)).toBe("base");
+    expect(at("torso-circle", {}, 207, 306)).toBe("base");
+    expect(at("torso-diamond", {}, 252, 306)).toBe("overlay");
+    expect(at("torso-diamond", {}, 267, 306)).toBe("base");
+    expect(at("torso-diamond", {}, 207, 306)).toBe("base");
+    expect(at("torso-triangle", {}, 207, 285)).toBe("overlay");
+    expect(at("torso-triangle", {}, 207, 346)).toBe("overlay");
+    expect(at("torso-triangle", {}, 207, 306)).toBe("base");
+    expect(at("torso-triangle", {}, 207, 366)).toBe("base");
+    expect(at("torso-cross", {}, 237, 306)).toBe("overlay");
+    expect(at("torso-cross", {}, 207, 266)).toBe("overlay");
+    expect(at("torso-cross", {}, 237, 316)).toBe("base");
+    expect(at("torso-cross", {}, 262, 306)).toBe("base");
   });
 });
