@@ -4,6 +4,8 @@ import { chestBandPattern } from "./chest-band.js";
 import { chevronPattern } from "./chevron.js";
 import { diagonalPattern } from "./diagonal.js";
 import { doublePinlinePattern } from "./double-pinline.js";
+import { gradientDiagonalPattern } from "./gradient-diagonal.js";
+import { gradientRadialPattern } from "./gradient-radial.js";
 import { gradientPattern } from "./gradient.js";
 import { halvesPattern } from "./halves.js";
 import { hoopLinePattern, shoulderLinePattern } from "./horizontal-lines.js";
@@ -38,6 +40,8 @@ const TEMPLATES: readonly PatternTemplate[] = [
   torsoDiamondPattern,
   torsoTrianglePattern,
   torsoCrossPattern,
+  gradientDiagonalPattern,
+  gradientRadialPattern,
 ];
 
 export function listPatternTemplates(): readonly PatternTemplate[] {

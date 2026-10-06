@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { XMLValidator } from "fast-xml-parser";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
@@ -142,6 +143,8 @@ const ALL_PATTERN_IDS = [
   "torso-diamond",
   "torso-triangle",
   "torso-cross",
+  "gradient-diagonal",
+  "gradient-radial",
 ];
 
 const LAYER_PATTERN_IDS = ["side-lines", "double-pinline", "shoulder-line", "hoop-line", "torso-circle", "torso-diamond", "torso-triangle", "torso-cross"];
@@ -258,6 +261,26 @@ describe("new patterns colorAt", () => {
     expect(at("gradient", params, 207, 370)).toBe("overlay");
     expect(at("gradient", params, 207, 400)).toBe("overlay");
   });
+
+  // start 0.68: o degradê vai do valor 281,5 ao 380,9, onde o valor é y + 0,5·(x − 207) na direção 0 e y − 0,5·(x − 207) na direção 1.
+  it("fades the diagonal gradient along the chosen direction", () => {
+    expect(at("gradient-diagonal", { start: 0.68, direction: 0 }, 207, 200)).toBe("base");
+    expect(at("gradient-diagonal", { start: 0.68, direction: 0 }, 207, 400)).toBe("overlay");
+    expect(at("gradient-diagonal", { start: 0.68, direction: 0 }, 300, 330)).toBe("overlay");
+    expect(at("gradient-diagonal", { start: 0.68, direction: 0 }, 114, 330)).toBe("base");
+    expect(at("gradient-diagonal", { start: 0.68, direction: 1 }, 300, 330)).toBe("base");
+    expect(at("gradient-diagonal", { start: 0.68, direction: 1 }, 114, 330)).toBe("overlay");
+  });
+
+  // Defaults: centro (207, 393,3) e raio 115,9; o overlay passa de metade a menos de 58 px do centro.
+  it("fades the radial gradient from its center", () => {
+    const params = { cx: 0.5, cy: 0.95, radius: 0.28 };
+    expect(at("gradient-radial", params, 207, 380)).toBe("overlay");
+    expect(at("gradient-radial", params, 207, 300)).toBe("base");
+    expect(at("gradient-radial", params, 207, 250)).toBe("base");
+    expect(at("gradient-radial", params, 100, 380)).toBe("base");
+    expect(at("gradient-radial", { ...params, cx: 0.25 }, 110, 385)).toBe("overlay");
+  });
 });
 
 describe("new patterns render", () => {
@@ -284,6 +307,22 @@ describe("new patterns render", () => {
     const svg = renderWith(getPatternTemplate("gradient"), {});
     expect(svg).toContain("fill-opacity");
     expect(svg).not.toMatch(/<defs|\sid=/);
+  });
+
+  // Bordas inclinadas ou curvas com antialias somam duas faixas no mesmo pixel; crispEdges mantém o colorAt fiel ao render.
+  it.each(["gradient-diagonal", "gradient-radial"])("draws %s with opacity bands, without antialias, defs or ids", (id) => {
+    const svg = renderWith(getPatternTemplate(id), {});
+    expect(svg).toContain('shape-rendering="crispEdges"');
+    expect(svg).toContain("fill-opacity");
+    expect(svg).not.toMatch(/<defs|\sid=/);
+  });
+
+  // Guarda do refactor para fade.ts: passa antes e depois da Task 3.
+  it("keeps the SVG of the vertical gradient", () => {
+    const digest = createHash("sha256")
+      .update(renderWith(getPatternTemplate("gradient"), {}))
+      .digest("hex");
+    expect(digest).toBe("748bbfd56aa108d53a98b902af56892ea90d22bc8927c2f2fd13ad0136702b0e");
   });
 
   it("draws the layer patterns with the expected elements", () => {

@@ -17,13 +17,13 @@ describe("resolvePatternWeights", () => {
 
   it("normalizes a single profile", () => {
     const weights = resolvePatternWeights(club({ categories: ["modern"] }));
-    expect(weights.diagonal).toBeCloseTo(0.2);
+    expect(weights.diagonal).toBeCloseTo(0.15);
     expect(Object.values(weights).reduce<number>((sum, weight) => sum + (weight ?? 0), 0)).toBeCloseTo(1);
   });
 
   it("averages the normalized profiles", () => {
     const weights = resolvePatternWeights(club({ categories: ["traditional", "retro"] }));
-    expect(weights.solid).toBeCloseTo(0.2);
+    expect(weights.solid).toBeCloseTo(0.15);
     expect(weights.hoops).toBeCloseTo(0.175);
     expect(weights.pinstripes).toBeCloseTo(0.075);
     expect(weights["chest-band"]).toBeCloseTo(0.1);

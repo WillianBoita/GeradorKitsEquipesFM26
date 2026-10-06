@@ -206,6 +206,10 @@ describe("renderKit2dPng", () => {
     ["chest-band", { position: 1, width: 1 }],
     ["center-band", { width: 1 }],
     ["gradient", { start: 0 }],
+    ["gradient-diagonal", { start: 0, direction: 0 }],
+    ["gradient-diagonal", { start: 0, direction: 1 }],
+    ["gradient-radial", { cx: 0, cy: 0, radius: 1 }],
+    ["gradient-radial", { cx: 1, cy: 0, radius: 1 }],
   ];
 
   it.each(WIDEST)("keeps the widest %s %j below half of the torso", async (id, params) => {
@@ -231,6 +235,19 @@ describe("renderKit2dPng", () => {
   // start abaixo do mínimo vira 0.58 pelo clamp: o degradê começa abaixo da caixa do patrocinador (y 229).
   it("keeps every logo box on the plain base with the earliest gradient", async () => {
     const kit = makeKit({ pattern: { id: "gradient", base: "primary", overlay: "secondary", params: { start: 0 } } });
+    expect(await logoBoxMismatches(await renderKit2dPng(kit))).toBe(0);
+  });
+
+  // Pelo clamp: start 0.65 (o canto do patrocinador vale 0.628) e centro em y 373 com raio 137 e cx 0.25 ou 0.75 (o canto fica a 150 px).
+  const EXTREME_GRADIENTS: [string, Record<string, number>][] = [
+    ["gradient-diagonal", { start: 0, direction: 0 }],
+    ["gradient-diagonal", { start: 0, direction: 1 }],
+    ["gradient-radial", { cx: 0, cy: 0, radius: 1 }],
+    ["gradient-radial", { cx: 1, cy: 0, radius: 1 }],
+  ];
+
+  it.each(EXTREME_GRADIENTS)("keeps every logo box on the plain base with %s %j", async (id, params) => {
+    const kit = makeKit({ pattern: { id, base: "primary", overlay: "secondary", params } });
     expect(await logoBoxMismatches(await renderKit2dPng(kit))).toBe(0);
   });
 });

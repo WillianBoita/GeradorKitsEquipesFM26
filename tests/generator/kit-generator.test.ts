@@ -23,7 +23,19 @@ function withPalette(palette: ClubIdentity["palette"]): ClubIdentity {
 }
 
 describe("generateKitSet", () => {
-  const NEW_PATTERN_IDS = ["pinstripes", "hoops", "diagonal", "chevron", "chest-band", "center-band", "checkers", "halves", "gradient"];
+  const NEW_PATTERN_IDS = [
+    "pinstripes",
+    "hoops",
+    "diagonal",
+    "chevron",
+    "chest-band",
+    "center-band",
+    "checkers",
+    "halves",
+    "gradient",
+    "gradient-diagonal",
+    "gradient-radial",
+  ];
 
   it.each(NEW_PATTERN_IDS)("generates valid %s kits with params inside the template ranges", (id) => {
     const template = getPatternTemplate(id);
@@ -143,7 +155,7 @@ describe("generateKitSet", () => {
   it("draws from the profiles listed in categories", () => {
     const club = parseClubIdentity({ ...GALATICOS_CLUB, style: { categories: ["retro"] } });
     const ids = new Set(Array.from({ length: 300 }, (_, seed) => generateKitSet(club, seed).home.pattern.id));
-    expect(ids).toEqual(new Set(["hoops", "chest-band", "center-band", "chevron", "stripes", "solid"]));
+    expect(ids).toEqual(new Set(["hoops", "chest-band", "center-band", "chevron", "stripes", "solid", "gradient-diagonal"]));
   });
 
   it("draws plain sleeves less often for a modern club than for a classic one", () => {
