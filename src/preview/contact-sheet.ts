@@ -27,13 +27,21 @@ function escapeHtml(text: string): string {
   return text.replace(/[&<>"']/g, (char) => ESCAPES[char]!);
 }
 
-export function kitDetails(kit: KitDefinition): string[] {
-  const template = getPatternTemplate(kit.pattern.id);
-  const params = Object.entries(resolveParams(template, kit.pattern.params))
+function paramsText(id: string, raw: Record<string, number>): string {
+  return Object.entries(resolveParams(getPatternTemplate(id), raw))
     .map(([key, value]) => `${key} ${value}`)
     .join(", ");
+}
+
+function joinParts(parts: string[]): string {
+  return parts.filter((part) => part !== "").join(" · ");
+}
+
+export function kitDetails(kit: KitDefinition): string[] {
+  const template = getPatternTemplate(kit.pattern.id);
   const lines = [
-    [template.id, template.category, params].filter((part) => part !== "").join(" · "),
+    joinParts([template.id, template.category, paramsText(template.id, kit.pattern.params)]),
+    ...(kit.layers ?? []).map((layer) => joinParts([`layer ${layer.id}`, layer.color, paramsText(layer.id, layer.params)])),
     `collar ${kit.collar.style} · sleeves ${kit.sleeves.style} · ${sleeveCut(kit)}`,
   ];
   if (kit.generatedWith) lines.push(`seed ${kit.generatedWith.seed}`);

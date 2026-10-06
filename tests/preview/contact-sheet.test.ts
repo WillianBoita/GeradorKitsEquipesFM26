@@ -41,6 +41,21 @@ describe("buildContactSheetHtml", () => {
 });
 
 describe("kitDetails", () => {
+  it("lists each layer with its color and resolved params, after the pattern", () => {
+    const kit = makeKit({
+      layers: [
+        { id: "side-lines", color: "accent", params: { width: 1 } },
+        { id: "torso-circle", color: "secondary", params: {} },
+      ],
+    });
+    expect(kitDetails(kit)).toEqual([
+      "solid · classic",
+      "layer side-lines · accent · width 0.03",
+      "layer torso-circle · secondary · size 0.12, stroke 0.018",
+      "collar round · sleeves match-body · set-in",
+    ]);
+  });
+
   it("lists the pattern with category and resolved params, the collar and sleeves, the seed and the brands", () => {
     const kit = makeKit({
       generatedWith: { seed: 42 },
