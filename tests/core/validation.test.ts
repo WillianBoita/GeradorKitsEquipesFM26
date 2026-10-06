@@ -13,11 +13,14 @@ import {
   validateKitTraditions,
   validatePalette,
 } from "../../src/core/validation.js";
+import { listPatternTemplates } from "../../src/patterns/registry.js";
 import { GALATICOS_CLUB } from "../fixtures/clubs.js";
 import { makeKit } from "../fixtures/kits.js";
 
 const PALETTE = { primary: "#123456", secondary: "#ffffff", accent: "#ffd700" };
-const KNOWN_PATTERNS = "solid, stripes, sash, pinstripes, hoops, diagonal, chevron, chest-band, center-band, checkers, halves, gradient";
+const KNOWN_PATTERNS = listPatternTemplates()
+  .map((template) => template.id)
+  .join(", ");
 
 const REGISTRY: AssetRegistry = {
   sponsors: [

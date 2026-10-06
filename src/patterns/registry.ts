@@ -8,6 +8,7 @@ import { halvesPattern } from "./halves.js";
 import { hoopsPattern } from "./hoops.js";
 import { pinstripesPattern } from "./pinstripes.js";
 import { sashPattern } from "./sash.js";
+import { sideLinesPattern } from "./side-lines.js";
 import { solidPattern } from "./solid.js";
 import { stripesPattern } from "./stripes.js";
 import type { PatternTemplate } from "./types.js";
@@ -26,10 +27,15 @@ const TEMPLATES: readonly PatternTemplate[] = [
   checkersPattern,
   halvesPattern,
   gradientPattern,
+  sideLinesPattern,
 ];
 
 export function listPatternTemplates(): readonly PatternTemplate[] {
   return TEMPLATES;
+}
+
+export function listLayerTemplates(): PatternTemplate[] {
+  return TEMPLATES.filter((template) => template.layerSlot !== undefined);
 }
 
 export function getPatternTemplate(id: string): PatternTemplate {

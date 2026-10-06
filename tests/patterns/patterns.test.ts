@@ -2,8 +2,9 @@ import { XMLValidator } from "fast-xml-parser";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import { resolveParams } from "../../src/patterns/params.js";
-import { getPatternTemplate, listPatternTemplates } from "../../src/patterns/registry.js";
+import { getPatternTemplate, listLayerTemplates, listPatternTemplates } from "../../src/patterns/registry.js";
 import type { PatternTemplate } from "../../src/patterns/types.js";
+import { LOGO_BOXES } from "../../src/renderers/shirt-2d-shape.js";
 
 const SIZE = 414;
 const EXTREMES = [Number.NEGATIVE_INFINITY, -1e9, -1, 0, 0.5, 1e9, Number.POSITIVE_INFINITY, Number.NaN];
@@ -42,6 +43,34 @@ function paramSamples(template: PatternTemplate): Record<string, number>[] {
   return [{}, ...Object.entries(template.parameters).flatMap(([key, spec]) => [{ [key]: spec.min }, { [key]: spec.max }])];
 }
 
+// O pior caso de uma camada combina extremos (ex.: inset, thickness e gap máximos), então entram também todos no mínimo e todos no máximo.
+function extremeSamples(template: PatternTemplate): Record<string, number>[] {
+  const entries = Object.entries(template.parameters);
+  return [
+    ...paramSamples(template),
+    Object.fromEntries(entries.map(([key, spec]) => [key, spec.min])),
+    Object.fromEntries(entries.map(([key, spec]) => [key, spec.max])),
+  ];
+}
+
+// Camada sozinha, em branco sobre preto: pixels pintados dentro das caixas de logo e fração pintada do tronco (x 115–300, y 150–380).
+async function layerFootprint(template: PatternTemplate, raw: Record<string, number>): Promise<{ logoPixels: number; torsoShare: number }> {
+  const svg = wrap(`<rect width="${SIZE}" height="${SIZE}" fill="#000000"/>${renderWith(template, raw)}`);
+  const { data, info } = await sharp(Buffer.from(svg)).raw().toBuffer({ resolveWithObject: true });
+  const red = (x: number, y: number): number => data[(y * info.width + x) * info.channels]!;
+  let logoPixels = 0;
+  for (const box of Object.values(LOGO_BOXES)) {
+    for (let y = box.y; y < box.y + box.height; y++) {
+      for (let x = box.x; x < box.x + box.width; x++) if (red(x, y) > 0) logoPixels++;
+    }
+  }
+  let painted = 0;
+  for (let y = 150; y < 380; y++) {
+    for (let x = 115; x < 300; x++) if (red(x, y) > 0x88) painted++;
+  }
+  return { logoPixels, torsoShare: painted / (230 * 185) };
+}
+
 describe.each(listPatternTemplates().map((template) => [template.id, template] as const))("pattern %s", (_id, template) => {
   it("renders valid SVG with default params", () => {
     expect(XMLValidator.validate(wrap(renderWith(template, {})))).toBe(true);
@@ -77,6 +106,21 @@ describe.each(listPatternTemplates().map((template) => [template.id, template] a
   });
 });
 
+describe.each(listLayerTemplates().map((template) => [template.id, template] as const))("layer %s", (_id, template) => {
+  // Como camada, o render recebe a cor da camada como overlay; a base do contexto nunca é pintada.
+  it("draws only in the overlay color", () => {
+    expect(renderWith(template, {})).not.toContain("#123456");
+  });
+
+  it("never paints a logo box and covers less than 15% of the torso", async () => {
+    for (const raw of extremeSamples(template)) {
+      const { logoPixels, torsoShare } = await layerFootprint(template, raw);
+      expect(logoPixels).toBe(0);
+      expect(torsoShare).toBeLessThan(0.15);
+    }
+  });
+});
+
 const ALL_PATTERN_IDS = [
   "solid",
   "stripes",
@@ -90,9 +134,16 @@ const ALL_PATTERN_IDS = [
   "checkers",
   "halves",
   "gradient",
+  "side-lines",
 ];
 
+const LAYER_PATTERN_IDS = ["side-lines"];
+
 describe("registry", () => {
+  it("lists the layer patterns in registry order", () => {
+    expect(listLayerTemplates().map((template) => template.id)).toEqual(LAYER_PATTERN_IDS);
+  });
+
   it("lists the patterns in registry order", () => {
     expect(listPatternTemplates().map((template) => template.id)).toEqual(ALL_PATTERN_IDS);
   });
@@ -226,5 +277,20 @@ describe("new patterns render", () => {
     const svg = renderWith(getPatternTemplate("gradient"), {});
     expect(svg).toContain("fill-opacity");
     expect(svg).not.toMatch(/<defs|\sid=/);
+  });
+});
+
+describe("layer patterns colorAt", () => {
+  const at = (id: string, raw: Record<string, number>, x: number, y: number) => {
+    const template = getPatternTemplate(id);
+    return template.colorAt(x, y, { width: SIZE, height: SIZE, params: resolveParams(template, raw) });
+  };
+
+  // width 0.02: painéis em x 112–120,3 e 293,7–302; fora do tronco é base.
+  it("paints a side panel along each torso edge", () => {
+    expect(at("side-lines", { width: 0.02 }, 116, 200)).toBe("overlay");
+    expect(at("side-lines", { width: 0.02 }, 298, 200)).toBe("overlay");
+    expect(at("side-lines", { width: 0.02 }, 130, 200)).toBe("base");
+    expect(at("side-lines", { width: 0.02 }, 100, 200)).toBe("base");
   });
 });

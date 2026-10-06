@@ -18,9 +18,13 @@ describe("STYLE_PROFILES", () => {
     }
   });
 
-  it("reaches every registered pattern from at least one profile", () => {
+  // Padrão de camada só entra em layerWeights: como principal sorteado pelo perfil, ele deixaria o tronco quase liso.
+  it("reaches every pattern that is not a layer from patternWeights, and no layer pattern", () => {
     const reached = new Set(STYLE_PROFILES.flatMap((profile) => Object.keys(profile.patternWeights)));
-    expect([...reached].sort()).toEqual([...patternIds].sort());
+    const principal = listPatternTemplates()
+      .filter((template) => template.layerSlot === undefined)
+      .map((template) => template.id);
+    expect([...reached].sort()).toEqual([...principal].sort());
   });
 
   // As seeds de clubes sem estilo dependem destes números exatos.
