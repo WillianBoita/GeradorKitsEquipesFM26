@@ -6,7 +6,7 @@ import { resolvePalette } from "../../src/core/palette.js";
 import { createRng, deriveSeed } from "../../src/core/random.js";
 import { validateKit, validateKitSet, validatePalette } from "../../src/core/validation.js";
 import { generateKit, generateKitSet, generatePalette, MAX_PALETTE_ATTEMPTS } from "../../src/generator/kit-generator.js";
-import { getPatternTemplate } from "../../src/patterns/registry.js";
+import { getPatternTemplate, listLayerTemplates } from "../../src/patterns/registry.js";
 import { GALATICOS_BRANDED_CLUB, GALATICOS_CLUB } from "../fixtures/clubs.js";
 
 const identity: ClubIdentity = parseClubIdentity(GALATICOS_CLUB);
@@ -324,10 +324,10 @@ function setsDigest(club: ClubIdentity, badge: boolean): string {
 }
 
 // Guarda da Fase 3b: o clube sem categories (perfil classic) não pode mudar de kit para a mesma seed.
-// O branded (categoria modern) muda de propósito quando a Fase 4a muda os pesos de gola e manga dos perfis; atualize o hash só nessas mudanças.
+// O branded (categoria modern) muda de propósito quando os pesos de gola, manga (Fase 4a) ou camada (Fase 4b) dos perfis mudam; atualize o hash só nessas mudanças.
 describe("generateKitSet Phase 3b baseline", () => {
   it("keeps the sets of a club with pattern weights and brands", () => {
-    expect(setsDigest(branded, true)).toBe("8da3fe27c60340321d4eddef3086752f5b05ecb9b4564c8a04d1979f58ecec9a");
+    expect(setsDigest(branded, true)).toBe("fff1d7a729cd1289073a8b4f327199971fb69df3830de2729eebcaaffd1d11df");
   });
 
   it("keeps the sets of a club without categories or pattern weights", () => {
@@ -390,5 +390,70 @@ describe("generateKitSet traditions", () => {
   it("leaves a kit alone when its base already is the required color", () => {
     const club = traditional({ requiredColor: "primary" });
     for (let seed = 0; seed < 50; seed++) expect(generateKitSet(club, seed).home).toEqual(generateKitSet(identity, seed).home);
+  });
+});
+
+describe("generateKitSet layers", () => {
+  const styled = (categories: string[], extra: object = {}) => parseClubIdentity({ ...GALATICOS_CLUB, style: { categories }, ...extra });
+  const kitsOf = (club: ClubIdentity, seeds = 100) => Array.from({ length: seeds }, (_, seed) => Object.values(generateKitSet(club, seed))).flat();
+
+  it("never draws layers for a club without categories", () => {
+    for (const kit of kitsOf(styled([]))) expect(kit).not.toHaveProperty("layers");
+  });
+
+  it("writes layers only when the kit draws one, up to two for a modern club", () => {
+    const kits = kitsOf(styled(["modern"]));
+    expect(new Set(kits.map((kit) => kit.layers?.length ?? 0))).toEqual(new Set([0, 1, 2]));
+    for (const kit of kits) if ("layers" in kit) expect(kit.layers!.length).toBeGreaterThan(0);
+  });
+
+  it.each(["traditional", "modern", "retro"])("draws valid %s layers in distinct slots, with params inside the ranges", (category) => {
+    for (const kit of kitsOf(styled([category]), 200)) {
+      // validateKit cobre cor livre, id repetido, id desconhecido e caixas de logo.
+      expect(validateKit(kit)).toEqual([]);
+      const layers = kit.layers ?? [];
+      const templates = layers.map((layer) => getPatternTemplate(layer.id));
+      expect(new Set(templates.map((template) => template.layerSlot)).size).toBe(layers.length);
+      for (const [index, layer] of layers.entries()) {
+        for (const [key, spec] of Object.entries(templates[index]!.parameters)) {
+          expect(layer.params[key]).toBeGreaterThanOrEqual(spec.min);
+          expect(layer.params[key]).toBeLessThanOrEqual(spec.max);
+        }
+      }
+    }
+  });
+
+  it("never draws a forbidden layer", () => {
+    const club = styled(["retro"], { traditions: { forbiddenPatterns: ["hoop-line", "side-lines"] } });
+    for (const kit of kitsOf(club)) for (const layer of kit.layers ?? []) expect(["hoop-line", "side-lines"]).not.toContain(layer.id);
+  });
+
+  // As camadas são o último sorteio: sem nenhuma permitida, só o campo layers muda.
+  it("keeps the rest of the kit when the traditions forbid every layer", () => {
+    const forbidAll = styled(["modern"], { traditions: { forbiddenPatterns: listLayerTemplates().map((template) => template.id) } });
+    let dropped = 0;
+    for (let seed = 0; seed < 100; seed++) {
+      const [withLayers, withoutLayers] = [generateKitSet(styled(["modern"]), seed), generateKitSet(forbidAll, seed)];
+      for (const kitType of KIT_TYPES) {
+        const { layers, ...rest } = withLayers[kitType];
+        if (layers) dropped++;
+        expect(withoutLayers[kitType]).toEqual(rest);
+      }
+    }
+    expect(dropped).toBeGreaterThan(0);
+  });
+
+  it("keeps the layers out of the slot of a layer pattern used as the main pattern", () => {
+    const club = parseClubIdentity({ ...GALATICOS_CLUB, style: { categories: ["modern"], patternWeights: { "side-lines": 1 } } });
+    let layered = 0;
+    for (const kit of kitsOf(club)) {
+      expect(kit.pattern.id).toBe("side-lines");
+      expect(validateKit(kit)).toEqual([]);
+      for (const layer of kit.layers ?? []) {
+        layered++;
+        expect(getPatternTemplate(layer.id).layerSlot).not.toBe("sides");
+      }
+    }
+    expect(layered).toBeGreaterThan(0);
   });
 });

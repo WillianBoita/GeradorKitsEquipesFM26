@@ -1,12 +1,22 @@
 import type { ClubIdentity } from "../core/club.js";
-import { BRAND_KINDS, BRAND_LISTS, COLOR_ROLES, visibleRoles, type BrandKind, type ColorRole, type KitDefinition, type KitType } from "../core/kit.js";
+import {
+  BRAND_KINDS,
+  BRAND_LISTS,
+  COLOR_ROLES,
+  visibleRoles,
+  type BrandKind,
+  type ColorRole,
+  type KitDefinition,
+  type KitLayer,
+  type KitType,
+} from "../core/kit.js";
 import { backgroundRoles, chooseLogoColors, type LogoColors } from "../core/logo-colors.js";
 import { resolvePalette, type Palette } from "../core/palette.js";
 import { createRng, deriveSeed, type Rng } from "../core/random.js";
 import { formatIssues, validateClub, validatePalette, type ValidationIssue } from "../core/validation.js";
 import type { PatternTemplate } from "../patterns/types.js";
-import { collarCandidates, sleeveCutCandidates, sleeveStyleCandidates } from "../styles/component-weights.js";
-import { patternCandidates } from "../styles/pattern-weights.js";
+import { collarCandidates, layerCountCandidates, sleeveCutCandidates, sleeveStyleCandidates } from "../styles/component-weights.js";
+import { layerCandidates, patternCandidates } from "../styles/pattern-weights.js";
 
 export type KitSet = Record<KitType, KitDefinition>;
 
@@ -69,14 +79,17 @@ export function generateKit(identity: ClubIdentity, kitType: KitType, palette: P
   const cuffColor = rng.pick(trimRoles);
   const shortsColor = rng.pick([base, overlay]);
   const socksColor = rng.pick([shortsColor, base]);
-  // Último sorteio: o corte entrou na Fase 4a e não pode deslocar os sorteios anteriores.
+  // O corte (Fase 4a) e as camadas (Fase 4b) são os últimos sorteios: entraram depois e não podem deslocar os anteriores.
   const cut = rng.weighted(sleeveCutCandidates(identity));
+  const layers = pickLayers(identity, { id: template.id, base, overlay }, rng);
   const kit: KitDefinition = {
     clubId: identity.id,
     kitType,
     generatedWith: { seed },
     colors: { ...palette },
     pattern: { id: template.id, base, overlay, params },
+    // layers só aparece quando sai alguma camada: o kit.json de quem não sorteia camadas fica igual ao de antes da 4b.
+    ...(layers.length > 0 ? { layers } : {}),
     collar: { style: collarStyle, color: collarColor },
     // cut só aparece na raglan: o kit.json de quem não sorteia raglan fica igual ao de antes da 4a.
     sleeves: { style: sleeveStyle, ...(cut === "raglan" ? { cut } : {}), color: overlay, cuffColor },
@@ -92,6 +105,21 @@ export function generateKit(identity: ClubIdentity, kitType: KitType, palette: P
 
 function pickPattern(identity: ClubIdentity, kitType: KitType, rng: Rng): PatternTemplate {
   return rng.weighted(patternCandidates(identity, kitType));
+}
+
+function pickLayers(identity: ClubIdentity, pattern: Pick<KitDefinition["pattern"], "id" | "base" | "overlay">, rng: Rng): KitLayer[] {
+  const count = Number(rng.weighted(layerCountCandidates(identity)));
+  // O solid não pinta o overlay, então a camada pode usá-lo. Fora dele só sobra um papel, e o pick roda assim mesmo: a ordem do rng não depende do padrão.
+  const colors = COLOR_ROLES.filter((role) => role !== pattern.base && (pattern.id === "solid" || role !== pattern.overlay));
+  const layers: KitLayer[] = [];
+  for (let index = 0; index < count; index++) {
+    const candidates = layerCandidates(identity, [pattern.id, ...layers.map((layer) => layer.id)]);
+    // Tradições ou regiões ocupadas podem esgotar os candidatos: a camada sai do kit, sem erro.
+    if (!candidates.some(([, weight]) => weight > 0)) break;
+    const template = rng.weighted(candidates);
+    layers.push({ id: template.id, color: rng.pick(colors), params: randomParams(template, rng) });
+  }
+  return layers;
 }
 
 function randomParams(template: PatternTemplate, rng: Rng): Record<string, number> {
