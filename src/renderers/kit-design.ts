@@ -7,8 +7,17 @@ import type { PatternTemplate } from "../patterns/types.js";
 export type KitFill =
   { kind: "solid"; color: string } | { kind: "pattern"; base: string; overlay: string; template: PatternTemplate; params: Record<string, number> };
 
+// Camada de detalhe já resolvida: o renderer pinta só o overlay dela, na cor da camada.
+export interface KitLayerFill {
+  template: PatternTemplate;
+  color: string;
+  params: Record<string, number>;
+}
+
 export interface KitDesign {
   body: KitFill;
+  // Separadas de body: a manga match-body reusa body e fica sem as camadas.
+  bodyLayers: KitLayerFill[];
   sleeves: KitFill;
   cuffs: string;
   collar: string;
@@ -26,8 +35,13 @@ export function kitDesign(kit: KitDefinition): KitDesign {
     template,
     params: resolveParams(template, kit.pattern.params),
   };
+  const bodyLayers = (kit.layers ?? []).map((layer): KitLayerFill => {
+    const layerTemplate = getPatternTemplate(layer.id);
+    return { template: layerTemplate, color: color(layer.color), params: resolveParams(layerTemplate, layer.params) };
+  });
   return {
     body,
+    bodyLayers,
     sleeves: kit.sleeves.style === "match-body" ? body : { kind: "solid", color: color(kit.sleeves.color) },
     cuffs: color(kit.sleeves.cuffColor),
     collar: color(kit.collar.color),
@@ -36,8 +50,10 @@ export function kitDesign(kit: KitDefinition): KitDesign {
   };
 }
 
-export function fillSvg(fill: KitFill, width: number, height: number): string {
-  if (fill.kind === "solid") return `<rect width="${width}" height="${height}" fill="${fill.color}"/>`;
+export function fillSvg(fill: KitFill, width: number, height: number, layers: readonly KitLayerFill[] = []): string {
+  // O render da camada desenha só os elementos do overlay; sem outro <rect> de base, o padrão principal continua visível embaixo.
+  const details = layers.map(({ template, color, params }) => template.render({ width, height, base: color, overlay: color, params })).join("");
+  if (fill.kind === "solid") return `<rect width="${width}" height="${height}" fill="${fill.color}"/>${details}`;
   const pattern = fill.template.render({ width, height, base: fill.base, overlay: fill.overlay, params: fill.params });
-  return `<rect width="${width}" height="${height}" fill="${fill.base}"/>${pattern}`;
+  return `<rect width="${width}" height="${height}" fill="${fill.base}"/>${pattern}${details}`;
 }

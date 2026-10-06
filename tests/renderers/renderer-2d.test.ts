@@ -59,6 +59,10 @@ describe("renderKit2dSvg", () => {
     expect(renderKit2dSvg(makeKit())).toBe(renderKit2dSvg(makeKit()));
   });
 
+  it("renders an empty layer list exactly as a kit without layers", () => {
+    expect(renderKit2dSvg(makeKit({ layers: [] }))).toBe(renderKit2dSvg(makeKit()));
+  });
+
   it("uses the default 414 size", () => {
     expect(renderKit2dSvg(makeKit())).toContain('width="414" height="414"');
   });
@@ -166,6 +170,20 @@ describe("renderKit2dPng", () => {
     const setIn = await renderKit2dPng(makeKit({ sleeves: { style: "solid", cut: "set-in", color: "accent", cuffColor: "secondary" } }));
     expect(await pixelAt(raglan, 270, 66)).toEqual(ACCENT);
     expect(await pixelAt(setIn, 270, 66)).toEqual(PRIMARY);
+  });
+
+  // width 0.03: painel esquerdo em x 112–124,4.
+  it("paints a layer in its color over the body", async () => {
+    const png = await renderKit2dPng(makeKit({ layers: [{ id: "side-lines", color: "accent", params: { width: 0.03 } }] }));
+    expect(await pixelAt(png, 118, 250)).toEqual(ACCENT);
+    expect(await pixelAt(png, 130, 250)).toEqual(PRIMARY);
+  });
+
+  // A linha do ombro (y 78,7–87) cruza o canvas inteiro; (100, 82) fica na manga esquerda, a 4 px da borda dela.
+  it("keeps the layers off match-body sleeves", async () => {
+    const png = await renderKit2dPng(makeKit({ layers: [{ id: "shoulder-line", color: "accent", params: { position: 0.2, thickness: 0.02 } }] }));
+    expect(await pixelAt(png, 207, 82)).toEqual(ACCENT);
+    expect(await pixelAt(png, 100, 82)).toEqual(PRIMARY);
   });
 
   // A cor base precisa dominar a camisa; senão o Away (base secondary) pode parecer o Home e o kit-clash não percebe.

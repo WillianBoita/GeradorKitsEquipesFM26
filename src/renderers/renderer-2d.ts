@@ -47,7 +47,7 @@ export function renderKit2dSvg(kit: KitDefinition, options: Render2dOptions = {}
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${view} ${view}">`,
     `<defs><clipPath id="body"><path d="${bodyPath(kit.collar.style, cut)}"/></clipPath><clipPath id="sleeves"><path d="${sleevesShape}"/></clipPath></defs>`,
-    `<g clip-path="url(#body)">${fillSvg(design.body, view, view)}</g>`,
+    `<g clip-path="url(#body)">${fillSvg(design.body, view, view, design.bodyLayers)}</g>`,
     sleeves,
     // Sem a costura, a raglan com manga match-body sairia igual à set-in.
     cut === "raglan" ? `<path d="${RAGLAN_SEAMS_PATH}" fill="none" ${OUTLINE_STROKE}/>` : "",
