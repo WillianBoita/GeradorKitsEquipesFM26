@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { listPatternTemplates } from "../../src/patterns/registry.js";
-import { DEFAULT_STYLE_PROFILE, findStyleProfile, getStyleProfile, knownStyleIds, STYLE_PROFILES } from "../../src/styles/profiles.js";
+import { MAX_LAYERS } from "../../src/core/kit.js";
+import { listLayerTemplates, listPatternTemplates } from "../../src/patterns/registry.js";
+import { DEFAULT_STYLE_PROFILE, findStyleProfile, getStyleProfile, knownStyleIds, LAYER_COUNTS, STYLE_PROFILES } from "../../src/styles/profiles.js";
 
 const patternIds = listPatternTemplates().map((template) => template.id);
+const layerIds = listLayerTemplates().map((template) => template.id);
 
 describe("STYLE_PROFILES", () => {
   it("lists classic, traditional, modern and retro", () => {
@@ -42,12 +44,34 @@ describe("STYLE_PROFILES", () => {
 
   it("gives every profile a positive weight in each component table", () => {
     for (const profile of STYLE_PROFILES) {
-      for (const table of [profile.collarWeights, profile.sleeveStyleWeights, profile.sleeveCutWeights]) {
+      for (const table of [profile.collarWeights, profile.sleeveStyleWeights, profile.sleeveCutWeights, profile.layerCountWeights]) {
         const weights = Object.values(table);
         expect(weights.length).toBeGreaterThan(0);
         for (const weight of weights) expect(weight).toBeGreaterThan(0);
       }
     }
+  });
+
+  it("references only layer patterns in layerWeights, with positive weights, and reaches every one of them", () => {
+    for (const profile of STYLE_PROFILES) {
+      for (const [id, weight] of Object.entries(profile.layerWeights)) {
+        expect(layerIds).toContain(id);
+        expect(weight).toBeGreaterThan(0);
+      }
+    }
+    const reached = new Set(STYLE_PROFILES.flatMap((profile) => Object.keys(profile.layerWeights)));
+    expect([...reached].sort()).toEqual([...layerIds].sort());
+  });
+
+  // Sem camadas, as seeds de clubes sem estilo geram os mesmos kits (guarda Phase 3b baseline).
+  it("keeps classic without layers", () => {
+    expect(getStyleProfile("classic").layerCountWeights).toEqual({ 0: 1 });
+    expect(getStyleProfile("classic").layerWeights).toEqual({});
+  });
+
+  it("gives every other profile a chance of one layer, and never more than MAX_LAYERS", () => {
+    expect(LAYER_COUNTS).toHaveLength(MAX_LAYERS + 1);
+    for (const profile of STYLE_PROFILES.filter((candidate) => candidate.id !== "classic")) expect(profile.layerCountWeights["1"]).toBeGreaterThan(0);
   });
 });
 

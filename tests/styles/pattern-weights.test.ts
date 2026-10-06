@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseClubIdentity } from "../../src/core/club.js";
-import { listPatternTemplates } from "../../src/patterns/registry.js";
-import { patternCandidates, resolvePatternWeights } from "../../src/styles/pattern-weights.js";
+import { listLayerTemplates, listPatternTemplates } from "../../src/patterns/registry.js";
+import { layerCandidates, patternCandidates, resolvePatternWeights } from "../../src/styles/pattern-weights.js";
 import { GALATICOS_CLUB } from "../fixtures/clubs.js";
 
 const club = (style: object) => parseClubIdentity({ ...GALATICOS_CLUB, style });
@@ -74,5 +74,50 @@ describe("patternCandidates", () => {
       ["hoops", 1],
       ["halves", 0],
     ]);
+  });
+});
+
+describe("layerCandidates", () => {
+  const styled = (categories: string[], traditions?: object) =>
+    parseClubIdentity({ ...GALATICOS_CLUB, style: { categories }, ...(traditions === undefined ? {} : { traditions }) });
+  const positive = (candidates: ReturnType<typeof layerCandidates>) =>
+    candidates.filter(([, weight]) => weight > 0).map(([template, weight]) => [template.id, weight]);
+
+  it("lists only the layer patterns, in registry order", () => {
+    expect(layerCandidates(styled(["modern"]), []).map(([template]) => template.id)).toEqual(listLayerTemplates().map((template) => template.id));
+  });
+
+  it("offers no layer when the club has no categories", () => {
+    expect(positive(layerCandidates(styled([]), []))).toEqual([]);
+  });
+
+  it("uses the normalized layer weights of the profiles", () => {
+    expect(positive(layerCandidates(styled(["traditional"]), ["solid"]))).toEqual([
+      ["side-lines", 0.25],
+      ["double-pinline", 0.3],
+      ["shoulder-line", 0.25],
+      ["hoop-line", 0.2],
+    ]);
+  });
+
+  it("averages classic with another profile without NaN", () => {
+    const weights = layerCandidates(styled(["classic", "modern"]), []).map(([, weight]) => weight);
+    for (const weight of weights) expect(Number.isFinite(weight)).toBe(true);
+    expect(positive(layerCandidates(styled(["classic", "modern"]), []))).toContainEqual(["torso-circle", 0.1]);
+  });
+
+  it("zeroes forbidden patterns and every layer in a slot that the pattern or a drawn layer takes", () => {
+    const club = styled(["retro"], { forbiddenPatterns: ["shoulder-line"] });
+    expect(positive(layerCandidates(club, ["solid"]))).toEqual([
+      ["side-lines", 0.25],
+      ["double-pinline", 0.25],
+      ["hoop-line", 0.3],
+      ["torso-cross", 0.1],
+    ]);
+    expect(positive(layerCandidates(club, ["solid", "torso-cross"]))).toEqual([
+      ["side-lines", 0.25],
+      ["double-pinline", 0.25],
+    ]);
+    expect(positive(layerCandidates(club, ["side-lines", "hoop-line"]))).toEqual([]);
   });
 });

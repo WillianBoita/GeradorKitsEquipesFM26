@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseClubIdentity } from "../../src/core/club.js";
 import { COLLAR_STYLES } from "../../src/core/kit.js";
-import { collarCandidates, sleeveCutCandidates, sleeveStyleCandidates } from "../../src/styles/component-weights.js";
+import { collarCandidates, layerCountCandidates, sleeveCutCandidates, sleeveStyleCandidates } from "../../src/styles/component-weights.js";
 import { GALATICOS_CLUB } from "../fixtures/clubs.js";
 
 const club = (categories: string[]) => parseClubIdentity({ ...GALATICOS_CLUB, style: { categories } });
@@ -53,5 +53,30 @@ describe("sleeveCutCandidates", () => {
     const [[, setIn], [, raglan]] = sleeveCutCandidates(club(["modern"]));
     expect(setIn).toBeCloseTo(0.5);
     expect(raglan).toBeCloseTo(0.5);
+  });
+});
+
+describe("layerCountCandidates", () => {
+  it("never draws a layer when the club has no categories", () => {
+    expect(layerCountCandidates(club([]))).toEqual([
+      ["0", 1],
+      ["1", 0],
+      ["2", 0],
+    ]);
+  });
+
+  it("draws up to two layers in the modern profile", () => {
+    const [[, none], [, one], [, two]] = layerCountCandidates(club(["modern"]));
+    expect(none).toBeCloseTo(0.3);
+    expect(one).toBeCloseTo(0.5);
+    expect(two).toBeCloseTo(0.2);
+  });
+
+  // A tabela de classic entra na média como as outras; a de layerWeights, vazia, não gera NaN.
+  it("mixes classic with another profile", () => {
+    const [[, none], [, one], [, two]] = layerCountCandidates(club(["classic", "modern"]));
+    expect(none).toBeCloseTo(0.65);
+    expect(one).toBeCloseTo(0.25);
+    expect(two).toBeCloseTo(0.1);
   });
 });

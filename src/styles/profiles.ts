@@ -1,5 +1,9 @@
 import type { CollarStyle, SleeveCut, SleeveStyle } from "../core/kit.js";
 
+// Quantidade de camadas por kit, de 0 a MAX_LAYERS (core/kit.ts); string porque vira chave de tabela de peso.
+export const LAYER_COUNTS = ["0", "1", "2"] as const;
+export type LayerCount = (typeof LAYER_COUNTS)[number];
+
 export interface StyleProfile {
   id: string;
   name: string;
@@ -7,12 +11,15 @@ export interface StyleProfile {
   collarWeights: Weights<CollarStyle>;
   sleeveStyleWeights: Weights<SleeveStyle>;
   sleeveCutWeights: Weights<SleeveCut>;
+  layerCountWeights: Weights<LayerCount>;
+  // Só padrões com layerSlot; o sorteio zera os da região que o kit já ocupa.
+  layerWeights: Record<string, number>;
 }
 
 export type Weights<K extends string> = Partial<Record<K, number>>;
 
 // Clube sem categories nem patternWeights usa classic: são os pesos de antes dos perfis, então as seeds antigas geram os mesmos kits.
-// Em gola e manga, pesos iguais com rng.weighted escolhem o mesmo índice que o rng.pick de antes dos perfis.
+// Em gola e manga, pesos iguais com rng.weighted escolhem o mesmo índice que o rng.pick de antes dos perfis; classic nunca sorteia camada.
 export const DEFAULT_STYLE_PROFILE = "classic";
 
 export const STYLE_PROFILES: readonly StyleProfile[] = [
@@ -23,6 +30,8 @@ export const STYLE_PROFILES: readonly StyleProfile[] = [
     collarWeights: { round: 1, "v-neck": 1 },
     sleeveStyleWeights: { "match-body": 1, solid: 1 },
     sleeveCutWeights: { "set-in": 1 },
+    layerCountWeights: { 0: 1 },
+    layerWeights: {},
   },
   {
     id: "traditional",
@@ -31,6 +40,8 @@ export const STYLE_PROFILES: readonly StyleProfile[] = [
     collarWeights: { round: 35, "v-neck": 25, polo: 25, "polo-v": 15 },
     sleeveStyleWeights: { "match-body": 75, solid: 25 },
     sleeveCutWeights: { "set-in": 90, raglan: 10 },
+    layerCountWeights: { 0: 70, 1: 30 },
+    layerWeights: { "double-pinline": 30, "side-lines": 25, "shoulder-line": 25, "hoop-line": 20 },
   },
   {
     id: "modern",
@@ -39,6 +50,8 @@ export const STYLE_PROFILES: readonly StyleProfile[] = [
     collarWeights: { round: 40, "v-neck": 40, "polo-v": 20 },
     sleeveStyleWeights: { "match-body": 80, solid: 20 },
     sleeveCutWeights: { "set-in": 50, raglan: 50 },
+    layerCountWeights: { 0: 30, 1: 50, 2: 20 },
+    layerWeights: { "torso-circle": 20, "torso-diamond": 20, "torso-triangle": 20, "torso-cross": 15, "side-lines": 15, "shoulder-line": 10 },
   },
   {
     id: "retro",
@@ -47,6 +60,8 @@ export const STYLE_PROFILES: readonly StyleProfile[] = [
     collarWeights: { round: 15, "v-neck": 15, polo: 35, "polo-v": 35 },
     sleeveStyleWeights: { "match-body": 70, solid: 30 },
     sleeveCutWeights: { "set-in": 80, raglan: 20 },
+    layerCountWeights: { 0: 40, 1: 45, 2: 15 },
+    layerWeights: { "hoop-line": 30, "double-pinline": 25, "side-lines": 25, "shoulder-line": 10, "torso-cross": 10 },
   },
 ];
 
