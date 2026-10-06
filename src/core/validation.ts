@@ -1,11 +1,22 @@
 import { findAsset, knownAssetIds, type AssetRegistry } from "../assets/registry.js";
-import { listPatternTemplates } from "../patterns/registry.js";
+import { listLayerTemplates, listPatternTemplates } from "../patterns/registry.js";
 import { patternCandidates } from "../styles/pattern-weights.js";
 import { findStyleProfile, knownStyleIds } from "../styles/profiles.js";
 import type { ClubIdentity } from "./club.js";
 import { colorDistance, contrastRatio } from "./color.js";
-import { BRAND_KINDS, BRAND_LISTS, COLOR_ROLES, KIT_TYPES, resolveLogoColor, visibleRoles, type ColorRole, type KitDefinition, type KitType } from "./kit.js";
-import { backgroundRoles, MIN_LOGO_CONTRAST } from "./logo-colors.js";
+import {
+  BRAND_KINDS,
+  BRAND_LISTS,
+  COLOR_ROLES,
+  KIT_TYPES,
+  resolveLogoColor,
+  visibleRoles,
+  type ColorRole,
+  type KitDefinition,
+  type KitType,
+  type LogoSlot,
+} from "./kit.js";
+import { backgroundRoles, MIN_LOGO_CONTRAST, overlayShare } from "./logo-colors.js";
 import type { Palette } from "./palette.js";
 
 export interface ValidationIssue {
@@ -15,6 +26,7 @@ export interface ValidationIssue {
 
 // ΔE OKLab abaixo disto parece a mesma cor em campo (branco × #f0f0f0 = 0.045, ouro × laranja = 0.121, vermelho × laranja = 0.155).
 export const MIN_COLOR_DISTANCE = 0.15;
+const LOGO_SLOTS: readonly LogoSlot[] = ["badge", ...BRAND_KINDS];
 
 function pairs<T>(items: readonly T[]): [T, T][] {
   return items.flatMap((first, index) => items.slice(index + 1).map((second): [T, T] => [first, second]));
@@ -135,6 +147,29 @@ function logoContrastIssues(kit: KitDefinition): ValidationIssue[] {
   });
 }
 
+function layerIssues(kit: KitDefinition): ValidationIssue[] {
+  const layerIds = listLayerTemplates().map((template) => template.id);
+  const templates = new Map(listPatternTemplates().map((template) => [template.id, template]));
+  // O solid não pinta o overlay no corpo, então a camada pode usar a cor dele.
+  const painted = kit.pattern.id === "solid" ? [kit.pattern.base] : [kit.pattern.base, kit.pattern.overlay];
+  const used = new Set([kit.pattern.id]);
+  const issues: ValidationIssue[] = [];
+  for (const layer of kit.layers ?? []) {
+    const label = `${kit.kitType} kit layer "${layer.id}"`;
+    if (!layerIds.includes(layer.id)) issues.push({ rule: "unknown-layer", message: `${label} is not a layer pattern (known: ${layerIds.join(", ")})` });
+    if (used.has(layer.id)) issues.push({ rule: "layer-duplicate", message: `${label} repeats the pattern or another layer` });
+    used.add(layer.id);
+    if (painted.includes(layer.color)) issues.push({ rule: "layer-color", message: `${label} uses ${layer.color}, which the pattern already paints` });
+    const template = templates.get(layer.id);
+    // Fora do registry não há colorAt para medir; unknown-layer já explica o problema.
+    if (!template) continue;
+    for (const slot of LOGO_SLOTS) {
+      if (overlayShare(template, layer.params, slot) > 0) issues.push({ rule: "layer-logo-overlap", message: `${label} paints over the ${slot} box` });
+    }
+  }
+  return issues;
+}
+
 export function validateKit(kit: KitDefinition): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const known = knownPatternIds();
@@ -154,7 +189,7 @@ export function validateKit(kit: KitDefinition): ValidationIssue[] {
   }
   // Sem colorAt não há como medir o fundo; unknown-pattern já explica o problema.
   if (patternKnown) issues.push(...logoContrastIssues(kit));
-  return issues;
+  return [...issues, ...layerIssues(kit)];
 }
 
 export function validateKitAssets(kit: KitDefinition, registry: AssetRegistry): ValidationIssue[] {
@@ -174,6 +209,11 @@ export function validateKitTraditions(identity: ClubIdentity, kit: KitDefinition
   if (traditions.forbiddenPatterns?.includes(pattern)) {
     issues.push({ rule: "forbidden-pattern", message: `${kit.kitType} kit uses pattern "${pattern}", which traditions.forbiddenPatterns forbids` });
   }
+  for (const layer of kit.layers ?? []) {
+    if (traditions.forbiddenPatterns?.includes(layer.id)) {
+      issues.push({ rule: "forbidden-pattern", message: `${kit.kitType} kit uses layer "${layer.id}", which traditions.forbiddenPatterns forbids` });
+    }
+  }
   const allowed = traditions.patterns?.[kit.kitType];
   if (allowed && !allowed.includes(pattern)) {
     issues.push({
@@ -185,7 +225,7 @@ export function validateKitTraditions(identity: ClubIdentity, kit: KitDefinition
   if (required !== undefined && !visibleRoles(kit).includes(required)) {
     issues.push({
       rule: "required-color",
-      message: `${kit.kitType} kit does not show ${required} ${kit.colors[required]} (traditions.requiredColor) on the pattern, sleeves, collar or cuffs`,
+      message: `${kit.kitType} kit does not show ${required} ${kit.colors[required]} (traditions.requiredColor) on the pattern, layers, sleeves, collar or cuffs`,
     });
   }
   return issues;

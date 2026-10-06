@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { contrastRatio } from "../../src/core/color.js";
 import { isColorRole } from "../../src/core/kit.js";
-import { backgroundRoles, chooseLogoColors, MIN_LOGO_CONTRAST, type LogoColors } from "../../src/core/logo-colors.js";
+import { backgroundRoles, chooseLogoColors, MIN_LOGO_CONTRAST, overlayShare, type LogoColors } from "../../src/core/logo-colors.js";
 import { createRng } from "../../src/core/random.js";
 import { getPatternTemplate } from "../../src/patterns/registry.js";
 import { makeKit } from "../fixtures/kits.js";
@@ -31,6 +31,15 @@ describe("backgroundRoles", () => {
     expect(getPatternTemplate("stripes").colorAt(149.625, 120, { width: 414, height: 414, params })).toBe("overlay");
     const kit = makeKit({ pattern: { id: "stripes", base: "primary", overlay: "secondary", params } });
     expect(backgroundRoles(kit, "manufacturer")).toEqual(["primary"]);
+  });
+});
+
+describe("overlayShare", () => {
+  it("measures the part of a logo box that the overlay paints", () => {
+    expect(overlayShare(getPatternTemplate("solid"), {}, "sponsor")).toBe(0);
+    // Faixa em y 155,3–217,4: cobre 18 das 24 linhas da grade do patrocinador (y 182–228) e nada do escudo (y 102–138).
+    expect(overlayShare(getPatternTemplate("chest-band"), { position: 0.45, width: 0.15 }, "sponsor")).toBe(0.75);
+    expect(overlayShare(getPatternTemplate("chest-band"), { position: 0.45, width: 0.15 }, "badge")).toBe(0);
   });
 });
 

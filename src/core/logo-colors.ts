@@ -1,5 +1,6 @@
 import { resolveParams } from "../patterns/params.js";
 import { getPatternTemplate } from "../patterns/registry.js";
+import type { PatternTemplate } from "../patterns/types.js";
 import { LOGO_BOXES, SHIRT_2D_VIEWBOX } from "../renderers/shirt-2d-shape.js";
 import { contrastRatio } from "./color.js";
 import { COLOR_ROLES, type ColorRole, type KitDefinition, type LogoColor, type LogoSlot } from "./kit.js";
@@ -23,10 +24,9 @@ interface Candidate {
   fromPalette: boolean;
 }
 
-// Mede no layout 2D, o mesmo que o renderer usa para posicionar os logos.
-export function backgroundRoles(kit: KitDefinition, slot: LogoSlot): ColorRole[] {
-  const template = getPatternTemplate(kit.pattern.id);
-  const geometry = { width: SHIRT_2D_VIEWBOX, height: SHIRT_2D_VIEWBOX, params: resolveParams(template, kit.pattern.params) };
+// Fração da caixa do logo que o padrão pinta com o overlay, numa grade GRID×GRID no layout 2D.
+export function overlayShare(template: PatternTemplate, params: Record<string, number>, slot: LogoSlot): number {
+  const geometry = { width: SHIRT_2D_VIEWBOX, height: SHIRT_2D_VIEWBOX, params: resolveParams(template, params) };
   const box = LOGO_BOXES[slot];
   let overlay = 0;
   for (let row = 0; row < GRID; row++) {
@@ -36,10 +36,15 @@ export function backgroundRoles(kit: KitDefinition, slot: LogoSlot): ColorRole[]
       if (template.colorAt(x, y, geometry) === "overlay") overlay++;
     }
   }
-  const overlayShare = overlay / (GRID * GRID);
+  return overlay / (GRID * GRID);
+}
+
+// Mede no layout 2D, o mesmo que o renderer usa para posicionar os logos. Só o padrão principal conta: as camadas nunca entram nas caixas (layer-logo-overlap).
+export function backgroundRoles(kit: KitDefinition, slot: LogoSlot): ColorRole[] {
+  const overlay = overlayShare(getPatternTemplate(kit.pattern.id), kit.pattern.params, slot);
   const shares: [ColorRole, number][] = [
-    [kit.pattern.base, 1 - overlayShare],
-    [kit.pattern.overlay, overlayShare],
+    [kit.pattern.base, 1 - overlay],
+    [kit.pattern.overlay, overlay],
   ];
   const roles = shares
     .filter(([, share]) => share >= MIN_BACKGROUND_SHARE)

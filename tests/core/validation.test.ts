@@ -13,12 +13,15 @@ import {
   validateKitTraditions,
   validatePalette,
 } from "../../src/core/validation.js";
-import { listPatternTemplates } from "../../src/patterns/registry.js";
+import { listLayerTemplates, listPatternTemplates } from "../../src/patterns/registry.js";
 import { GALATICOS_CLUB } from "../fixtures/clubs.js";
 import { makeKit } from "../fixtures/kits.js";
 
 const PALETTE = { primary: "#123456", secondary: "#ffffff", accent: "#ffd700" };
 const KNOWN_PATTERNS = listPatternTemplates()
+  .map((template) => template.id)
+  .join(", ");
+const LAYER_PATTERNS = listLayerTemplates()
   .map((template) => template.id)
   .join(", ");
 
@@ -198,6 +201,48 @@ describe("validateKit logo-contrast", () => {
   });
 });
 
+describe("validateKit layers", () => {
+  const stripes = { id: "stripes", base: "primary" as const, overlay: "secondary" as const, params: {} };
+  const layer = (id: string, color: "primary" | "secondary" | "accent" = "accent", params: Record<string, number> = {}) => ({ id, color, params });
+
+  it("accepts layers in the color the pattern does not paint", () => {
+    expect(validateKit(makeKit({ pattern: stripes, layers: [layer("side-lines"), layer("torso-circle")] }))).toEqual([]);
+  });
+
+  it("lets a layer on a solid kit use the overlay role, which solid does not paint", () => {
+    expect(validateKit(makeKit({ layers: [layer("side-lines", "secondary")] }))).toEqual([]);
+  });
+
+  it("reports layers outside the registry", () => {
+    expect(validateKit(makeKit({ layers: [layer("zigzag")] }))).toEqual([
+      { rule: "unknown-layer", message: `home kit layer "zigzag" is not a layer pattern (known: ${LAYER_PATTERNS})` },
+    ]);
+  });
+
+  it("measures a registered pattern that is not a layer and reports the logos it paints over", () => {
+    expect(validateKit(makeKit({ layers: [layer("chest-band", "accent", { position: 0.45, width: 0.15 })] }))).toEqual([
+      { rule: "unknown-layer", message: `home kit layer "chest-band" is not a layer pattern (known: ${LAYER_PATTERNS})` },
+      { rule: "layer-logo-overlap", message: 'home kit layer "chest-band" paints over the sponsor box' },
+    ]);
+  });
+
+  it("reports a layer that repeats the pattern or another layer", () => {
+    expect(validateKit(makeKit({ pattern: { ...stripes, id: "side-lines" }, layers: [layer("side-lines")] }))).toEqual([
+      { rule: "layer-duplicate", message: 'home kit layer "side-lines" repeats the pattern or another layer' },
+    ]);
+    expect(validateKit(makeKit({ pattern: stripes, layers: [layer("torso-circle"), layer("torso-circle")] }))).toEqual([
+      { rule: "layer-duplicate", message: 'home kit layer "torso-circle" repeats the pattern or another layer' },
+    ]);
+  });
+
+  it("reports a layer in a color the pattern already paints", () => {
+    expect(validateKit(makeKit({ pattern: stripes, layers: [layer("side-lines", "secondary"), layer("torso-circle", "primary")] }))).toEqual([
+      { rule: "layer-color", message: 'home kit layer "side-lines" uses secondary, which the pattern already paints' },
+      { rule: "layer-color", message: 'home kit layer "torso-circle" uses primary, which the pattern already paints' },
+    ]);
+  });
+});
+
 describe("validateKitAssets", () => {
   it("accepts kits without logos or with registered ids", () => {
     expect(validateKitAssets(makeKit(), REGISTRY)).toEqual([]);
@@ -308,8 +353,30 @@ describe("validateKitTraditions", () => {
     const required = club({ traditions: { requiredColor: "accent" } });
     const hidden = makeKit({ collar: { style: "round", color: "secondary" }, sleeves: { style: "match-body", color: "secondary", cuffColor: "secondary" } });
     expect(validateKitTraditions(required, hidden)).toEqual([
-      { rule: "required-color", message: "home kit does not show accent #ffd700 (traditions.requiredColor) on the pattern, sleeves, collar or cuffs" },
+      { rule: "required-color", message: "home kit does not show accent #ffd700 (traditions.requiredColor) on the pattern, layers, sleeves, collar or cuffs" },
     ]);
     expect(validateKitTraditions(required, makeKit())).toEqual([]);
+  });
+
+  it("reports a forbidden layer", () => {
+    const forbidding = club({ traditions: { forbiddenPatterns: ["side-lines"] } });
+    const kit = makeKit({ kitType: "away", layers: [{ id: "side-lines", color: "accent", params: {} }] });
+    expect(validateKitTraditions(forbidding, kit)).toEqual([
+      { rule: "forbidden-pattern", message: 'away kit uses layer "side-lines", which traditions.forbiddenPatterns forbids' },
+    ]);
+  });
+
+  it("applies the list of the kit type only to the main pattern", () => {
+    expect(validateKitTraditions(traditions, { ...kitWith("home", "stripes"), layers: [{ id: "torso-circle", color: "accent", params: {} }] })).toEqual([]);
+  });
+
+  it("counts a layer in the required color as shown", () => {
+    const required = club({ traditions: { requiredColor: "accent" } });
+    const hidden = makeKit({
+      collar: { style: "round", color: "secondary" },
+      sleeves: { style: "match-body", color: "secondary", cuffColor: "secondary" },
+      layers: [{ id: "side-lines", color: "accent", params: {} }],
+    });
+    expect(validateKitTraditions(required, hidden)).toEqual([]);
   });
 });
