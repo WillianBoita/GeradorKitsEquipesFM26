@@ -4,8 +4,6 @@ import { chestBandPattern } from "./chest-band.js";
 import { chevronPattern } from "./chevron.js";
 import { diagonalPattern } from "./diagonal.js";
 import { doublePinlinePattern } from "./double-pinline.js";
-import { gradientDiagonalPattern } from "./gradient-diagonal.js";
-import { gradientRadialPattern } from "./gradient-radial.js";
 import { gradientPattern } from "./gradient.js";
 import { halvesPattern } from "./halves.js";
 import { hoopLinePattern, shoulderLinePattern } from "./horizontal-lines.js";
@@ -15,7 +13,6 @@ import { sashPattern } from "./sash.js";
 import { sideLinesPattern } from "./side-lines.js";
 import { solidPattern } from "./solid.js";
 import { stripesPattern } from "./stripes.js";
-import { torsoCirclePattern, torsoCrossPattern, torsoDiamondPattern, torsoTrianglePattern } from "./torso-shapes.js";
 import type { PatternTemplate } from "./types.js";
 
 // Padrão novo entra no fim: a ordem participa do sorteio ponderado e reordenar muda os kits de uma seed.
@@ -36,12 +33,6 @@ const TEMPLATES: readonly PatternTemplate[] = [
   doublePinlinePattern,
   shoulderLinePattern,
   hoopLinePattern,
-  torsoCirclePattern,
-  torsoDiamondPattern,
-  torsoTrianglePattern,
-  torsoCrossPattern,
-  gradientDiagonalPattern,
-  gradientRadialPattern,
 ];
 
 export function listPatternTemplates(): readonly PatternTemplate[] {

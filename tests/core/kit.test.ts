@@ -21,7 +21,7 @@ describe("parseKitDefinition", () => {
   it("accepts up to MAX_LAYERS layers and keeps them through a JSON round trip", () => {
     const layers: KitLayer[] = [
       { id: "side-lines", color: "accent", params: { width: 0.02 } },
-      { id: "torso-circle", color: "accent", params: {} },
+      { id: "shoulder-line", color: "accent", params: {} },
     ];
     expect(layers).toHaveLength(MAX_LAYERS);
     const kit = makeKit({ layers });

@@ -23,19 +23,7 @@ function withPalette(palette: ClubIdentity["palette"]): ClubIdentity {
 }
 
 describe("generateKitSet", () => {
-  const NEW_PATTERN_IDS = [
-    "pinstripes",
-    "hoops",
-    "diagonal",
-    "chevron",
-    "chest-band",
-    "center-band",
-    "checkers",
-    "halves",
-    "gradient",
-    "gradient-diagonal",
-    "gradient-radial",
-  ];
+  const NEW_PATTERN_IDS = ["pinstripes", "hoops", "diagonal", "chevron", "chest-band", "center-band", "checkers", "halves", "gradient"];
 
   it.each(NEW_PATTERN_IDS)("generates valid %s kits with params inside the template ranges", (id) => {
     const template = getPatternTemplate(id);
@@ -155,7 +143,7 @@ describe("generateKitSet", () => {
   it("draws from the profiles listed in categories", () => {
     const club = parseClubIdentity({ ...GALATICOS_CLUB, style: { categories: ["retro"] } });
     const ids = new Set(Array.from({ length: 300 }, (_, seed) => generateKitSet(club, seed).home.pattern.id));
-    expect(ids).toEqual(new Set(["hoops", "chest-band", "center-band", "chevron", "stripes", "solid", "gradient-diagonal"]));
+    expect(ids).toEqual(new Set(["hoops", "chest-band", "center-band", "chevron", "stripes", "solid"]));
   });
 
   it("draws plain sleeves less often for a modern club than for a classic one", () => {
@@ -327,7 +315,7 @@ function setsDigest(club: ClubIdentity, badge: boolean): string {
 // O branded (categoria modern) muda de propósito quando os pesos de gola, manga (Fase 4a) ou camada (Fase 4b) dos perfis mudam; atualize o hash só nessas mudanças.
 describe("generateKitSet Phase 3b baseline", () => {
   it("keeps the sets of a club with pattern weights and brands", () => {
-    expect(setsDigest(branded, true)).toBe("fff1d7a729cd1289073a8b4f327199971fb69df3830de2729eebcaaffd1d11df");
+    expect(setsDigest(branded, true)).toBe("6bb62a38bb1b4b32ce215d794e119ab307123a88a03290b9611cadabdd7c1191");
   });
 
   it("keeps the sets of a club without categories or pattern weights", () => {

@@ -139,15 +139,9 @@ const ALL_PATTERN_IDS = [
   "double-pinline",
   "shoulder-line",
   "hoop-line",
-  "torso-circle",
-  "torso-diamond",
-  "torso-triangle",
-  "torso-cross",
-  "gradient-diagonal",
-  "gradient-radial",
 ];
 
-const LAYER_PATTERN_IDS = ["side-lines", "double-pinline", "shoulder-line", "hoop-line", "torso-circle", "torso-diamond", "torso-triangle", "torso-cross"];
+const LAYER_PATTERN_IDS = ["side-lines", "double-pinline", "shoulder-line", "hoop-line"];
 
 describe("registry", () => {
   it("lists the layer patterns in registry order", () => {
@@ -261,26 +255,6 @@ describe("new patterns colorAt", () => {
     expect(at("gradient", params, 207, 370)).toBe("overlay");
     expect(at("gradient", params, 207, 400)).toBe("overlay");
   });
-
-  // start 0.68: o degradê vai do valor 281,5 ao 380,9, onde o valor é y + 0,5·(x − 207) na direção 0 e y − 0,5·(x − 207) na direção 1.
-  it("fades the diagonal gradient along the chosen direction", () => {
-    expect(at("gradient-diagonal", { start: 0.68, direction: 0 }, 207, 200)).toBe("base");
-    expect(at("gradient-diagonal", { start: 0.68, direction: 0 }, 207, 400)).toBe("overlay");
-    expect(at("gradient-diagonal", { start: 0.68, direction: 0 }, 300, 330)).toBe("overlay");
-    expect(at("gradient-diagonal", { start: 0.68, direction: 0 }, 114, 330)).toBe("base");
-    expect(at("gradient-diagonal", { start: 0.68, direction: 1 }, 300, 330)).toBe("base");
-    expect(at("gradient-diagonal", { start: 0.68, direction: 1 }, 114, 330)).toBe("overlay");
-  });
-
-  // Defaults: centro (207, 393,3) e raio 115,9; o overlay passa de metade a menos de 58 px do centro.
-  it("fades the radial gradient from its center", () => {
-    const params = { cx: 0.5, cy: 0.95, radius: 0.28 };
-    expect(at("gradient-radial", params, 207, 380)).toBe("overlay");
-    expect(at("gradient-radial", params, 207, 300)).toBe("base");
-    expect(at("gradient-radial", params, 207, 250)).toBe("base");
-    expect(at("gradient-radial", params, 100, 380)).toBe("base");
-    expect(at("gradient-radial", { ...params, cx: 0.25 }, 110, 385)).toBe("overlay");
-  });
 });
 
 describe("new patterns render", () => {
@@ -309,14 +283,6 @@ describe("new patterns render", () => {
     expect(svg).not.toMatch(/<defs|\sid=/);
   });
 
-  // Bordas inclinadas ou curvas com antialias somam duas faixas no mesmo pixel; crispEdges mantém o colorAt fiel ao render.
-  it.each(["gradient-diagonal", "gradient-radial"])("draws %s with opacity bands, without antialias, defs or ids", (id) => {
-    const svg = renderWith(getPatternTemplate(id), {});
-    expect(svg).toContain('shape-rendering="crispEdges"');
-    expect(svg).toContain("fill-opacity");
-    expect(svg).not.toMatch(/<defs|\sid=/);
-  });
-
   // Guarda do refactor para fade.ts: passa antes e depois da Task 3.
   it("keeps the SVG of the vertical gradient", () => {
     const digest = createHash("sha256")
@@ -327,10 +293,6 @@ describe("new patterns render", () => {
 
   it("draws the layer patterns with the expected elements", () => {
     expect(renderWith(getPatternTemplate("double-pinline"), {}).match(/<rect /g)).toHaveLength(4);
-    expect(renderWith(getPatternTemplate("torso-circle"), {}).match(/<circle /g)).toHaveLength(1);
-    expect(renderWith(getPatternTemplate("torso-diamond"), {})).toContain('fill-rule="evenodd"');
-    expect(renderWith(getPatternTemplate("torso-triangle"), {})).toContain('fill-rule="evenodd"');
-    expect(renderWith(getPatternTemplate("torso-cross"), {}).match(/<rect /g)).toHaveLength(2);
   });
 });
 
@@ -362,23 +324,5 @@ describe("layer patterns colorAt", () => {
     expect(at("shoulder-line", {}, 207, 90)).toBe("base");
     expect(at("hoop-line", {}, 207, 298)).toBe("overlay");
     expect(at("hoop-line", {}, 207, 310)).toBe("base");
-  });
-
-  // Defaults: centro (207, 306,4), raio 49,7, contorno de 7,5 px.
-  it("outlines the torso shapes around their center", () => {
-    expect(at("torso-circle", {}, 253, 306)).toBe("overlay");
-    expect(at("torso-circle", {}, 237, 306)).toBe("base");
-    expect(at("torso-circle", {}, 207, 306)).toBe("base");
-    expect(at("torso-diamond", {}, 252, 306)).toBe("overlay");
-    expect(at("torso-diamond", {}, 267, 306)).toBe("base");
-    expect(at("torso-diamond", {}, 207, 306)).toBe("base");
-    expect(at("torso-triangle", {}, 207, 285)).toBe("overlay");
-    expect(at("torso-triangle", {}, 207, 346)).toBe("overlay");
-    expect(at("torso-triangle", {}, 207, 306)).toBe("base");
-    expect(at("torso-triangle", {}, 207, 366)).toBe("base");
-    expect(at("torso-cross", {}, 237, 306)).toBe("overlay");
-    expect(at("torso-cross", {}, 207, 266)).toBe("overlay");
-    expect(at("torso-cross", {}, 237, 316)).toBe("base");
-    expect(at("torso-cross", {}, 262, 306)).toBe("base");
   });
 });

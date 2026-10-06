@@ -206,7 +206,7 @@ describe("validateKit layers", () => {
   const layer = (id: string, color: "primary" | "secondary" | "accent" = "accent", params: Record<string, number> = {}) => ({ id, color, params });
 
   it("accepts layers in the color the pattern does not paint", () => {
-    expect(validateKit(makeKit({ pattern: stripes, layers: [layer("side-lines"), layer("torso-circle")] }))).toEqual([]);
+    expect(validateKit(makeKit({ pattern: stripes, layers: [layer("side-lines"), layer("shoulder-line")] }))).toEqual([]);
   });
 
   it("lets a layer on a solid kit use the overlay role, which solid does not paint", () => {
@@ -230,15 +230,15 @@ describe("validateKit layers", () => {
     expect(validateKit(makeKit({ pattern: { ...stripes, id: "side-lines" }, layers: [layer("side-lines")] }))).toEqual([
       { rule: "layer-duplicate", message: 'home kit layer "side-lines" repeats the pattern or another layer' },
     ]);
-    expect(validateKit(makeKit({ pattern: stripes, layers: [layer("torso-circle"), layer("torso-circle")] }))).toEqual([
-      { rule: "layer-duplicate", message: 'home kit layer "torso-circle" repeats the pattern or another layer' },
+    expect(validateKit(makeKit({ pattern: stripes, layers: [layer("shoulder-line"), layer("shoulder-line")] }))).toEqual([
+      { rule: "layer-duplicate", message: 'home kit layer "shoulder-line" repeats the pattern or another layer' },
     ]);
   });
 
   it("reports a layer in a color the pattern already paints", () => {
-    expect(validateKit(makeKit({ pattern: stripes, layers: [layer("side-lines", "secondary"), layer("torso-circle", "primary")] }))).toEqual([
+    expect(validateKit(makeKit({ pattern: stripes, layers: [layer("side-lines", "secondary"), layer("shoulder-line", "primary")] }))).toEqual([
       { rule: "layer-color", message: 'home kit layer "side-lines" uses secondary, which the pattern already paints' },
-      { rule: "layer-color", message: 'home kit layer "torso-circle" uses primary, which the pattern already paints' },
+      { rule: "layer-color", message: 'home kit layer "shoulder-line" uses primary, which the pattern already paints' },
     ]);
   });
 });
@@ -367,7 +367,7 @@ describe("validateKitTraditions", () => {
   });
 
   it("applies the list of the kit type only to the main pattern", () => {
-    expect(validateKitTraditions(traditions, { ...kitWith("home", "stripes"), layers: [{ id: "torso-circle", color: "accent", params: {} }] })).toEqual([]);
+    expect(validateKitTraditions(traditions, { ...kitWith("home", "stripes"), layers: [{ id: "shoulder-line", color: "accent", params: {} }] })).toEqual([]);
   });
 
   it("counts a layer in the required color as shown", () => {

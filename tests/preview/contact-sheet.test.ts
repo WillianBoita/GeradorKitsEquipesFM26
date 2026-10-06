@@ -45,13 +45,13 @@ describe("kitDetails", () => {
     const kit = makeKit({
       layers: [
         { id: "side-lines", color: "accent", params: { width: 1 } },
-        { id: "torso-circle", color: "secondary", params: {} },
+        { id: "shoulder-line", color: "secondary", params: {} },
       ],
     });
     expect(kitDetails(kit)).toEqual([
       "solid · classic",
       "layer side-lines · accent · width 0.03",
-      "layer torso-circle · secondary · size 0.12, stroke 0.018",
+      "layer shoulder-line · secondary · position 0.2, thickness 0.015",
       "collar round · sleeves match-body · set-in",
     ]);
   });

@@ -36,7 +36,7 @@ export const STYLE_PROFILES: readonly StyleProfile[] = [
   {
     id: "traditional",
     name: "Traditional",
-    patternWeights: { solid: 25, stripes: 25, pinstripes: 15, hoops: 15, sash: 10, halves: 5, "gradient-radial": 5 },
+    patternWeights: { solid: 30, stripes: 25, pinstripes: 15, hoops: 15, sash: 10, halves: 5 },
     collarWeights: { round: 35, "v-neck": 25, polo: 25, "polo-v": 15 },
     sleeveStyleWeights: { "match-body": 75, solid: 25 },
     sleeveCutWeights: { "set-in": 90, raglan: 10 },
@@ -46,22 +46,22 @@ export const STYLE_PROFILES: readonly StyleProfile[] = [
   {
     id: "modern",
     name: "Modern",
-    patternWeights: { solid: 10, diagonal: 15, gradient: 15, checkers: 15, halves: 10, chevron: 10, sash: 10, "gradient-diagonal": 10, "gradient-radial": 5 },
+    patternWeights: { solid: 10, diagonal: 15, gradient: 30, checkers: 15, halves: 10, chevron: 10, sash: 10 },
     collarWeights: { round: 40, "v-neck": 40, "polo-v": 20 },
     sleeveStyleWeights: { "match-body": 80, solid: 20 },
     sleeveCutWeights: { "set-in": 50, raglan: 50 },
     layerCountWeights: { 0: 30, 1: 50, 2: 20 },
-    layerWeights: { "torso-circle": 20, "torso-diamond": 20, "torso-triangle": 20, "torso-cross": 15, "side-lines": 15, "shoulder-line": 10 },
+    layerWeights: { "side-lines": 40, "shoulder-line": 30, "hoop-line": 30 },
   },
   {
     id: "retro",
     name: "Retro",
-    patternWeights: { hoops: 20, "chest-band": 20, "center-band": 20, chevron: 20, stripes: 10, solid: 5, "gradient-diagonal": 5 },
+    patternWeights: { hoops: 20, "chest-band": 20, "center-band": 20, chevron: 20, stripes: 10, solid: 10 },
     collarWeights: { round: 15, "v-neck": 15, polo: 35, "polo-v": 35 },
     sleeveStyleWeights: { "match-body": 70, solid: 30 },
     sleeveCutWeights: { "set-in": 80, raglan: 20 },
     layerCountWeights: { 0: 40, 1: 45, 2: 15 },
-    layerWeights: { "hoop-line": 30, "double-pinline": 25, "side-lines": 25, "shoulder-line": 10, "torso-cross": 10 },
+    layerWeights: { "hoop-line": 30, "double-pinline": 25, "side-lines": 25, "shoulder-line": 20 },
   },
 ];
 

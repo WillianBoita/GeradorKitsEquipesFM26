@@ -23,7 +23,7 @@ describe("resolvePatternWeights", () => {
 
   it("averages the normalized profiles", () => {
     const weights = resolvePatternWeights(club({ categories: ["traditional", "retro"] }));
-    expect(weights.solid).toBeCloseTo(0.15);
+    expect(weights.solid).toBeCloseTo(0.2);
     expect(weights.hoops).toBeCloseTo(0.175);
     expect(weights.pinstripes).toBeCloseTo(0.075);
     expect(weights["chest-band"]).toBeCloseTo(0.1);
@@ -103,7 +103,7 @@ describe("layerCandidates", () => {
   it("averages classic with another profile without NaN", () => {
     const weights = layerCandidates(styled(["classic", "modern"]), []).map(([, weight]) => weight);
     for (const weight of weights) expect(Number.isFinite(weight)).toBe(true);
-    expect(positive(layerCandidates(styled(["classic", "modern"]), []))).toContainEqual(["torso-circle", 0.1]);
+    expect(positive(layerCandidates(styled(["classic", "modern"]), []))).toContainEqual(["side-lines", 0.2]);
   });
 
   it("zeroes forbidden patterns and every layer in a slot that the pattern or a drawn layer takes", () => {
@@ -112,9 +112,8 @@ describe("layerCandidates", () => {
       ["side-lines", 0.25],
       ["double-pinline", 0.25],
       ["hoop-line", 0.3],
-      ["torso-cross", 0.1],
     ]);
-    expect(positive(layerCandidates(club, ["solid", "torso-cross"]))).toEqual([
+    expect(positive(layerCandidates(club, ["solid", "hoop-line"]))).toEqual([
       ["side-lines", 0.25],
       ["double-pinline", 0.25],
     ]);

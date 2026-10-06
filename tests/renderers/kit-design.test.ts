@@ -19,12 +19,12 @@ describe("kitDesign", () => {
     const kit = makeKit({
       layers: [
         { id: "side-lines", color: "accent", params: { width: 1 } },
-        { id: "torso-circle", color: "secondary", params: {} },
+        { id: "shoulder-line", color: "secondary", params: {} },
       ],
     });
     expect(kitDesign(kit).bodyLayers).toEqual([
       { template: getPatternTemplate("side-lines"), color: "#ffd700", params: { width: 0.03 } },
-      { template: getPatternTemplate("torso-circle"), color: "#ffffff", params: { size: 0.12, stroke: 0.018 } },
+      { template: getPatternTemplate("shoulder-line"), color: "#ffffff", params: { position: 0.2, thickness: 0.015 } },
     ]);
   });
 
