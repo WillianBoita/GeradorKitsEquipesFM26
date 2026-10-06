@@ -1,11 +1,51 @@
 import { describe, expect, it } from "vitest";
-import { COLLAR_STYLES, KIT_TYPES, parseKitDefinition, resolveLogoColor, SLEEVE_CUTS, sleeveCut, visibleRoles } from "../../src/core/kit.js";
+import {
+  COLLAR_STYLES,
+  KIT_TYPES,
+  MAX_LAYERS,
+  parseKitDefinition,
+  resolveLogoColor,
+  SLEEVE_CUTS,
+  sleeveCut,
+  visibleRoles,
+  type KitLayer,
+} from "../../src/core/kit.js";
 import { MAX_SEED } from "../../src/core/random.js";
 import { makeKit } from "../fixtures/kits.js";
 
 describe("parseKitDefinition", () => {
   it("accepts a valid definition", () => {
     expect(parseKitDefinition(makeKit())).toEqual(makeKit());
+  });
+
+  it("accepts up to MAX_LAYERS layers and keeps them through a JSON round trip", () => {
+    const layers: KitLayer[] = [
+      { id: "side-lines", color: "accent", params: { width: 0.02 } },
+      { id: "torso-circle", color: "accent", params: {} },
+    ];
+    expect(layers).toHaveLength(MAX_LAYERS);
+    const kit = makeKit({ layers });
+    expect(parseKitDefinition(JSON.parse(JSON.stringify(kit)))).toEqual(kit);
+  });
+
+  it("rejects more than MAX_LAYERS layers", () => {
+    const layer = { id: "side-lines", color: "accent", params: {} };
+    expect(() => parseKitDefinition({ ...makeKit(), layers: [layer, layer, layer] })).toThrow(/at layers/);
+  });
+
+  it("defaults missing layer params to an empty object", () => {
+    expect(parseKitDefinition({ ...makeKit(), layers: [{ id: "side-lines", color: "accent" }] }).layers).toEqual([
+      { id: "side-lines", color: "accent", params: {} },
+    ]);
+  });
+
+  it("rejects unknown layer colors and keys and names the path", () => {
+    expect(() => parseKitDefinition({ ...makeKit(), layers: [{ id: "side-lines", color: "gold" }] })).toThrow(/layers\[0\]\.color/);
+    expect(() => parseKitDefinition({ ...makeKit(), layers: [{ id: "side-lines", color: "accent", colour: "accent" }] })).toThrow(/colour/);
+  });
+
+  it("keeps kits from before Phase 4b without layers", () => {
+    expect(parseKitDefinition(makeKit())).not.toHaveProperty("layers");
   });
 
   it("survives a JSON round trip", () => {
@@ -118,6 +158,15 @@ describe("resolveLogoColor", () => {
 });
 
 describe("visibleRoles", () => {
+  it("counts the layer colors", () => {
+    const kit = makeKit({
+      collar: { style: "round", color: "secondary" },
+      sleeves: { style: "match-body", color: "secondary", cuffColor: "secondary" },
+      layers: [{ id: "side-lines", color: "accent", params: {} }],
+    });
+    expect(visibleRoles(kit)).toEqual(["primary", "secondary", "accent"]);
+  });
+
   it("hides the overlay of a solid pattern with match-body sleeves", () => {
     expect(visibleRoles(makeKit())).toEqual(["primary", "accent"]);
   });

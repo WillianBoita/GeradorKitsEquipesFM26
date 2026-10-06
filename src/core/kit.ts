@@ -12,11 +12,15 @@ export const BRAND_KINDS = ["sponsor", "manufacturer"] as const;
 // Nome da lista no registry e do pool no club.json para cada tipo de marca.
 export const BRAND_LISTS = { sponsor: "sponsors", manufacturer: "manufacturers" } as const;
 
+export const MAX_LAYERS = 2;
+
 export const KitTypeSchema = z.enum(KIT_TYPES);
 export const ColorRoleSchema = z.enum(COLOR_ROLES);
 // Papel acompanha edições da paleta; hex cobre branco e preto, que não são papéis.
 export const LogoColorSchema = z.union([ColorRoleSchema, HexColorSchema]);
 const BrandLogoSchema = z.strictObject({ id: AssetIdSchema, color: LogoColorSchema, outline: LogoColorSchema.optional() });
+// Camada de detalhe sobre o padrão principal, só no corpo; o id aponta para um padrão com layerSlot.
+const LayerSchema = z.strictObject({ id: z.string().min(1), color: ColorRoleSchema, params: z.record(z.string(), z.number()).default({}) });
 
 export const KitDefinitionSchema = z.strictObject({
   clubId: ClubIdSchema,
@@ -25,6 +29,8 @@ export const KitDefinitionSchema = z.strictObject({
   generatedWith: z.strictObject({ seed: SeedSchema }).optional(),
   colors: z.strictObject({ primary: HexColorSchema, secondary: HexColorSchema, accent: HexColorSchema }),
   pattern: z.strictObject({ id: z.string().min(1), base: ColorRoleSchema, overlay: ColorRoleSchema, params: z.record(z.string(), z.number()).default({}) }),
+  // Ausente = sem camadas: os kit.json de antes da Fase 4b continuam válidos.
+  layers: z.array(LayerSchema).max(MAX_LAYERS).optional(),
   collar: z.strictObject({ style: z.enum(COLLAR_STYLES), color: ColorRoleSchema }),
   sleeves: z.strictObject({ style: z.enum(SLEEVE_STYLES), cut: z.enum(SLEEVE_CUTS).optional(), color: ColorRoleSchema, cuffColor: ColorRoleSchema }),
   shorts: z.strictObject({ color: ColorRoleSchema }),
@@ -43,6 +49,7 @@ export type BrandKind = (typeof BRAND_KINDS)[number];
 export type LogoSlot = "badge" | BrandKind;
 export type LogoColor = z.infer<typeof LogoColorSchema>;
 export type BrandLogo = z.infer<typeof BrandLogoSchema>;
+export type KitLayer = z.infer<typeof LayerSchema>;
 export type KitDefinition = z.infer<typeof KitDefinitionSchema>;
 
 export function parseKitDefinition(input: unknown): KitDefinition {
@@ -62,9 +69,9 @@ export function sleeveCut(kit: KitDefinition): SleeveCut {
   return kit.sleeves.cut ?? "set-in";
 }
 
-// Papéis que aparecem na camisa (o PNG 2D mostra só ela). O overlay só pinta o corpo fora do padrão solid, e a manga lisa tem cor própria.
+// Papéis que aparecem na camisa (o PNG 2D mostra só ela). O overlay só pinta o corpo fora do padrão solid, a manga lisa tem cor própria e cada camada pinta a cor dela.
 export function visibleRoles(kit: KitDefinition): ColorRole[] {
-  const roles: ColorRole[] = [kit.pattern.base, kit.collar.color, kit.sleeves.cuffColor];
+  const roles: ColorRole[] = [kit.pattern.base, kit.collar.color, kit.sleeves.cuffColor, ...(kit.layers ?? []).map((layer) => layer.color)];
   if (kit.pattern.id !== "solid") roles.push(kit.pattern.overlay);
   if (kit.sleeves.style === "solid") roles.push(kit.sleeves.color);
   return COLOR_ROLES.filter((role) => roles.includes(role));
