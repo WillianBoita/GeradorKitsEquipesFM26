@@ -5,7 +5,7 @@ Guias: `fm26-procedural-kit-generator-guide.md` (arquitetura) e `fm26-kit-export
 
 ## Status
 
-Fase 3c concluída: kits Home, Away e Third com a mesma paleta, PNG 2D 414×414 com escudo, patrocinador e fabricante, textura 3D 1024×1024 na UV do FM26 e export para o jogo com `config.xml` gerado. O gerador tem 16 padrões (4 deles também como camadas de detalhe), golas `round`, `v-neck`, `polo` e `polo-v`, manga raglan, perfis de estilo, tradições do clube e um contact sheet HTML para inspecionar kits salvos ou amostras de seeds. Ver `docs/superpowers/plans/2026-10-01-roadmap.md`.
+Fase 3c concluída no código (teste no jogo pendente): kits Home, Away e Third com a mesma paleta, PNG 2D 414×414 com escudo, patrocinador e fabricante, textura 3D 1024×1024 na UV do FM26 e export para o jogo com `config.xml` gerado. O gerador tem 16 padrões (4 deles também como camadas de detalhe), golas `round`, `v-neck`, `polo` e `polo-v`, manga raglan, perfis de estilo, tradições do clube e um contact sheet HTML para inspecionar kits salvos ou amostras de seeds. Ver `docs/superpowers/plans/2026-10-01-roadmap.md`.
 
 ## Requisitos
 

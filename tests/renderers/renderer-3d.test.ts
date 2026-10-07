@@ -105,6 +105,17 @@ describe("renderKit3dPng", () => {
     for (const [part, x, y, color] of expected) expect(pixel(texture, x, y), part).toEqual(color);
   });
 
+  it("continues the pattern into the front and back hems", async () => {
+    const texture = await raster(await renderKit3dPng(patternKit("stripes")));
+    const colors = new Set<string>();
+    for (let x = 362; x < 664; x += 11) {
+      expect(pixel(texture, x, 1011), `front ${x}`).toEqual(pixel(texture, x, 990));
+      expect(pixel(texture, x, 126), `back ${x}`).toEqual(pixel(texture, x, 145));
+      colors.add(pixel(texture, x, 1011).join());
+    }
+    expect(colors.size).toBeGreaterThanOrEqual(2);
+  });
+
   // Linha r da frente reflete na linha 1137 − r das costas (reflexão em y = 569, centros de pixel em r + 0,5). A tolerância cobre o antialias das bordas.
   it.each(["halves", "sash"])("mirrors the front onto the back across y = 569 with %s", async (id) => {
     const texture = await raster(await renderKit3dPng(patternKit(id)));
