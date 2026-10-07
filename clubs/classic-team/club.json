@@ -2,8 +2,8 @@
   "id": "classic-team",
   "name": "Classic Team",
   "fmUniqueId": "",
-  "palette": { "primary": "#191970", "secondary": "#000000", "accent": "#D4AF37" },
+  "palette": { "primary": "#64C4FF", "secondary": "#FFFFFF", "accent": "#EFBF04" },
   "style": { "categories": ["retro"] },
-  "sponsors": { "luna-air": 3, "orbita-bank": 1 },
+  "sponsors": { "luna-air": 1, "orbita-bank": 1 },
   "manufacturers": { "vertex": 1 }
 }

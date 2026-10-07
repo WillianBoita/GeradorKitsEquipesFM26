@@ -2,7 +2,7 @@
   "id": "playstation",
   "name": "Playstation",
   "fmUniqueId": "",
-  "palette": { "primary": "#191970", "secondary": "#000000", "accent": "#D4AF37" },
+  "palette": { "primary": "#003087", "secondary": "#FFFFFF", "accent": "#DF0024" },
   "style": { "categories": ["modern"] },
   "sponsors": { "luna-air": 3, "orbita-bank": 1 },
   "manufacturers": { "vertex": 1 }

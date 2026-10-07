@@ -2,8 +2,8 @@
   "id": "youtubers",
   "name": "Youtubers",
   "fmUniqueId": "",
-  "palette": { "primary": "#191970", "secondary": "#000000", "accent": "#D4AF37" },
+  "palette": { "primary": "#FF0000", "secondary": "#FFFFFF", "accent": "#000000" },
   "style": { "categories": ["modern"] },
-  "sponsors": { "luna-air": 3, "orbita-bank": 1 },
+  "sponsors": { "luna-air": 1 },
   "manufacturers": { "vertex": 1 }
 }
