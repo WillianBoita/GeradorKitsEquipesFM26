@@ -146,11 +146,12 @@ export function renderKit3dPng(kit: KitDefinition, options?: Render3dOptions): P
 - SVG com `viewBox="0 0 1024 1024"` e `width`/`height` = `size` (padrão 1024). O layout em fração é multiplicado por `textureSize`.
 - Ordem do desenho, todos a partir de `kitDesign(kit)`:
   1. Fundo: `<rect>` cobrindo a textura inteira na cor base do padrão do corpo (`design.body.base`). As máscaras do FM e a textura de calibração são opacas; isso substitui o "transparência fora das regiões" do passo 4 do roadmap.
-  2. Frente e costas: `fillSvg(design.body, 414, 414, design.bodyLayers)` dentro da transformação da vista, recortado em `rect` ∪ `hem`. As camadas aparecem na frente e nas costas; a `shoulder-line` cruza o ombro.
-  3. Mangas (asas e cantos): manga `solid` vira `<rect>` na cor da manga; `match-body` usa `fillSvg(design.sleeves, 414, 414)` na vista da seção 5.3, recortado no `rect`.
-  4. Punhos: `<rect>` de `layout.cuffs` na cor do punho, só nas asas. As máscaras do FM não pintam punho na manga comprida.
-  5. Gola: anel de `layout.collar` (`<circle>` com `stroke` de largura `outerRadius − innerRadius`) na cor da gola.
-  6. Calção e meias: `<rect>` de cada região na cor de `design.shorts` e `design.socks`.
+  2. Regiões, na ordem de `layout.regions` (elas não se sobrepõem):
+     - frente e costas: `fillSvg(design.body, 414, 414, design.bodyLayers)` dentro da transformação da vista, recortado em `rect` ∪ `hem`. As camadas aparecem na frente e nas costas; a `shoulder-line` cruza o ombro;
+     - mangas (asas e cantos): manga `solid` vira `<rect>` na cor da manga; `match-body` usa `fillSvg(design.sleeves, 414, 414)` na vista da seção 5.3, recortado no `rect`;
+     - calção e meias: `<rect>` de cada região na cor de `design.shorts` e `design.socks`.
+  3. Punhos: `<rect>` de `layout.cuffs` na cor do punho, só nas asas. As máscaras do FM não pintam punho na manga comprida.
+  4. Gola: anel de `layout.collar` (`<circle>` com `stroke` de largura `outerRadius − innerRadius`) na cor da gola.
 - Os padrões não usam `id`, então `fillSvg` pode aparecer várias vezes no mesmo SVG. Os `clipPath` do renderer têm ids fixos e únicos dentro do SVG.
 - `renderKit3dPng` rasteriza com Sharp e compõe os logos por cima, nas caixas da seção 5.4 escaladas por `size / 1024`. Sem logos, não há `composite`.
 - Saída: PNG RGBA com alfa 255 em todo pixel, o formato da textura de calibração que o jogo aceitou.
@@ -160,7 +161,7 @@ export function renderKit3dPng(kit: KitDefinition, options?: Render3dOptions): P
 
 - `KitLogoImages` e a montagem das camadas de logo (`logoLayers`, hoje privada em `renderer-2d.ts`) passam para `kit-logos.ts`.
 - A função recebe a caixa em pixels de cada slot e a espessura do contorno: `kitLogoLayers(kit, images, boxes, outlineWidth)`. O erro de imagem ausente (`Kit declares a <slot> but no <slot> image was provided`) não muda.
-- 2D: caixas de `LOGO_BOXES` escaladas por `size / 414`, contorno `max(1, round(2 · size / 414))`, como hoje. O PNG 2D fica byte a byte igual. A guarda de SVG (`Phase 3b baseline`) não cobre logos, então a extração é conferida comparando o PNG 2D com os três logos antes e depois (arquivo temporário fora do repositório), além dos testes de pixel de logo de `renderer-2d.test.ts`.
+- 2D: caixas de `LOGO_BOXES` escaladas por `size / 414`, contorno `max(1, round(2 · size / 414))`, como hoje. O PNG 2D fica byte a byte igual. A guarda de SVG (`Phase 3b baseline`) não cobre logos, então a extração é conferida comparando o PNG 2D com os três logos antes e depois (script e hashes temporários em `output/`, ignorada pelo git), além dos testes de pixel de logo de `renderer-2d.test.ts`.
 - 3D: caixas de `frontLogoBox`, contorno `max(1, round(2 · ky · size / 1024))`, a mesma proporção em relação à altura do logo.
 - `src/io/asset-repository.ts` e os testes passam a importar `KitLogoImages` de `kit-logos.ts`.
 
