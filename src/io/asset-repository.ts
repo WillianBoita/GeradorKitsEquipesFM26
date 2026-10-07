@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { assetFilePath, findAsset, getAsset, type AssetRegistry } from "../assets/registry.js";
 import { BRAND_KINDS, BRAND_LISTS, type BrandKind, type KitDefinition } from "../core/kit.js";
 import type { ValidationIssue } from "../core/validation.js";
-import type { KitLogoImages } from "../renderers/renderer-2d.js";
+import type { KitLogoImages } from "../renderers/kit-logos.js";
 import { clubLogoPath } from "./club-repository.js";
 
 export interface AssetDirs {

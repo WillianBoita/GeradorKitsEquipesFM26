@@ -1,7 +1,8 @@
 import sharp from "sharp";
-import { BRAND_KINDS, resolveLogoColor, sleeveCut, type KitDefinition, type LogoSlot } from "../core/kit.js";
+import { sleeveCut, type KitDefinition } from "../core/kit.js";
 import { fillSvg, kitDesign } from "./kit-design.js";
-import { badgeLayer, brandLogoLayers, type LogoLayer, type PixelBox } from "./logo-image.js";
+import { kitLogoLayers, type KitLogoImages } from "./kit-logos.js";
+import type { PixelBox } from "./logo-image.js";
 import {
   bodyPath,
   collarPath,
@@ -20,12 +21,6 @@ export const KIT_2D_SIZE = 414;
 const OUTLINE_WIDTH = 2;
 // Traço escuro da silhueta, repetido nas peças da gola polo: o mesmo texto mantém o SVG das golas antigas igual.
 const OUTLINE_STROKE = 'stroke="#000000" stroke-opacity="0.35" stroke-width="2" stroke-linejoin="round"';
-
-export interface KitLogoImages {
-  badge?: Buffer;
-  sponsor?: Buffer;
-  manufacturer?: Buffer;
-}
 
 export interface Render2dOptions {
   size?: number;
@@ -60,32 +55,19 @@ export function renderKit2dSvg(kit: KitDefinition, options: Render2dOptions = {}
 }
 
 export async function renderKit2dPng(kit: KitDefinition, options: Render2dOptions = {}): Promise<Buffer> {
+  const size = options.size ?? KIT_2D_SIZE;
   const shirt = sharp(Buffer.from(renderKit2dSvg(kit, options)));
-  const layers = await logoLayers(kit, options.size ?? KIT_2D_SIZE, options.logos ?? {});
+  const scale = size / SHIRT_2D_VIEWBOX;
+  const boxes = {
+    badge: pixelBox(LOGO_BOXES.badge, scale),
+    sponsor: pixelBox(LOGO_BOXES.sponsor, scale),
+    manufacturer: pixelBox(LOGO_BOXES.manufacturer, scale),
+  };
+  const layers = await kitLogoLayers(kit, options.logos ?? {}, boxes, Math.max(1, Math.round(OUTLINE_WIDTH * scale)));
   // Sem logos não há composite: o PNG fica byte a byte igual ao da Fase 2a.
   return (layers.length > 0 ? shirt.composite(layers) : shirt).png().toBuffer();
 }
 
-function requireImage(images: KitLogoImages, slot: LogoSlot): Buffer {
-  const image = images[slot];
-  if (!image) throw new Error(`Kit declares a ${slot} but no ${slot} image was provided`);
-  return image;
-}
-
 function pixelBox(box: LogoBox, scale: number): PixelBox {
   return { left: Math.round(box.x * scale), top: Math.round(box.y * scale), width: Math.round(box.width * scale), height: Math.round(box.height * scale) };
-}
-
-async function logoLayers(kit: KitDefinition, size: number, images: KitLogoImages): Promise<LogoLayer[]> {
-  const scale = size / SHIRT_2D_VIEWBOX;
-  const layers: LogoLayer[] = [];
-  if (kit.badge) layers.push(await badgeLayer(requireImage(images, "badge"), pixelBox(LOGO_BOXES.badge, scale)));
-  for (const kind of BRAND_KINDS) {
-    const logo = kit[kind];
-    if (!logo) continue;
-    const outline =
-      logo.outline === undefined ? undefined : { color: resolveLogoColor(kit, logo.outline), width: Math.max(1, Math.round(OUTLINE_WIDTH * scale)) };
-    layers.push(...(await brandLogoLayers(requireImage(images, kind), pixelBox(LOGO_BOXES[kind], scale), resolveLogoColor(kit, logo.color), outline)));
-  }
-  return layers;
 }
