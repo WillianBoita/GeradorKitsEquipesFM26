@@ -20,12 +20,15 @@ import {
   type ValidationIssue,
 } from "../core/validation.js";
 import { ExportAbortedError, exportKits, type RenderKit } from "../fm26/exporter.js";
+import { parseRenderType, RENDER_TYPES, type RenderType } from "../fm26/naming.js";
 import { generateKitSet } from "../generator/kit-generator.js";
 import { checkAssetFiles, loadKitLogos, type AssetDirs, type AssetRefs } from "../io/asset-repository.js";
 import { hasClubLogo, listClubIds, loadClub, loadKit, saveKit } from "../io/club-repository.js";
 import { readJsonFile } from "../io/json-file.js";
 import { buildContactSheetHtml, kitDetails, type PreviewKit, type PreviewSection } from "../preview/contact-sheet.js";
+import type { KitLogoImages } from "../renderers/kit-logos.js";
 import { renderKit2dPng } from "../renderers/renderer-2d.js";
+import { renderKit3dPng } from "../renderers/renderer-3d.js";
 
 export interface CliIo {
   log(message: string): void;
@@ -43,7 +46,7 @@ interface GenerateOptions {
 export const USAGE = [
   "Usage:",
   "  kit-generator generate (--club <id> | --all) [--type <home|away|third>] [--seed <n>] [--out <dir>] [--clubs <dir>] [--assets <dir>]",
-  "  kit-generator render --definition <kit.json> --out <file.png> [--clubs <dir>] [--assets <dir>]",
+  "  kit-generator render --definition <kit.json> --out <file.png> [--render <2d|3d>] [--clubs <dir>] [--assets <dir>]",
   "  kit-generator validate (--club <id> | --all) [--clubs <dir>] [--assets <dir>]",
   "  kit-generator export [--out <dir>] [--clubs <dir>] [--assets <dir>]",
   "  kit-generator preview [--club <id> [--samples <n>]] [--out <file>] [--clubs <dir>] [--assets <dir>]",
@@ -127,21 +130,27 @@ async function generateCommand(args: string[], io: CliIo): Promise<number> {
   return generated === clubIds.length ? 0 : 1;
 }
 
+function renderKitPng(kit: KitDefinition, renderType: RenderType, logos: KitLogoImages): Promise<Buffer> {
+  return renderType === "3d" ? renderKit3dPng(kit, { logos }) : renderKit2dPng(kit, { logos });
+}
+
 async function renderCommand(args: string[], io: CliIo): Promise<number> {
   const options = {
     definition: { type: "string" },
     out: { type: "string" },
+    render: { type: "string", default: "2d" },
     clubs: { type: "string", default: CLUBS_DIR },
     assets: { type: "string", default: ASSETS_DIR },
   } as const;
   const { values } = parseArgs({ args, options, strict: true });
   if (!values.definition) throw new Error("Missing required option --definition");
   if (!values.out) throw new Error("Missing required option --out");
+  const renderType = parseRenderType(values.render);
   const kit = parseWith(KitDefinitionSchema, await readJsonFile(values.definition), `kit definition in ${values.definition}`);
   const registry = await loadAssetRegistry(values.assets);
   const logos = await loadKitLogos(kit, registry, { assetsDir: values.assets, clubsDir: values.clubs });
   const out = path.resolve(values.out);
-  await writeOutput(out, await renderKit2dPng(kit, { logos }));
+  await writeOutput(out, await renderKitPng(kit, renderType, logos));
   io.log(`Rendered ${values.definition} to ${out}`);
   return 0;
 }
@@ -219,10 +228,9 @@ async function exportCommand(args: string[], io: CliIo): Promise<number> {
   const { values } = parseArgs({ args, options, strict: true });
   const registry = await loadAssetRegistry(values.assets);
   const dirs: AssetDirs = { assetsDir: values.assets, clubsDir: values.clubs };
-  // Só 2D na 3a; a 3b escolhe o renderer pelo renderType.
-  const renderKit: RenderKit = async (kit) => renderKit2dPng(kit, { logos: await loadKitLogos(kit, registry, dirs) });
+  const renderKit: RenderKit = async (kit, renderType) => renderKitPng(kit, renderType, await loadKitLogos(kit, registry, dirs));
   try {
-    const result = await exportKits({ clubsDir: values.clubs, outDir: path.resolve(values.out), renderTypes: ["2d"], renderKit });
+    const result = await exportKits({ clubsDir: values.clubs, outDir: path.resolve(values.out), renderTypes: RENDER_TYPES, renderKit });
     for (const { club, kitTypes } of result.clubs) io.log(`Exported ${club.name}: ${kitTypes.join(", ")}`);
     io.log(`Wrote ${result.recordCount} records to ${result.configFile}`);
     return 0;

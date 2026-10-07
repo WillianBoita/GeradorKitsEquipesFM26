@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { KIT_TYPES } from "../../src/core/kit.js";
-import { clubSlug, kitAssetFileName, kitAssetName, RENDER_TYPES } from "../../src/fm26/naming.js";
+import { clubSlug, kitAssetFileName, kitAssetName, parseRenderType, RENDER_TYPES } from "../../src/fm26/naming.js";
 
 describe("clubSlug", () => {
   it.each([
@@ -30,5 +30,15 @@ describe("kitAssetName", () => {
     const names = KIT_TYPES.flatMap((kitType) => RENDER_TYPES.map((renderType) => kitAssetName("galaticos-fc", kitType, renderType)));
     expect(new Set(names).size).toBe(KIT_TYPES.length * RENDER_TYPES.length);
     for (const name of names) expect(name).toMatch(/^[a-z0-9_]+$/);
+  });
+});
+
+describe("parseRenderType", () => {
+  it.each(RENDER_TYPES)("accepts %s", (value) => {
+    expect(parseRenderType(value)).toBe(value);
+  });
+
+  it.each(["4d", "3D", ""])("rejects %j", (value) => {
+    expect(() => parseRenderType(value)).toThrow(`Invalid render type "${value}": expected 2d or 3d`);
   });
 });

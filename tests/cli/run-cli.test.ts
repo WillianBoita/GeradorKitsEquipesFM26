@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { parseSeed, runCli, USAGE } from "../../src/cli/run-cli.js";
 import { KIT_TYPES, parseKitDefinition, resolveLogoColor, type KitType } from "../../src/core/kit.js";
 import { deriveSeed, MAX_SEED } from "../../src/core/random.js";
+import { frontLogoBox } from "../../src/renderers/uv-mapping.js";
 import { makeAssetsDir, makeOpaquePng, writeClubLogo } from "../fixtures/assets.js";
 import { GALATICOS_BRANDED_CLUB, GALATICOS_CLUB, KONG_CLUB, makeClubsDir } from "../fixtures/clubs.js";
 import { makeKit } from "../fixtures/kits.js";
@@ -372,6 +373,40 @@ describe("runCli render", () => {
     expect(await runCli(["render", "--definition", definition, "--out", path.join(dir, "kit.png"), "--clubs", clubs, "--assets", assets], io)).toBe(1);
     expect(errors).toEqual([`Error: Club "galaticos-fc" badge not found: ${path.join(clubs, "galaticos-fc", "logo.png")}`]);
   });
+
+  it("renders the 3D texture of a definition with --render 3d", async () => {
+    const dir = await makeTempDir("cli");
+    const definition = path.join(dir, "kit.json");
+    const png = path.join(dir, "kit_3d.png");
+    await writeFile(definition, JSON.stringify(makeKit()));
+    expect(await runCli(["render", "--definition", definition, "--out", png, "--render", "3d"], captureIo().io)).toBe(0);
+    expect(await sharp(png).metadata()).toMatchObject({ width: 1024, height: 1024 });
+  });
+
+  it("puts the badge and the manufacturer on the front of the 3D texture", async () => {
+    const { clubs, assets } = await brandedSetup();
+    const dir = await makeTempDir("cli");
+    const [definition, png] = [path.join(dir, "kit.json"), path.join(dir, "kit_3d.png")];
+    await writeFile(definition, JSON.stringify(makeKit({ badge: true, manufacturer: { id: "vertex", color: "#000000" } })));
+    const argv = ["render", "--definition", definition, "--out", png, "--render", "3d", "--clubs", clubs, "--assets", assets];
+    expect(await runCli(argv, captureIo().io)).toBe(0);
+    const center = (slot: "badge" | "manufacturer"): [number, number] => {
+      const box = frontLogoBox(slot);
+      return [Math.floor((box.x + box.width / 2) * 1024), Math.floor((box.y + box.height / 2) * 1024)];
+    };
+    expect(await pixelAt(await readFile(png), ...center("badge"))).toEqual(GREEN);
+    expect(await pixelAt(await readFile(png), ...center("manufacturer"))).toEqual([0, 0, 0, 255]);
+  });
+
+  it.each(["4d", "3D"])("rejects --render %s", async (value) => {
+    const dir = await makeTempDir("cli");
+    const definition = path.join(dir, "kit.json");
+    await writeFile(definition, JSON.stringify(makeKit()));
+    const { io, errors } = captureIo();
+    expect(await runCli(["render", "--definition", definition, "--out", path.join(dir, "kit.png"), "--render", value], io)).toBe(1);
+    expect(errors).toEqual([`Error: Invalid render type "${value}": expected 2d or 3d`]);
+    expect(await exists(path.join(dir, "kit.png"))).toBe(false);
+  });
 });
 
 describe("runCli validate", () => {
@@ -526,18 +561,30 @@ describe("runCli export", () => {
     return path.join(await makeTempDir("cli"), "fm26_export");
   }
 
-  it("writes the 2D PNGs and config.xml of every club into one folder", async () => {
+  it("writes the 2D PNGs, the 3D textures and config.xml of every club into one folder", async () => {
     const { clubs } = await exportableClubs();
     const out = await exportDir();
     const { io, logs, errors } = captureIo();
     expect(await runCli(["export", "--clubs", clubs, "--out", out], io)).toBe(0);
     for (const kitType of KIT_TYPES) {
       expect(await sharp(path.join(out, `galaticos_fc_${kitType}_2d.png`)).metadata()).toMatchObject({ format: "png", width: 414, height: 414 });
+      expect(await sharp(path.join(out, `galaticos_fc_${kitType}_3d.png`)).metadata()).toMatchObject({ format: "png", width: 1024, height: 1024 });
     }
     const xml = await readFile(path.join(out, "config.xml"), "utf8");
     expect(xml).toContain('<record from="galaticos_fc_away_2d" to="graphics/pictures/team/1/kits/away"/>');
-    expect(logs).toEqual(["Exported Galáticos FC: home, away, third", `Wrote 3 records to ${path.join(out, "config.xml")}`]);
+    expect(xml).toContain('<record from="galaticos_fc_away_3d" to="graphics/pictures/team/1/kit_textures/away"/>');
+    expect(logs).toEqual(["Exported Galáticos FC: home, away, third", `Wrote 6 records to ${path.join(out, "config.xml")}`]);
     expect(errors).toEqual([]);
+  });
+
+  it("exports the same 3D texture that render --render 3d writes", async () => {
+    const { clubs } = await exportableClubs();
+    const out = await exportDir();
+    expect(await runCli(["export", "--clubs", clubs, "--out", out], captureIo().io)).toBe(0);
+    const rendered = path.join(await makeTempDir("cli"), "home_3d.png");
+    const argv = ["render", "--definition", kitFile(clubs, "galaticos-fc", "home"), "--out", rendered, "--render", "3d", "--clubs", clubs];
+    expect(await runCli(argv, captureIo().io)).toBe(0);
+    expect((await readFile(path.join(out, "galaticos_fc_home_3d.png"))).equals(await readFile(rendered))).toBe(true);
   });
 
   it("exports the same PNG the generate preview shows", async () => {
@@ -693,6 +740,10 @@ describe("runCli usage", () => {
     const { io, errors } = captureIo();
     expect(await runCli(argv, io)).toBe(1);
     expect(errors).toEqual([USAGE]);
+  });
+
+  it("documents the 3D render option", () => {
+    expect(USAGE).toContain("kit-generator render --definition <kit.json> --out <file.png> [--render <2d|3d>] [--clubs <dir>] [--assets <dir>]");
   });
 
   it("documents the export command", () => {
