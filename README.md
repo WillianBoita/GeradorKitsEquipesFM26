@@ -5,7 +5,7 @@ Guias: `fm26-procedural-kit-generator-guide.md` (arquitetura) e `fm26-kit-export
 
 ## Status
 
-Fase 3b concluída: além do que a 3a entrega (kits Home, Away e Third com a mesma paleta, PNG 2D 414×414 com escudo, patrocinador e fabricante, export para o FM26 com `config.xml` gerado), o gerador tem 12 padrões de camisa, perfis de estilo, tradições do clube e um contact sheet HTML para inspecionar kits salvos ou amostras de seeds. A textura 3D ainda não existe (Fase 3c, que depende do teste da textura de calibração no jogo). Ver `docs/superpowers/plans/2026-10-01-roadmap.md`.
+Fase 3c concluída: kits Home, Away e Third com a mesma paleta, PNG 2D 414×414 com escudo, patrocinador e fabricante, textura 3D 1024×1024 na UV do FM26 e export para o jogo com `config.xml` gerado. O gerador tem 16 padrões (4 deles também como camadas de detalhe), golas `round`, `v-neck`, `polo` e `polo-v`, manga raglan, perfis de estilo, tradições do clube e um contact sheet HTML para inspecionar kits salvos ou amostras de seeds. Ver `docs/superpowers/plans/2026-10-01-roadmap.md`.
 
 ## Requisitos
 
@@ -128,6 +128,12 @@ Edite o `kit.json` (cores, padrão, parâmetros, gola, mangas, `badge`, `sponsor
 npm run kit-generator -- render --definition clubs/galaticos-fc/kits/home/kit.json --out output/preview.png
 ```
 
+Com `--render 3d`, o comando grava a textura 3D 1024×1024 do kit (layout da UV do FM26: frente, costas, mangas, calção e meias) em vez do PNG 2D:
+
+```bash
+npm run kit-generator -- render --definition clubs/galaticos-fc/kits/home/kit.json --out output/preview_3d.png --render 3d
+```
+
 O escudo vem de `clubs/<clubId>/logo.png` (`--clubs <dir>` muda a pasta de clubes) e os logos de `assets/` (`--assets <dir>`). Parâmetros de padrão fora da faixa são ajustados para o limite. Padrão desconhecido gera erro listando os conhecidos. Depois de editar, rode `validate`.
 
 ### Estilos disponíveis no uniforme
@@ -169,7 +175,7 @@ Tamanhos e posições dos padrões novos são frações da largura ou da altura 
 
 O punho tem cor própria em `sleeves.cuffColor` nos dois estilos.
 
-**Calção e meias** (`shorts.color` e `socks.color`): só têm cor, sem estilo, e ainda não são desenhados no PNG 2D; entram no 3D (Fase 3c).
+**Calção e meias** (`shorts.color` e `socks.color`): só têm cor, sem estilo, e aparecem só na textura 3D, lisos; o PNG 2D mostra só a camisa.
 
 **Papéis de cor.** `primary`, `secondary` e `accent` apontam para `colors` no `kit.json`, então editar uma cor da paleta atualiza padrão, gola, mangas, calção e meias de uma vez. Só as cores dos logos podem ser um hex fixo.
 
@@ -209,7 +215,7 @@ Preencha `fmUniqueId` no `club.json` de cada clube com o Unique ID do clube no e
 npm run export
 ```
 
-O comando lê os `kit.json` salvos de **todos** os clubes de `clubs/`, renderiza os PNGs 2D e grava tudo em `output/fm26_export/`: um PNG por kit (`galaticos_fc_home_2d.png`, ...) e um único `config.xml` que mapeia cada PNG para `graphics/pictures/team/<fmUniqueId>/kits/<tipo>`. Os PNGs ficam na mesma pasta do `config.xml` porque o FM26 ignora caminhos com subpasta no `from`.
+O comando lê os `kit.json` salvos de **todos** os clubes de `clubs/`, renderiza, para cada kit, o PNG 2D e a textura 3D e grava tudo em `output/fm26_export/`: `galaticos_fc_home_2d.png`, `galaticos_fc_home_3d.png`, ... e um único `config.xml` que mapeia cada PNG 2D para `graphics/pictures/team/<fmUniqueId>/kits/<tipo>` e cada textura 3D para `graphics/pictures/team/<fmUniqueId>/kit_textures/<tipo>`. Os PNGs ficam na mesma pasta do `config.xml` porque o FM26 ignora caminhos com subpasta no `from`.
 
 Cada clube precisa de `fmUniqueId` e dos kits `home` e `away`; `third` é opcional. Dois clubes com o mesmo `fmUniqueId` são rejeitados. Se qualquer clube tiver problema, nada é gravado: o comando lista os erros de todos os clubes (`Error: [<id>] ...`) e termina com código 1. O export sobrescreve os arquivos que gera e nunca apaga nada da pasta.
 
@@ -229,4 +235,4 @@ npm run format:check  # confere a formatação; faz parte do gate de cada fase
 
 `build` gera `dist/cli/index.js`, executável com `node dist/cli/index.js generate ...`. O comando global `kit-generator` só existe se você rodar `npm link` por conta própria.
 
-Estrutura: `src/core` (RNG, cores, schemas, validação, cor dos logos), `src/patterns` (12 padrões), `src/styles` (perfis de estilo e pesos do sorteio), `src/generator` (conjunto Home/Away/Third), `src/renderers` (camada de desenho compartilhada e renderer 2D com logos), `src/preview` (contact sheet HTML), `src/assets` (registry de logos), `src/fm26` (nomes de arquivo, `config.xml`, exporter e layout UV ainda hipotético), `src/io` (clubes, kits, JSON e arquivos de logo), `src/config` (diretórios), `src/cli`. Só o generator usa aleatoriedade; renderers e padrões são determinísticos.
+Estrutura: `src/core` (RNG, cores, schemas, validação, cor dos logos), `src/patterns` (16 padrões), `src/styles` (perfis de estilo e pesos do sorteio), `src/generator` (conjunto Home/Away/Third), `src/renderers` (camada de desenho compartilhada, renderers 2D e 3D com logos e mapeamento para a UV), `src/preview` (contact sheet HTML), `src/assets` (registry de logos), `src/fm26` (nomes de arquivo, `config.xml`, exporter e layout UV confirmado no jogo), `src/io` (clubes, kits, JSON e arquivos de logo), `src/config` (diretórios), `src/cli`. Só o generator usa aleatoriedade; renderers e padrões são determinísticos.
