@@ -1,0 +1,44 @@
+{
+  "clubId": "galaticos-fc",
+  "kitType": "home",
+  "generatedWith": {
+    "seed": 3950324346
+  },
+  "colors": {
+    "primary": "#191970",
+    "secondary": "#000000",
+    "accent": "#d4af37"
+  },
+  "pattern": {
+    "id": "checkers",
+    "base": "primary",
+    "overlay": "secondary",
+    "params": {
+      "size": 0.104
+    }
+  },
+  "collar": {
+    "style": "polo-v",
+    "color": "accent"
+  },
+  "sleeves": {
+    "style": "solid",
+    "color": "secondary",
+    "cuffColor": "secondary"
+  },
+  "shorts": {
+    "color": "primary"
+  },
+  "socks": {
+    "color": "primary"
+  },
+  "badge": true,
+  "sponsor": {
+    "id": "luna-air",
+    "color": "accent"
+  },
+  "manufacturer": {
+    "id": "vertex",
+    "color": "accent"
+  }
+}

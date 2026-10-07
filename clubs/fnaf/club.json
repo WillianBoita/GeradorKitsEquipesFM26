@@ -1,0 +1,9 @@
+{
+  "id": "fnaf",
+  "name": "FNAF",
+  "fmUniqueId": "",
+  "palette": { "primary": "#191970", "secondary": "#000000", "accent": "#D4AF37" },
+  "style": { "categories": ["traditional"] },
+  "sponsors": { "luna-air": 3, "orbita-bank": 1 },
+  "manufacturers": { "vertex": 1 }
+}
