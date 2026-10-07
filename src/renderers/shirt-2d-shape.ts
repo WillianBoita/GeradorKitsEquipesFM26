@@ -53,6 +53,9 @@ export const LOGO_BOXES: Record<LogoSlot, LogoBox> = {
   sponsor: { x: 145, y: 181, width: 124, height: 48 },
 };
 
+// Caixa do tronco 2D, de lateral a lateral e da linha do ombro à barra: é a janela do padrão que a frente da textura 3D mostra.
+export const TORSO_WINDOW = { x: 112, y: 48, width: 190, height: 334 };
+
 export function collarPath(style: CollarStyle): string {
   return COLLARS[style].neckline;
 }
