@@ -18,7 +18,7 @@ async function readPixels(file: string): Promise<(x: number, y: number) => Rgb> 
 }
 
 function allRects(): UvRect[] {
-  return [...FM26_KIT_LAYOUT.regions.map((region) => region.rect), ...FM26_KIT_LAYOUT.cuffs, ...Object.values(FM26_KIT_LAYOUT.logos)];
+  return [...FM26_KIT_LAYOUT.regions.flatMap((region) => [region.rect, ...(region.hem ? [region.hem] : [])]), ...FM26_KIT_LAYOUT.cuffs];
 }
 
 function centerPixel(rect: UvRect): [number, number] {
@@ -27,10 +27,6 @@ function centerPixel(rect: UvRect): [number, number] {
 
 function overlaps(a: UvRect, b: UvRect): boolean {
   return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
-}
-
-function contains(outer: UvRect, inner: UvRect): boolean {
-  return inner.x >= outer.x && inner.y >= outer.y && inner.x + inner.width <= outer.x + outer.width && inner.y + inner.height <= outer.y + outer.height;
 }
 
 // Azul puro = cor 3 (acabamento) nas máscaras RGB do FM.
@@ -81,10 +77,11 @@ describe("FM26_KIT_LAYOUT", () => {
     for (const part of ["front", "back"]) expect(sides(part)).toEqual([undefined]);
   });
 
-  it("records the back as turned 180 degrees and every other region upright and unmirrored", () => {
+  it("records the back as turned 180 degrees and mirrors only the sleeves on the player's left", () => {
     for (const region of FM26_KIT_LAYOUT.regions) {
-      expect(region.rotation).toBe(region.part === "back" ? 180 : 0);
-      expect(region.mirrored).toBe(false);
+      const label = `${region.part} ${region.side}`;
+      expect(region.rotation, label).toBe(region.part === "back" ? 180 : 0);
+      expect(region.mirrored, label).toBe((region.part === "sleeve" || region.part === "longSleeve") && region.side === "left");
     }
   });
 
@@ -111,8 +108,30 @@ describe("FM26_KIT_LAYOUT", () => {
     }
   });
 
-  it("keeps the logo boxes on the front", () => {
-    const front = FM26_KIT_LAYOUT.regions.find((region) => region.part === "front")!.rect;
-    for (const box of Object.values(FM26_KIT_LAYOUT.logos)) expect(contains(front, box)).toBe(true);
+  it("puts a hem right below the front and right above the back, and on no other region", () => {
+    const torso = (part: string) => FM26_KIT_LAYOUT.regions.find((region) => region.part === part)!;
+    const [front, back] = [torso("front"), torso("back")];
+    expect(front.hem).toMatchObject({ x: front.rect.x, width: front.rect.width, y: front.rect.y + front.rect.height });
+    expect(back.hem).toMatchObject({ x: back.rect.x, width: back.rect.width });
+    expect(back.hem!.y + back.hem!.height).toBe(back.rect.y);
+    for (const region of FM26_KIT_LAYOUT.regions.filter((candidate) => candidate.part !== "front" && candidate.part !== "back")) {
+      expect(region.hem, `${region.part} ${region.side}`).toBeUndefined();
+    }
+  });
+
+  it("never overlaps a hem with a region", () => {
+    const hems = FM26_KIT_LAYOUT.regions.flatMap((region) => region.hem ?? []);
+    for (const region of FM26_KIT_LAYOUT.regions) {
+      for (const hem of hems) expect(overlaps(region.rect, hem), `${region.part} ${region.side}`).toBe(false);
+    }
+  });
+
+  // As barras do template são faixas finas (y 126–133 e 1003–1013): o centro do retângulo com sobra cai nelas.
+  it("puts the center of every hem on the thin strips of the labeled template", async () => {
+    const pixel = await readPixels(path.join(TEMPLATES_DIR, "template.png"));
+    for (const hem of FM26_KIT_LAYOUT.regions.flatMap((region) => region.hem ?? [])) {
+      const [red, green, blue] = pixel(...centerPixel(hem));
+      expect(red + green + blue).toBeGreaterThan(40);
+    }
   });
 });
