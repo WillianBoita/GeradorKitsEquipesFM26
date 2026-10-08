@@ -1,44 +1,45 @@
 {
-  "clubId": "galaticos-fc",
+  "clubId": "minecraft",
   "kitType": "home",
   "generatedWith": {
-    "seed": 3950324346
+    "seed": 2276652579
   },
   "colors": {
-    "primary": "#191970",
-    "secondary": "#000000",
-    "accent": "#d4af37"
+    "primary": "#55ff55",
+    "secondary": "#835432",
+    "accent": "#94ffff"
   },
   "pattern": {
-    "id": "checkers",
+    "id": "chest-band",
     "base": "primary",
     "overlay": "secondary",
     "params": {
-      "size": 0.104
+      "position": 0.585,
+      "width": 0.149
     }
   },
   "collar": {
-    "style": "polo-v",
+    "style": "round",
     "color": "accent"
   },
   "sleeves": {
-    "style": "solid",
+    "style": "match-body",
     "color": "secondary",
     "cuffColor": "secondary"
   },
   "shorts": {
-    "color": "primary"
+    "color": "secondary"
   },
   "socks": {
-    "color": "primary"
+    "color": "secondary"
   },
   "badge": true,
   "sponsor": {
     "id": "luna-air",
-    "color": "accent"
+    "color": "#000000"
   },
   "manufacturer": {
     "id": "vertex",
-    "color": "accent"
+    "color": "secondary"
   }
 }

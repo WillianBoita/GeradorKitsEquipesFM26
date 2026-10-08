@@ -1,31 +1,42 @@
 {
-  "clubId": "galaticos-fc",
+  "clubId": "youtubers",
   "kitType": "away",
   "generatedWith": {
-    "seed": 3950324346
+    "seed": 1983951177
   },
   "colors": {
-    "primary": "#191970",
-    "secondary": "#000000",
-    "accent": "#d4af37"
+    "primary": "#ff0000",
+    "secondary": "#ffffff",
+    "accent": "#000000"
   },
   "pattern": {
-    "id": "sash",
+    "id": "chevron",
     "base": "secondary",
     "overlay": "accent",
     "params": {
-      "width": 93.064,
-      "direction": 1
+      "depth": 0.41,
+      "width": 0.136
     }
   },
+  "layers": [
+    {
+      "id": "hoop-line",
+      "color": "primary",
+      "params": {
+        "position": 0.734,
+        "thickness": 0.032
+      }
+    }
+  ],
   "collar": {
-    "style": "v-neck",
-    "color": "primary"
+    "style": "round",
+    "color": "accent"
   },
   "sleeves": {
     "style": "match-body",
+    "cut": "raglan",
     "color": "accent",
-    "cuffColor": "primary"
+    "cuffColor": "accent"
   },
   "shorts": {
     "color": "secondary"
@@ -36,11 +47,10 @@
   "badge": true,
   "sponsor": {
     "id": "luna-air",
-    "color": "secondary",
-    "outline": "accent"
+    "color": "primary"
   },
   "manufacturer": {
     "id": "vertex",
-    "color": "accent"
+    "color": "secondary"
   }
 }

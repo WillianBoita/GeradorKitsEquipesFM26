@@ -2,7 +2,7 @@
   "clubId": "kongs",
   "kitType": "away",
   "generatedWith": {
-    "seed": 513348235
+    "seed": 1380112874
   },
   "colors": {
     "primary": "#0078bf",
@@ -10,35 +10,23 @@
     "accent": "#ffffff"
   },
   "pattern": {
-    "id": "pinstripes",
+    "id": "solid",
     "base": "secondary",
     "overlay": "accent",
-    "params": {
-      "count": 27,
-      "ratio": 0.166
-    }
+    "params": {}
   },
-  "layers": [
-    {
-      "id": "shoulder-line",
-      "color": "primary",
-      "params": {
-        "position": 0.212,
-        "thickness": 0.015
-      }
-    }
-  ],
   "collar": {
     "style": "v-neck",
     "color": "primary"
   },
   "sleeves": {
     "style": "solid",
+    "cut": "raglan",
     "color": "accent",
     "cuffColor": "primary"
   },
   "shorts": {
-    "color": "secondary"
+    "color": "accent"
   },
   "socks": {
     "color": "secondary"
@@ -50,6 +38,6 @@
   },
   "manufacturer": {
     "id": "vertex",
-    "color": "primary"
+    "color": "accent"
   }
 }

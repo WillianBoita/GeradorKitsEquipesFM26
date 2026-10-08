@@ -1,30 +1,42 @@
 {
-  "clubId": "galaticos-fc",
+  "clubId": "playstation",
   "kitType": "home",
   "generatedWith": {
-    "seed": 3950324346
+    "seed": 608913414
   },
   "colors": {
-    "primary": "#191970",
-    "secondary": "#000000",
-    "accent": "#d4af37"
+    "primary": "#003087",
+    "secondary": "#ffffff",
+    "accent": "#df0024"
   },
   "pattern": {
-    "id": "checkers",
+    "id": "diagonal",
     "base": "primary",
     "overlay": "secondary",
     "params": {
-      "size": 0.104
+      "count": 5,
+      "ratio": 0.339,
+      "direction": 0
     }
   },
+  "layers": [
+    {
+      "id": "shoulder-line",
+      "color": "accent",
+      "params": {
+        "position": 0.209,
+        "thickness": 0.012
+      }
+    }
+  ],
   "collar": {
-    "style": "polo-v",
+    "style": "round",
     "color": "accent"
   },
   "sleeves": {
     "style": "solid",
     "color": "secondary",
-    "cuffColor": "secondary"
+    "cuffColor": "accent"
   },
   "shorts": {
     "color": "primary"
@@ -34,11 +46,13 @@
   },
   "badge": true,
   "sponsor": {
-    "id": "luna-air",
-    "color": "accent"
+    "id": "orbita-bank",
+    "color": "secondary",
+    "outline": "primary"
   },
   "manufacturer": {
     "id": "vertex",
-    "color": "accent"
+    "color": "secondary",
+    "outline": "primary"
   }
 }

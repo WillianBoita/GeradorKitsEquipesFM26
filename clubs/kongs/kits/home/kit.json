@@ -2,7 +2,7 @@
   "clubId": "kongs",
   "kitType": "home",
   "generatedWith": {
-    "seed": 513348235
+    "seed": 1380112874
   },
   "colors": {
     "primary": "#0078bf",
@@ -10,28 +10,39 @@
     "accent": "#ffffff"
   },
   "pattern": {
-    "id": "hoops",
+    "id": "stripes",
     "base": "primary",
     "overlay": "secondary",
     "params": {
-      "count": 9,
-      "ratio": 0.232
+      "count": 5,
+      "ratio": 0.396
     }
   },
+  "layers": [
+    {
+      "id": "hoop-line",
+      "color": "accent",
+      "params": {
+        "position": 0.602,
+        "thickness": 0.027
+      }
+    }
+  ],
   "collar": {
-    "style": "round",
-    "color": "secondary"
+    "style": "polo",
+    "color": "accent"
   },
   "sleeves": {
     "style": "match-body",
+    "cut": "raglan",
     "color": "secondary",
     "cuffColor": "secondary"
   },
   "shorts": {
-    "color": "primary"
+    "color": "secondary"
   },
   "socks": {
-    "color": "primary"
+    "color": "secondary"
   },
   "badge": true,
   "sponsor": {

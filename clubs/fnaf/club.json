@@ -1,7 +1,7 @@
 {
   "id": "fnaf",
   "name": "FNAF",
-  "fmUniqueId": "",
+  "fmUniqueId": "2",
   "palette": { "primary": "#002C66", "secondary": "#F5F5F5", "accent": "#000000" },
   "style": { "categories": ["traditional"] },
   "sponsors": { "orbita-bank": 1 },

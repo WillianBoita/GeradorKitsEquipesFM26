@@ -2,7 +2,7 @@
   "clubId": "kongs",
   "kitType": "third",
   "generatedWith": {
-    "seed": 513348235
+    "seed": 1380112874
   },
   "colors": {
     "primary": "#0078bf",
@@ -10,22 +10,22 @@
     "accent": "#ffffff"
   },
   "pattern": {
-    "id": "pinstripes",
+    "id": "hoops",
     "base": "accent",
     "overlay": "primary",
     "params": {
-      "count": 23,
-      "ratio": 0.089
+      "count": 12,
+      "ratio": 0.362
     }
   },
   "collar": {
-    "style": "v-neck",
+    "style": "polo",
     "color": "secondary"
   },
   "sleeves": {
-    "style": "match-body",
+    "style": "solid",
     "color": "primary",
-    "cuffColor": "secondary"
+    "cuffColor": "primary"
   },
   "shorts": {
     "color": "accent"

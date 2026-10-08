@@ -1,34 +1,44 @@
 {
-  "clubId": "galaticos-fc",
+  "clubId": "youtubers",
   "kitType": "third",
   "generatedWith": {
-    "seed": 3950324346
+    "seed": 1983951177
   },
   "colors": {
-    "primary": "#191970",
-    "secondary": "#000000",
-    "accent": "#d4af37"
+    "primary": "#ff0000",
+    "secondary": "#ffffff",
+    "accent": "#000000"
   },
   "pattern": {
-    "id": "gradient",
+    "id": "diagonal",
     "base": "accent",
     "overlay": "primary",
     "params": {
-      "start": 0.706
+      "count": 9,
+      "ratio": 0.258,
+      "direction": 0
     }
   },
+  "layers": [
+    {
+      "id": "side-lines",
+      "color": "secondary",
+      "params": {
+        "width": 0.025
+      }
+    }
+  ],
   "collar": {
     "style": "round",
-    "color": "secondary"
+    "color": "primary"
   },
   "sleeves": {
     "style": "match-body",
-    "cut": "raglan",
     "color": "primary",
-    "cuffColor": "primary"
+    "cuffColor": "secondary"
   },
   "shorts": {
-    "color": "primary"
+    "color": "accent"
   },
   "socks": {
     "color": "accent"
