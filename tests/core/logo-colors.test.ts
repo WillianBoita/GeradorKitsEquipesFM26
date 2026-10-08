@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { contrastRatio } from "../../src/core/color.js";
 import { isColorRole } from "../../src/core/kit.js";
-import { backgroundRoles, chooseLogoColors, MIN_LOGO_CONTRAST, overlayShare, type LogoColors } from "../../src/core/logo-colors.js";
+import { backgroundRoles, badgeOutlineColor, chooseLogoColors, MIN_LOGO_CONTRAST, overlayShare, type LogoColors } from "../../src/core/logo-colors.js";
 import { createRng } from "../../src/core/random.js";
 import { getPatternTemplate } from "../../src/patterns/registry.js";
 import { makeKit } from "../fixtures/kits.js";
@@ -103,5 +103,32 @@ describe("chooseLogoColors", () => {
         expect(Math.max(contrastRatio(color, bg), outline === undefined ? 0 : contrastRatio(outline, bg))).toBeGreaterThanOrEqual(MIN_LOGO_CONTRAST);
       }
     }
+  });
+});
+
+describe("badgeOutlineColor", () => {
+  it("outlines the badge in white on a dark kit", () => {
+    expect(badgeOutlineColor(makeKit())).toBe("#ffffff");
+  });
+
+  it("outlines the badge in black on a light kit", () => {
+    expect(badgeOutlineColor(makeKit({ pattern: { id: "solid", base: "secondary", overlay: "primary", params: {} } }))).toBe("#000000");
+  });
+
+  it("needs contrast against every color behind the badge", () => {
+    // Cinza sozinho pede preto (4,69 contra 4,48), mas as listras navy atrás do escudo derrubam o preto para 1,65.
+    const kit = makeKit({
+      colors: { primary: "#777777", secondary: "#123456", accent: "#ffd700" },
+      pattern: { id: "stripes", base: "primary", overlay: "secondary", params: { count: 7, ratio: 0.3 } },
+    });
+    expect(backgroundRoles(kit, "badge")).toEqual(["primary", "secondary"]);
+    expect(badgeOutlineColor(kit)).toBe("#ffffff");
+  });
+
+  it("follows the dominant color when no outline reads on every color behind the badge", () => {
+    // Navy dominante com faixa branca, como na home do playstation: o preto tem o maior mínimo (1,77 contra 1,00), mas some no navy.
+    const kit = makeKit({ pattern: { id: "diagonal", base: "primary", overlay: "secondary", params: { count: 5, ratio: 0.339, direction: 0 } } });
+    expect(backgroundRoles(kit, "badge")).toEqual(["primary", "secondary"]);
+    expect(badgeOutlineColor(kit)).toBe("#ffffff");
   });
 });

@@ -204,6 +204,14 @@ describe("renderKit3dPng logos", () => {
     expect(pixel(texture, ...boxCenter("manufacturer"))).toEqual([0, 0, 0, 255]);
   });
 
+  it("outlines the badge in white on a dark kit", async () => {
+    const texture = await raster(await renderKit3dPng(brandedKit, { logos: await logos() }));
+    const [x, centerY] = boxCenter("badge");
+    const top = Math.floor(frontLogoBox("badge").y * KIT_3D_SIZE) - 4;
+    const column = Array.from({ length: centerY - top }, (_, offset) => pixel(texture, x, top + offset));
+    expect(column).toContainEqual(SECONDARY);
+  });
+
   it("scales the logos with the size", async () => {
     const texture = await raster(await renderKit3dPng(brandedKit, { size: 512, logos: await logos() }));
     expect(texture.width).toBe(512);

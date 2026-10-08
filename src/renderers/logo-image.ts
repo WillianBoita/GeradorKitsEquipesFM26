@@ -20,6 +20,11 @@ export interface LogoLayer {
   top: number;
 }
 
+export interface LogoOutline {
+  color: string;
+  width: number;
+}
+
 interface AlphaMask {
   data: Uint8Array;
   width: number;
@@ -72,20 +77,25 @@ function centered(box: PixelBox, width: number, height: number): { left: number;
   return { left: box.left + Math.floor((box.width - width) / 2), top: box.top + Math.floor((box.height - height) / 2) };
 }
 
-// Patrocinador e fabricante viram silhueta: só o alfa do arquivo importa, a cor vem do kit.
-export async function brandLogoLayers(input: Buffer, box: PixelBox, color: string, outline?: { color: string; width: number }): Promise<LogoLayer[]> {
-  const image = await fitImage(input, box.width, box.height);
-  const mask = alphaMask(image);
-  const { left, top } = centered(box, image.width, image.height);
-  const fill = { input: await tint(mask, color), left, top };
-  if (!outline) return [fill];
-  return [{ input: await tint(dilate(mask, outline.width), outline.color), left: left - outline.width, top: top - outline.width }, fill];
+async function outlineLayer(mask: AlphaMask, outline: LogoOutline, position: { left: number; top: number }): Promise<LogoLayer> {
+  return { input: await tint(dilate(mask, outline.width), outline.color), left: position.left - outline.width, top: position.top - outline.width };
 }
 
-export async function badgeLayer(input: Buffer, box: PixelBox): Promise<LogoLayer> {
+// Patrocinador e fabricante viram silhueta: só o alfa do arquivo importa, a cor vem do kit.
+export async function brandLogoLayers(input: Buffer, box: PixelBox, color: string, outline?: LogoOutline): Promise<LogoLayer[]> {
   const image = await fitImage(input, box.width, box.height);
+  const mask = alphaMask(image);
+  const position = centered(box, image.width, image.height);
+  const fill = { input: await tint(mask, color), ...position };
+  if (!outline) return [fill];
+  return [await outlineLayer(mask, outline, position), fill];
+}
+
+export async function badgeLayers(input: Buffer, box: PixelBox, outline: LogoOutline): Promise<LogoLayer[]> {
+  const image = await fitImage(input, box.width, box.height);
+  const position = centered(box, image.width, image.height);
   const png = await sharp(image.data, { raw: { width: image.width, height: image.height, channels: 4 } })
     .png()
     .toBuffer();
-  return { input: png, ...centered(box, image.width, image.height) };
+  return [await outlineLayer(alphaMask(image), outline, position), { input: png, ...position }];
 }

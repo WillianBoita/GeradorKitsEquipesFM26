@@ -53,6 +53,20 @@ export function backgroundRoles(kit: KitDefinition, slot: LogoSlot): ColorRole[]
   return [...new Set(roles)];
 }
 
+// Maior contraste mínimo contra o fundo; empate fica com o preto.
+function bestNeutral(background: readonly string[]): { hex: string; score: number } {
+  const score = (hex: string) => Math.min(...background.map((color) => contrastRatio(hex, color)));
+  const [white, black] = [score("#ffffff"), score("#000000")];
+  return white > black ? { hex: "#ffffff", score: white } : { hex: "#000000", score: black };
+}
+
+// O escudo mantém as cores do arquivo, então a borda só precisa destacar a silhueta do fundo. Se nenhuma neutra lê sobre todas as cores atrás dele, vale a dominante.
+export function badgeOutlineColor(kit: KitDefinition): string {
+  const background = backgroundRoles(kit, "badge").map((role) => kit.colors[role]);
+  const best = bestNeutral(background);
+  return best.score >= MIN_LOGO_CONTRAST ? best.hex : bestNeutral(background.slice(0, 1)).hex;
+}
+
 function candidates(palette: Palette): Candidate[] {
   return [
     ...COLOR_ROLES.map((role) => ({ value: role, hex: palette[role], fromPalette: true })),

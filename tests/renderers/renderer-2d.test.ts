@@ -291,6 +291,14 @@ describe("renderKit2dPng logos", () => {
     expect(await pixelAt(png, 250, 120)).toEqual(GREEN);
   });
 
+  it("outlines the badge in white on a dark kit and in black on a light kit", async () => {
+    const logos = { badge: await makeLogoPng(40, 40, "#00ff00") };
+    const light = makeKit({ badge: true, pattern: { id: "solid", base: "secondary", overlay: "primary", params: {} } });
+    // x = 232 é a margem transparente do escudo, na borda esquerda da caixa (x 232–268).
+    expect(await pixelAt(await renderKit2dPng(makeKit({ badge: true }), { logos }), 232, 120)).toEqual(SECONDARY);
+    expect(await pixelAt(await renderKit2dPng(light, { logos }), 232, 120)).toEqual([0, 0, 0, 255]);
+  });
+
   it("scales logos with the image size", async () => {
     expect(await pixelAt(await renderKit2dPng(sponsorKit(), { size: 828, logos: sponsorLogo() }), 310, 410)).toEqual(ACCENT);
   });

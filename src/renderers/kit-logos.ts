@@ -1,5 +1,6 @@
 import { BRAND_KINDS, resolveLogoColor, type KitDefinition, type LogoSlot } from "../core/kit.js";
-import { badgeLayer, brandLogoLayers, type LogoLayer, type PixelBox } from "./logo-image.js";
+import { badgeOutlineColor } from "../core/logo-colors.js";
+import { badgeLayers, brandLogoLayers, type LogoLayer, type PixelBox } from "./logo-image.js";
 
 export interface KitLogoImages {
   badge?: Buffer;
@@ -16,7 +17,7 @@ function requireImage(images: KitLogoImages, slot: LogoSlot): Buffer {
 // Caixas em pixels da imagem final: os renderers 2D e 3D só diferem em onde ficam os logos.
 export async function kitLogoLayers(kit: KitDefinition, images: KitLogoImages, boxes: Record<LogoSlot, PixelBox>, outlineWidth: number): Promise<LogoLayer[]> {
   const layers: LogoLayer[] = [];
-  if (kit.badge) layers.push(await badgeLayer(requireImage(images, "badge"), boxes.badge));
+  if (kit.badge) layers.push(...(await badgeLayers(requireImage(images, "badge"), boxes.badge, { color: badgeOutlineColor(kit), width: outlineWidth })));
   for (const kind of BRAND_KINDS) {
     const logo = kit[kind];
     if (!logo) continue;
