@@ -2,7 +2,7 @@
   "clubId": "minecraft",
   "kitType": "away",
   "generatedWith": {
-    "seed": 2276652579
+    "seed": 2488182319
   },
   "colors": {
     "primary": "#55ff55",
@@ -10,25 +10,25 @@
     "accent": "#94ffff"
   },
   "pattern": {
-    "id": "chevron",
+    "id": "stripes",
     "base": "secondary",
     "overlay": "accent",
     "params": {
-      "depth": 0.564,
-      "width": 0.116
+      "count": 12,
+      "ratio": 0.396
     }
   },
   "collar": {
-    "style": "polo-v",
-    "color": "primary"
+    "style": "round",
+    "color": "accent"
   },
   "sleeves": {
-    "style": "match-body",
+    "style": "solid",
     "color": "accent",
     "cuffColor": "primary"
   },
   "shorts": {
-    "color": "secondary"
+    "color": "accent"
   },
   "socks": {
     "color": "secondary"
@@ -40,6 +40,6 @@
   },
   "manufacturer": {
     "id": "vertex",
-    "color": "accent"
+    "color": "#000000"
   }
 }

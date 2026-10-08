@@ -2,7 +2,7 @@
   "clubId": "galaticos-fc",
   "kitType": "third",
   "generatedWith": {
-    "seed": 257476096
+    "seed": 2867324972
   },
   "colors": {
     "primary": "#191970",
@@ -10,36 +10,44 @@
     "accent": "#d4af37"
   },
   "pattern": {
-    "id": "diagonal",
+    "id": "chevron",
     "base": "accent",
     "overlay": "primary",
     "params": {
-      "count": 7,
-      "ratio": 0.234,
-      "direction": 1
+      "depth": 0.36,
+      "width": 0.078
     }
   },
+  "layers": [
+    {
+      "id": "shoulder-line",
+      "color": "secondary",
+      "params": {
+        "position": 0.21,
+        "thickness": 0.02
+      }
+    }
+  ],
   "collar": {
-    "style": "round",
+    "style": "v-neck",
     "color": "primary"
   },
   "sleeves": {
-    "style": "solid",
+    "style": "match-body",
     "cut": "raglan",
     "color": "primary",
     "cuffColor": "primary"
   },
   "shorts": {
-    "color": "primary"
+    "color": "accent"
   },
   "socks": {
     "color": "accent"
   },
   "badge": true,
   "sponsor": {
-    "id": "orbita-bank",
-    "color": "secondary",
-    "outline": "accent"
+    "id": "luna-air",
+    "color": "secondary"
   },
   "manufacturer": {
     "id": "vertex",

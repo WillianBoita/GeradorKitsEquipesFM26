@@ -2,7 +2,7 @@
   "clubId": "fnaf",
   "kitType": "home",
   "generatedWith": {
-    "seed": 3962386138
+    "seed": 67674138
   },
   "colors": {
     "primary": "#002c66",
@@ -15,12 +15,22 @@
     "overlay": "secondary",
     "params": {}
   },
+  "layers": [
+    {
+      "id": "shoulder-line",
+      "color": "accent",
+      "params": {
+        "position": 0.203,
+        "thickness": 0.015
+      }
+    }
+  ],
   "collar": {
-    "style": "round",
-    "color": "accent"
+    "style": "v-neck",
+    "color": "secondary"
   },
   "sleeves": {
-    "style": "match-body",
+    "style": "solid",
     "color": "secondary",
     "cuffColor": "accent"
   },

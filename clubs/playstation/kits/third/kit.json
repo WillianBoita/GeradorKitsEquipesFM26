@@ -2,7 +2,7 @@
   "clubId": "playstation",
   "kitType": "third",
   "generatedWith": {
-    "seed": 608913414
+    "seed": 2703112715
   },
   "colors": {
     "primary": "#003087",
@@ -10,31 +10,41 @@
     "accent": "#df0024"
   },
   "pattern": {
-    "id": "gradient",
+    "id": "checkers",
     "base": "accent",
     "overlay": "primary",
     "params": {
-      "start": 0.613
+      "size": 0.103
     }
   },
+  "layers": [
+    {
+      "id": "side-lines",
+      "color": "secondary",
+      "params": {
+        "width": 0.029
+      }
+    }
+  ],
   "collar": {
     "style": "v-neck",
     "color": "secondary"
   },
   "sleeves": {
     "style": "match-body",
+    "cut": "raglan",
     "color": "primary",
-    "cuffColor": "primary"
+    "cuffColor": "secondary"
   },
   "shorts": {
-    "color": "primary"
+    "color": "accent"
   },
   "socks": {
     "color": "accent"
   },
   "badge": true,
   "sponsor": {
-    "id": "orbita-bank",
+    "id": "luna-air",
     "color": "secondary"
   },
   "manufacturer": {

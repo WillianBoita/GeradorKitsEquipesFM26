@@ -2,7 +2,7 @@
   "clubId": "fnaf",
   "kitType": "third",
   "generatedWith": {
-    "seed": 3962386138
+    "seed": 67674138
   },
   "colors": {
     "primary": "#002c66",
@@ -10,17 +10,27 @@
     "accent": "#000000"
   },
   "pattern": {
-    "id": "hoops",
+    "id": "sash",
     "base": "accent",
     "overlay": "primary",
     "params": {
-      "count": 5,
-      "ratio": 0.382
+      "width": 57.005,
+      "direction": 1
     }
   },
+  "layers": [
+    {
+      "id": "shoulder-line",
+      "color": "secondary",
+      "params": {
+        "position": 0.209,
+        "thickness": 0.011
+      }
+    }
+  ],
   "collar": {
-    "style": "round",
-    "color": "primary"
+    "style": "v-neck",
+    "color": "secondary"
   },
   "sleeves": {
     "style": "match-body",
@@ -28,10 +38,10 @@
     "cuffColor": "primary"
   },
   "shorts": {
-    "color": "accent"
+    "color": "primary"
   },
   "socks": {
-    "color": "accent"
+    "color": "primary"
   },
   "badge": true,
   "sponsor": {

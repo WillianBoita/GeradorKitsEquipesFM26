@@ -2,7 +2,7 @@
   "clubId": "classic-team",
   "kitType": "away",
   "generatedWith": {
-    "seed": 1618172486
+    "seed": 2918814776
   },
   "colors": {
     "primary": "#64c4ff",
@@ -10,32 +10,41 @@
     "accent": "#efbf04"
   },
   "pattern": {
-    "id": "chevron",
+    "id": "center-band",
     "base": "secondary",
     "overlay": "accent",
     "params": {
-      "depth": 0.449,
-      "width": 0.073
+      "width": 0.16
     }
   },
+  "layers": [
+    {
+      "id": "hoop-line",
+      "color": "primary",
+      "params": {
+        "position": 0.818,
+        "thickness": 0.027
+      }
+    }
+  ],
   "collar": {
     "style": "polo-v",
-    "color": "primary"
+    "color": "accent"
   },
   "sleeves": {
-    "style": "solid",
+    "style": "match-body",
     "color": "accent",
-    "cuffColor": "primary"
+    "cuffColor": "accent"
   },
   "shorts": {
-    "color": "accent"
+    "color": "secondary"
   },
   "socks": {
-    "color": "accent"
+    "color": "secondary"
   },
   "badge": true,
   "sponsor": {
-    "id": "orbita-bank",
+    "id": "luna-air",
     "color": "#000000"
   },
   "manufacturer": {

@@ -2,7 +2,7 @@
   "clubId": "fnaf",
   "kitType": "away",
   "generatedWith": {
-    "seed": 3962386138
+    "seed": 67674138
   },
   "colors": {
     "primary": "#002c66",
@@ -10,23 +10,19 @@
     "accent": "#000000"
   },
   "pattern": {
-    "id": "hoops",
+    "id": "solid",
     "base": "secondary",
     "overlay": "accent",
-    "params": {
-      "count": 5,
-      "ratio": 0.289
-    }
+    "params": {}
   },
   "collar": {
     "style": "v-neck",
-    "color": "accent"
+    "color": "primary"
   },
   "sleeves": {
-    "style": "match-body",
-    "cut": "raglan",
+    "style": "solid",
     "color": "accent",
-    "cuffColor": "accent"
+    "cuffColor": "primary"
   },
   "shorts": {
     "color": "secondary"
@@ -37,12 +33,10 @@
   "badge": true,
   "sponsor": {
     "id": "orbita-bank",
-    "color": "accent",
-    "outline": "secondary"
+    "color": "accent"
   },
   "manufacturer": {
     "id": "vertex",
-    "color": "secondary",
-    "outline": "primary"
+    "color": "accent"
   }
 }

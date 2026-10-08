@@ -2,7 +2,7 @@
   "clubId": "youtubers",
   "kitType": "home",
   "generatedWith": {
-    "seed": 1983951177
+    "seed": 2922742172
   },
   "colors": {
     "primary": "#ff0000",
@@ -14,24 +14,23 @@
     "base": "primary",
     "overlay": "secondary",
     "params": {
-      "start": 0.643
+      "start": 0.596
     }
   },
   "collar": {
-    "style": "polo-v",
+    "style": "round",
     "color": "secondary"
   },
   "sleeves": {
     "style": "match-body",
-    "cut": "raglan",
     "color": "secondary",
-    "cuffColor": "secondary"
+    "cuffColor": "accent"
   },
   "shorts": {
     "color": "secondary"
   },
   "socks": {
-    "color": "secondary"
+    "color": "primary"
   },
   "badge": true,
   "sponsor": {
