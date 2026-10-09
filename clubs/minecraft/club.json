@@ -1,7 +1,7 @@
 {
   "id": "minecraft",
   "name": "Minecraft",
-  "fmUniqueId": "3",
+  "fmUniqueId": "2000778248",
   "palette": { "primary": "#55FF55", "secondary": "#835432", "accent": "#94FFFF" },
   "style": { "categories": ["retro"] },
   "sponsors": { "luna-air": 1, "orbita-bank": 2 },
