@@ -1,0 +1,61 @@
+{
+  "clubId": "classic-team",
+  "kitType": "third",
+  "generatedWith": {
+    "seed": 2918814776
+  },
+  "colors": {
+    "primary": "#64c4ff",
+    "secondary": "#ffffff",
+    "accent": "#efbf04"
+  },
+  "pattern": {
+    "id": "solid",
+    "base": "accent",
+    "overlay": "primary",
+    "params": {}
+  },
+  "layers": [
+    {
+      "id": "double-pinline",
+      "color": "primary",
+      "params": {
+        "inset": 0.038,
+        "thickness": 0.005,
+        "gap": 0.007
+      }
+    },
+    {
+      "id": "hoop-line",
+      "color": "primary",
+      "params": {
+        "position": 0.601,
+        "thickness": 0.026
+      }
+    }
+  ],
+  "collar": {
+    "style": "polo-v",
+    "color": "secondary"
+  },
+  "sleeves": {
+    "style": "match-body",
+    "color": "primary",
+    "cuffColor": "primary"
+  },
+  "shorts": {
+    "color": "primary"
+  },
+  "socks": {
+    "color": "primary"
+  },
+  "badge": true,
+  "sponsor": {
+    "id": "luna-air",
+    "color": "#000000"
+  },
+  "manufacturer": {
+    "id": "vertex",
+    "color": "#000000"
+  }
+}

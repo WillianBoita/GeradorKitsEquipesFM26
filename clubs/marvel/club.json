@@ -1,0 +1,9 @@
+{
+  "id": "marvel",
+  "name": "Marvel",
+  "fmUniqueId": "6",
+  "palette": { "primary": "#ED1D24", "secondary": "#FFFFFF", "accent": "#F0141E" },
+  "style": { "categories": ["modern"] },
+  "sponsors": { "orbita-bank": 1 },
+  "manufacturers": { "vertex": 1 }
+}
