@@ -2,7 +2,7 @@
   "clubId": "classic-team",
   "kitType": "home",
   "generatedWith": {
-    "seed": 2918814776
+    "seed": 176588297
   },
   "colors": {
     "primary": "#64c4ff",
@@ -10,34 +10,40 @@
     "accent": "#efbf04"
   },
   "pattern": {
-    "id": "stripes",
+    "id": "chevron",
     "base": "primary",
     "overlay": "secondary",
     "params": {
-      "count": 9,
-      "ratio": 0.254
+      "depth": 0.415,
+      "width": 0.083
     }
   },
   "layers": [
     {
-      "id": "double-pinline",
+      "id": "hoop-line",
       "color": "accent",
       "params": {
-        "inset": 0.037,
-        "thickness": 0.005,
-        "gap": 0.007
+        "position": 0.746,
+        "thickness": 0.015
+      }
+    },
+    {
+      "id": "side-lines",
+      "color": "accent",
+      "params": {
+        "width": 0.024
       }
     }
   ],
   "collar": {
-    "style": "polo-v",
+    "style": "polo",
     "color": "secondary"
   },
   "sleeves": {
-    "style": "match-body",
+    "style": "solid",
     "cut": "raglan",
     "color": "secondary",
-    "cuffColor": "accent"
+    "cuffColor": "secondary"
   },
   "shorts": {
     "color": "secondary"

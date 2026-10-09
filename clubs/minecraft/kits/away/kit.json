@@ -2,7 +2,7 @@
   "clubId": "minecraft",
   "kitType": "away",
   "generatedWith": {
-    "seed": 2488182319
+    "seed": 492485098
   },
   "colors": {
     "primary": "#55ff55",
@@ -10,25 +10,35 @@
     "accent": "#94ffff"
   },
   "pattern": {
-    "id": "stripes",
+    "id": "chest-band",
     "base": "secondary",
     "overlay": "accent",
     "params": {
-      "count": 12,
-      "ratio": 0.396
+      "position": 0.415,
+      "width": 0.204
     }
   },
+  "layers": [
+    {
+      "id": "side-lines",
+      "color": "primary",
+      "params": {
+        "width": 0.027
+      }
+    }
+  ],
   "collar": {
-    "style": "round",
-    "color": "accent"
+    "style": "polo",
+    "color": "primary"
   },
   "sleeves": {
-    "style": "solid",
+    "style": "match-body",
+    "cut": "raglan",
     "color": "accent",
     "cuffColor": "primary"
   },
   "shorts": {
-    "color": "accent"
+    "color": "secondary"
   },
   "socks": {
     "color": "secondary"

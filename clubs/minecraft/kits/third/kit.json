@@ -2,7 +2,7 @@
   "clubId": "minecraft",
   "kitType": "third",
   "generatedWith": {
-    "seed": 2488182319
+    "seed": 492485098
   },
   "colors": {
     "primary": "#55ff55",
@@ -10,28 +10,29 @@
     "accent": "#94ffff"
   },
   "pattern": {
-    "id": "solid",
+    "id": "stripes",
     "base": "accent",
     "overlay": "primary",
-    "params": {}
+    "params": {
+      "count": 10,
+      "ratio": 0.348
+    }
   },
   "layers": [
     {
-      "id": "double-pinline",
-      "color": "primary",
+      "id": "side-lines",
+      "color": "secondary",
       "params": {
-        "inset": 0.035,
-        "thickness": 0.008,
-        "gap": 0.008
+        "width": 0.018
       }
     }
   ],
   "collar": {
-    "style": "v-neck",
-    "color": "secondary"
+    "style": "polo",
+    "color": "primary"
   },
   "sleeves": {
-    "style": "solid",
+    "style": "match-body",
     "color": "primary",
     "cuffColor": "primary"
   },

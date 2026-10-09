@@ -1,54 +1,55 @@
 {
-  "clubId": "classic-team",
+  "clubId": "marvel",
   "kitType": "away",
   "generatedWith": {
-    "seed": 2918814776
+    "seed": 309105220
   },
   "colors": {
-    "primary": "#64c4ff",
+    "primary": "#ed1d24",
     "secondary": "#ffffff",
-    "accent": "#efbf04"
+    "accent": "#781014"
   },
   "pattern": {
-    "id": "center-band",
+    "id": "checkers",
     "base": "secondary",
     "overlay": "accent",
     "params": {
-      "width": 0.16
+      "size": 0.092
     }
   },
   "layers": [
     {
-      "id": "hoop-line",
+      "id": "side-lines",
       "color": "primary",
       "params": {
-        "position": 0.818,
-        "thickness": 0.027
+        "width": 0.025
       }
     }
   ],
   "collar": {
-    "style": "polo-v",
-    "color": "accent"
+    "style": "v-neck",
+    "color": "primary"
   },
   "sleeves": {
     "style": "match-body",
     "color": "accent",
-    "cuffColor": "accent"
+    "cuffColor": "primary"
   },
   "shorts": {
-    "color": "secondary"
+    "color": "accent"
   },
   "socks": {
     "color": "secondary"
   },
   "badge": true,
   "sponsor": {
-    "id": "luna-air",
-    "color": "#000000"
+    "id": "orbita-bank",
+    "color": "accent",
+    "outline": "secondary"
   },
   "manufacturer": {
     "id": "vertex",
-    "color": "#000000"
+    "color": "secondary",
+    "outline": "primary"
   }
 }

@@ -2,7 +2,7 @@
   "clubId": "youtubers",
   "kitType": "home",
   "generatedWith": {
-    "seed": 2922742172
+    "seed": 4167045799
   },
   "colors": {
     "primary": "#ff0000",
@@ -10,16 +10,14 @@
     "accent": "#000000"
   },
   "pattern": {
-    "id": "gradient",
+    "id": "solid",
     "base": "primary",
     "overlay": "secondary",
-    "params": {
-      "start": 0.596
-    }
+    "params": {}
   },
   "collar": {
-    "style": "round",
-    "color": "secondary"
+    "style": "v-neck",
+    "color": "accent"
   },
   "sleeves": {
     "style": "match-body",
@@ -27,7 +25,7 @@
     "cuffColor": "accent"
   },
   "shorts": {
-    "color": "secondary"
+    "color": "primary"
   },
   "socks": {
     "color": "primary"

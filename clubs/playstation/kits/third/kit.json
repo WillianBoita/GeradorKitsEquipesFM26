@@ -2,7 +2,7 @@
   "clubId": "playstation",
   "kitType": "third",
   "generatedWith": {
-    "seed": 2703112715
+    "seed": 2801910407
   },
   "colors": {
     "primary": "#003087",
@@ -10,14 +10,22 @@
     "accent": "#df0024"
   },
   "pattern": {
-    "id": "checkers",
+    "id": "gradient",
     "base": "accent",
     "overlay": "primary",
     "params": {
-      "size": 0.103
+      "start": 0.599
     }
   },
   "layers": [
+    {
+      "id": "hoop-line",
+      "color": "secondary",
+      "params": {
+        "position": 0.634,
+        "thickness": 0.032
+      }
+    },
     {
       "id": "side-lines",
       "color": "secondary",
@@ -34,7 +42,7 @@
     "style": "match-body",
     "cut": "raglan",
     "color": "primary",
-    "cuffColor": "secondary"
+    "cuffColor": "primary"
   },
   "shorts": {
     "color": "accent"

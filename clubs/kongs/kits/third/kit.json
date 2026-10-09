@@ -2,7 +2,7 @@
   "clubId": "kongs",
   "kitType": "third",
   "generatedWith": {
-    "seed": 3142670343
+    "seed": 513348235
   },
   "colors": {
     "primary": "#0078bf",
@@ -10,29 +10,32 @@
     "accent": "#ffffff"
   },
   "pattern": {
-    "id": "solid",
+    "id": "pinstripes",
     "base": "accent",
     "overlay": "primary",
-    "params": {}
+    "params": {
+      "count": 23,
+      "ratio": 0.089
+    }
   },
   "collar": {
-    "style": "round",
+    "style": "v-neck",
     "color": "secondary"
   },
   "sleeves": {
     "style": "match-body",
     "color": "primary",
-    "cuffColor": "primary"
+    "cuffColor": "secondary"
   },
   "shorts": {
-    "color": "primary"
+    "color": "accent"
   },
   "socks": {
-    "color": "primary"
+    "color": "accent"
   },
   "badge": true,
   "sponsor": {
-    "id": "orbita-bank",
+    "id": "luna-air",
     "color": "secondary"
   },
   "manufacturer": {

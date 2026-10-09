@@ -2,7 +2,7 @@
   "clubId": "youtubers",
   "kitType": "away",
   "generatedWith": {
-    "seed": 2922742172
+    "seed": 4167045799
   },
   "colors": {
     "primary": "#ff0000",
@@ -10,11 +10,11 @@
     "accent": "#000000"
   },
   "pattern": {
-    "id": "checkers",
+    "id": "halves",
     "base": "secondary",
     "overlay": "accent",
     "params": {
-      "size": 0.101
+      "side": 1
     }
   },
   "layers": [
@@ -22,22 +22,23 @@
       "id": "shoulder-line",
       "color": "primary",
       "params": {
-        "position": 0.216,
-        "thickness": 0.019
+        "position": 0.218,
+        "thickness": 0.014
       }
     }
   ],
   "collar": {
-    "style": "round",
-    "color": "primary"
+    "style": "v-neck",
+    "color": "accent"
   },
   "sleeves": {
-    "style": "solid",
+    "style": "match-body",
+    "cut": "raglan",
     "color": "accent",
     "cuffColor": "primary"
   },
   "shorts": {
-    "color": "accent"
+    "color": "secondary"
   },
   "socks": {
     "color": "secondary"
@@ -49,6 +50,6 @@
   },
   "manufacturer": {
     "id": "vertex",
-    "color": "primary"
+    "color": "accent"
   }
 }

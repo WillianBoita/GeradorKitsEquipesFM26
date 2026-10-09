@@ -2,7 +2,7 @@
   "clubId": "youtubers",
   "kitType": "third",
   "generatedWith": {
-    "seed": 2922742172
+    "seed": 4167045799
   },
   "colors": {
     "primary": "#ff0000",
@@ -10,20 +10,36 @@
     "accent": "#000000"
   },
   "pattern": {
-    "id": "checkers",
+    "id": "halves",
     "base": "accent",
     "overlay": "primary",
     "params": {
-      "size": 0.06
+      "side": 0
     }
   },
+  "layers": [
+    {
+      "id": "side-lines",
+      "color": "secondary",
+      "params": {
+        "width": 0.024
+      }
+    },
+    {
+      "id": "hoop-line",
+      "color": "secondary",
+      "params": {
+        "position": 0.61,
+        "thickness": 0.021
+      }
+    }
+  ],
   "collar": {
     "style": "polo-v",
-    "color": "secondary"
+    "color": "primary"
   },
   "sleeves": {
     "style": "match-body",
-    "cut": "raglan",
     "color": "primary",
     "cuffColor": "primary"
   },
@@ -31,7 +47,7 @@
     "color": "primary"
   },
   "socks": {
-    "color": "accent"
+    "color": "primary"
   },
   "badge": true,
   "sponsor": {
@@ -40,6 +56,6 @@
   },
   "manufacturer": {
     "id": "vertex",
-    "color": "secondary"
+    "color": "accent"
   }
 }
