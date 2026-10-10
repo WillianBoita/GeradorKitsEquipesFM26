@@ -117,6 +117,8 @@ Para `sleeve` (asa, manga curta) e `longSleeve` (canto, manga comprida), com `L 
 
 Só a manga `match-body` usa a vista; ela recebe o padrão principal sem camadas, como no 2D.
 
+**Revisado em 2026-10-10, depois do teste no jogo.** Com a janela acima, as duas mangas saíam iguais, e num padrão assimétrico (`sash`, `halves`) nenhuma seguia o seu lado. Agora cada manga recebe a faixa do padrão logo fora da lateral do seu lado (x 12–112 para a direita do jogador, 302–402 para a esquerda), na escala `kx` do tronco, girada 90° como acima. A ilha se divide em duas metades espelhadas na linha do meio (alto do braço), com a lateral do tronco nas bordas (axila). Confirmado no reteste no jogo no mesmo dia. Ver o roadmap, "Resultado do teste da 3c".
+
 ### 5.4 Caixas de logo
 
 `frontLogoBox(slot)` mapeia `LOGO_BOXES[slot]` com a transformação da frente e devolve um `UvRect`. Como a caixa 3D é a imagem da caixa 2D, o fundo atrás do logo é o mesmo que `backgroundRoles` mediu no 2D, e as cores de logo do `kit.json` continuam válidas no 3D.

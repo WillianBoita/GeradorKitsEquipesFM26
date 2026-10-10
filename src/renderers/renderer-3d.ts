@@ -5,7 +5,7 @@ import { fillSvg, kitDesign, type KitDesign, type KitFill } from "./kit-design.j
 import { kitLogoLayers, type KitLogoImages } from "./kit-logos.js";
 import type { PixelBox } from "./logo-image.js";
 import { SHIRT_2D_VIEWBOX } from "./shirt-2d-shape.js";
-import { affineSvg, frontLogoBox, regionTransform, torsoScale } from "./uv-mapping.js";
+import { affineSvg, frontLogoBox, regionViews, torsoScale } from "./uv-mapping.js";
 
 export const KIT_3D_SIZE = FM26_TEXTURE_SIZE;
 // Traço do contorno dos logos no viewBox 414 do 2D; no 3D acompanha a escala vertical da frente.
@@ -34,14 +34,14 @@ function solidRegion(rect: UvRect, color: string): RegionSvg {
   return { body: `<rect ${rectAttributes(rect)} fill="${color}"/>` };
 }
 
-// O padrão é desenhado no espaço 414 do 2D e levado à ilha pela transformação da vista; o recorte inclui a barra.
+// O padrão é desenhado no espaço 414 do 2D e levado a cada pedaço da ilha pela transformação da vista; o recorte do tronco inclui a barra.
 function patternRegion(region: UvRegion, id: string, fill: KitFill, layers: KitDesign["bodyLayers"]): RegionSvg {
-  const rects = [region.rect, ...(region.hem === undefined ? [] : [region.hem])].map((rect) => `<rect ${rectAttributes(rect)}/>`);
   const pattern = fillSvg(fill, SHIRT_2D_VIEWBOX, SHIRT_2D_VIEWBOX, layers);
+  const views = regionViews(region).map((view, index) => ({ ...view, id: `${id}-${index}` }));
 
   return {
-    clip: `<clipPath id="${id}">${rects.join("")}</clipPath>`,
-    body: `<g clip-path="url(#${id})"><g transform="${affineSvg(regionTransform(region))}">${pattern}</g></g>`,
+    clip: views.map((view) => `<clipPath id="${view.id}">${view.rects.map((rect) => `<rect ${rectAttributes(rect)}/>`).join("")}</clipPath>`).join(""),
+    body: views.map((view) => `<g clip-path="url(#${view.id})"><g transform="${affineSvg(view.transform)}">${pattern}</g></g>`).join(""),
   };
 }
 

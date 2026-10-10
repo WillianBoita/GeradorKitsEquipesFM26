@@ -3,6 +3,7 @@ import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import type { KitDefinition } from "../../src/core/kit.js";
 import type { KitLogoImages } from "../../src/renderers/kit-logos.js";
+import { renderKit2dPng } from "../../src/renderers/renderer-2d.js";
 import { KIT_3D_SIZE, renderKit3dPng, renderKit3dSvg } from "../../src/renderers/renderer-3d.js";
 import { frontLogoBox } from "../../src/renderers/uv-mapping.js";
 import { LOGO_SVG, makeLogoPng } from "../fixtures/assets.js";
@@ -142,23 +143,65 @@ describe("renderKit3dPng", () => {
     expect(colors.size).toBeGreaterThanOrEqual(2);
   });
 
+  // Como as máscaras assimétricas do FM (26, 28, 43): a manga inteira fica com a cor do seu lado, a que o 2D mostra na manga.
+  it("takes each match-body sleeve from its own side of the 2D shirt", async () => {
+    const kit = patternKit("halves");
+    const shirt = await raster(await renderKit2dPng(kit));
+    const texture = await raster(await renderKit3dPng(kit));
+    const sleeves: [string, number[], [number, number][]][] = [
+      [
+        "right",
+        pixel(shirt, 82, 131),
+        [
+          [300, 450],
+          [330, 600],
+          [300, 700],
+          [100, 50],
+          [250, 250],
+          [178, 163],
+        ],
+      ],
+      [
+        "left",
+        pixel(shirt, 332, 131),
+        [
+          [720, 450],
+          [700, 600],
+          [740, 700],
+          [924, 50],
+          [774, 250],
+          [846, 163],
+        ],
+      ],
+    ];
+    expect(sleeves[0]![1]).not.toEqual(sleeves[1]![1]);
+    for (const [side, color, points] of sleeves) for (const [x, y] of points) expect(pixel(texture, x, y), `${side} ${x},${y}`).toEqual(color);
+  });
+
   it("draws the detail layers on the front and the back but not on the sleeves", async () => {
     const kit = makeKit({
-      layers: [{ id: "side-lines", color: "accent", params: {} }],
+      layers: [
+        { id: "side-lines", color: "accent", params: {} },
+        { id: "shoulder-line", color: "accent", params: {} },
+      ],
       collar: { style: "round", color: "secondary" },
       sleeves: { style: "match-body", color: "secondary", cuffColor: "secondary" },
     });
     const texture = await raster(await renderKit3dPng(kit));
+    // Laterais (side-lines) e linha do ombro (shoulder-line, y 80–86 do 2D) na frente e nas costas.
     for (const [x, y] of [
       [362, 800],
       [663, 800],
       [362, 300],
       [663, 300],
+      [400, 640],
+      [400, 498],
     ] as const) {
       expect(pixel(texture, x, y), `${x},${y}`).toEqual(ACCENT);
     }
-    // Na manga, a mesma faixa do padrão (x 112–120 do 2D) cai em y 405–419 da asa: sem camadas ela fica na base.
-    expect(pixel(texture, 300, 410)).toEqual(PRIMARY);
+    // A shoulder-line atravessa a faixa das mangas e cairia em x 311–318 da asa direita e 707–714 da esquerda: sem camadas, as mangas ficam na base.
+    expect(pixel(texture, 314, 500)).toEqual(PRIMARY);
+    expect(pixel(texture, 710, 500)).toEqual(PRIMARY);
   });
 });
 
