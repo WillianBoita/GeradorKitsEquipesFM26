@@ -1,0 +1,47 @@
+{
+  "clubId": "springtraps",
+  "kitType": "away",
+  "generatedWith": {
+    "seed": 680462046
+  },
+  "colors": {
+    "primary": "#7c7742",
+    "secondary": "#d4cc07",
+    "accent": "#643c44"
+  },
+  "pattern": {
+    "id": "stripes",
+    "base": "secondary",
+    "overlay": "accent",
+    "params": {
+      "count": 12,
+      "ratio": 0.366
+    }
+  },
+  "collar": {
+    "style": "round",
+    "color": "accent"
+  },
+  "sleeves": {
+    "style": "match-body",
+    "color": "accent",
+    "cuffColor": "accent"
+  },
+  "shorts": {
+    "color": "accent"
+  },
+  "socks": {
+    "color": "accent"
+  },
+  "badge": true,
+  "sponsor": {
+    "id": "fazbear-entertainment",
+    "color": "accent",
+    "outline": "secondary"
+  },
+  "manufacturer": {
+    "id": "adidas",
+    "color": "accent",
+    "outline": "secondary"
+  }
+}

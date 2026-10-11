@@ -1,0 +1,45 @@
+{
+  "clubId": "cars",
+  "kitType": "home",
+  "generatedWith": {
+    "seed": 3109337176
+  },
+  "colors": {
+    "primary": "#c33332",
+    "secondary": "#ffffff",
+    "accent": "#fae333"
+  },
+  "pattern": {
+    "id": "pinstripes",
+    "base": "primary",
+    "overlay": "secondary",
+    "params": {
+      "count": 21,
+      "ratio": 0.128
+    }
+  },
+  "collar": {
+    "style": "v-neck",
+    "color": "secondary"
+  },
+  "sleeves": {
+    "style": "match-body",
+    "color": "secondary",
+    "cuffColor": "accent"
+  },
+  "shorts": {
+    "color": "primary"
+  },
+  "socks": {
+    "color": "primary"
+  },
+  "badge": true,
+  "sponsor": {
+    "id": "rusteze",
+    "color": "#000000"
+  },
+  "manufacturer": {
+    "id": "nike",
+    "color": "#000000"
+  }
+}

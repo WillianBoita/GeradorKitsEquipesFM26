@@ -10,23 +10,14 @@
     "accent": "#efbf04"
   },
   "pattern": {
-    "id": "center-band",
+    "id": "sash",
     "base": "accent",
     "overlay": "primary",
     "params": {
-      "width": 0.102
+      "width": 42.828,
+      "direction": 0
     }
   },
-  "layers": [
-    {
-      "id": "shoulder-line",
-      "color": "secondary",
-      "params": {
-        "position": 0.191,
-        "thickness": 0.015
-      }
-    }
-  ],
   "collar": {
     "style": "v-neck",
     "color": "secondary"
@@ -34,21 +25,21 @@
   "sleeves": {
     "style": "solid",
     "color": "primary",
-    "cuffColor": "secondary"
+    "cuffColor": "primary"
   },
   "shorts": {
-    "color": "accent"
+    "color": "primary"
   },
   "socks": {
-    "color": "accent"
+    "color": "primary"
   },
   "badge": true,
   "sponsor": {
-    "id": "luna-air",
+    "id": "rosso-esports",
     "color": "#000000"
   },
   "manufacturer": {
-    "id": "vertex",
+    "id": "nike",
     "color": "#000000"
   }
 }

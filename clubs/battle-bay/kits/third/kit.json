@@ -1,0 +1,46 @@
+{
+  "clubId": "battle-bay",
+  "kitType": "third",
+  "generatedWith": {
+    "seed": 620081160
+  },
+  "colors": {
+    "primary": "#b22222",
+    "secondary": "#ffffff",
+    "accent": "#ffde21"
+  },
+  "pattern": {
+    "id": "hoops",
+    "base": "accent",
+    "overlay": "primary",
+    "params": {
+      "count": 5,
+      "ratio": 0.312
+    }
+  },
+  "collar": {
+    "style": "polo",
+    "color": "primary"
+  },
+  "sleeves": {
+    "style": "solid",
+    "cut": "raglan",
+    "color": "primary",
+    "cuffColor": "secondary"
+  },
+  "shorts": {
+    "color": "accent"
+  },
+  "socks": {
+    "color": "accent"
+  },
+  "badge": true,
+  "sponsor": {
+    "id": "toppat-clan",
+    "color": "#000000"
+  },
+  "manufacturer": {
+    "id": "adidas",
+    "color": "#000000"
+  }
+}

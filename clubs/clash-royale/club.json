@@ -1,0 +1,9 @@
+{
+  "id": "clash-royale",
+  "name": "Clash Royale",
+  "fmUniqueId": "2000778255",
+  "palette": { "primary": "#305CDE", "secondary": "#FF0000", "accent": "#FFFFFF" },
+  "style": { "categories": ["retro"] },
+  "sponsors": { "toppat-clan": 1 },
+  "manufacturers": { "adidas": 2 }
+}

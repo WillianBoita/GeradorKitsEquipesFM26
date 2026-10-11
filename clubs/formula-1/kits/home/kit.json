@@ -1,0 +1,55 @@
+{
+  "clubId": "formula-1",
+  "kitType": "home",
+  "generatedWith": {
+    "seed": 3874312537
+  },
+  "colors": {
+    "primary": "#ff1e00",
+    "secondary": "#15151e",
+    "accent": "#fffff0"
+  },
+  "pattern": {
+    "id": "gradient",
+    "base": "primary",
+    "overlay": "secondary",
+    "params": {
+      "start": 0.691
+    }
+  },
+  "layers": [
+    {
+      "id": "shoulder-line",
+      "color": "accent",
+      "params": {
+        "position": 0.208,
+        "thickness": 0.016
+      }
+    }
+  ],
+  "collar": {
+    "style": "v-neck",
+    "color": "secondary"
+  },
+  "sleeves": {
+    "style": "solid",
+    "cut": "raglan",
+    "color": "secondary",
+    "cuffColor": "secondary"
+  },
+  "shorts": {
+    "color": "secondary"
+  },
+  "socks": {
+    "color": "primary"
+  },
+  "badge": true,
+  "sponsor": {
+    "id": "rosso-esports-white",
+    "color": "secondary"
+  },
+  "manufacturer": {
+    "id": "adidas",
+    "color": "secondary"
+  }
+}

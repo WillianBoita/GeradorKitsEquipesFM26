@@ -1,0 +1,42 @@
+{
+  "clubId": "transformers",
+  "kitType": "home",
+  "generatedWith": {
+    "seed": 4292080215
+  },
+  "colors": {
+    "primary": "#1f1f2e",
+    "secondary": "#77f3ff",
+    "accent": "#b11226"
+  },
+  "pattern": {
+    "id": "solid",
+    "base": "primary",
+    "overlay": "secondary",
+    "params": {}
+  },
+  "collar": {
+    "style": "round",
+    "color": "accent"
+  },
+  "sleeves": {
+    "style": "match-body",
+    "color": "secondary",
+    "cuffColor": "accent"
+  },
+  "shorts": {
+    "color": "primary"
+  },
+  "socks": {
+    "color": "primary"
+  },
+  "badge": true,
+  "sponsor": {
+    "id": "toppat-clan",
+    "color": "secondary"
+  },
+  "manufacturer": {
+    "id": "nike",
+    "color": "secondary"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "clubId": "grand-prix-story",
+  "kitType": "away",
+  "generatedWith": {
+    "seed": 2985634133
+  },
+  "colors": {
+    "primary": "#ffd32c",
+    "secondary": "#353935",
+    "accent": "#f0f0f0"
+  },
+  "pattern": {
+    "id": "stripes",
+    "base": "secondary",
+    "overlay": "accent",
+    "params": {
+      "count": 12,
+      "ratio": 0.217
+    }
+  },
+  "layers": [
+    {
+      "id": "side-lines",
+      "color": "primary",
+      "params": {
+        "width": 0.019
+      }
+    }
+  ],
+  "collar": {
+    "style": "round",
+    "color": "accent"
+  },
+  "sleeves": {
+    "style": "match-body",
+    "cut": "raglan",
+    "color": "accent",
+    "cuffColor": "primary"
+  },
+  "shorts": {
+    "color": "secondary"
+  },
+  "socks": {
+    "color": "secondary"
+  },
+  "badge": true,
+  "sponsor": {
+    "id": "toppat-clan",
+    "color": "accent",
+    "outline": "secondary"
+  },
+  "manufacturer": {
+    "id": "adidas",
+    "color": "accent",
+    "outline": "secondary"
+  }
+}

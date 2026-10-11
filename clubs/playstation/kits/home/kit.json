@@ -37,12 +37,12 @@
   },
   "badge": true,
   "sponsor": {
-    "id": "luna-air",
+    "id": "gran-turismo",
     "color": "secondary",
     "outline": "primary"
   },
   "manufacturer": {
-    "id": "vertex",
+    "id": "adidas",
     "color": "secondary"
   }
 }

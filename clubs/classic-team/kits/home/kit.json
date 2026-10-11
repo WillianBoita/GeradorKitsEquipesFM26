@@ -10,38 +10,20 @@
     "accent": "#efbf04"
   },
   "pattern": {
-    "id": "chevron",
+    "id": "stripes",
     "base": "primary",
     "overlay": "secondary",
     "params": {
-      "depth": 0.415,
-      "width": 0.083
+      "count": 6,
+      "ratio": 0.257
     }
   },
-  "layers": [
-    {
-      "id": "hoop-line",
-      "color": "accent",
-      "params": {
-        "position": 0.746,
-        "thickness": 0.015
-      }
-    },
-    {
-      "id": "side-lines",
-      "color": "accent",
-      "params": {
-        "width": 0.024
-      }
-    }
-  ],
   "collar": {
-    "style": "polo",
+    "style": "round",
     "color": "secondary"
   },
   "sleeves": {
     "style": "solid",
-    "cut": "raglan",
     "color": "secondary",
     "cuffColor": "secondary"
   },
@@ -53,11 +35,11 @@
   },
   "badge": true,
   "sponsor": {
-    "id": "luna-air",
+    "id": "rosso-esports",
     "color": "#000000"
   },
   "manufacturer": {
-    "id": "vertex",
+    "id": "nike",
     "color": "#000000"
   }
 }

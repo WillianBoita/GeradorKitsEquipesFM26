@@ -1,0 +1,57 @@
+{
+  "clubId": "memes",
+  "kitType": "home",
+  "generatedWith": {
+    "seed": 2805742332
+  },
+  "colors": {
+    "primary": "#1c1c1c",
+    "secondary": "#f7ca05",
+    "accent": "#9494ff"
+  },
+  "pattern": {
+    "id": "hoops",
+    "base": "primary",
+    "overlay": "secondary",
+    "params": {
+      "count": 9,
+      "ratio": 0.225
+    }
+  },
+  "layers": [
+    {
+      "id": "shoulder-line",
+      "color": "accent",
+      "params": {
+        "position": 0.215,
+        "thickness": 0.019
+      }
+    }
+  ],
+  "collar": {
+    "style": "polo-v",
+    "color": "secondary"
+  },
+  "sleeves": {
+    "style": "match-body",
+    "color": "secondary",
+    "cuffColor": "secondary"
+  },
+  "shorts": {
+    "color": "primary"
+  },
+  "socks": {
+    "color": "primary"
+  },
+  "badge": true,
+  "sponsor": {
+    "id": "ifunny",
+    "color": "secondary",
+    "outline": "primary"
+  },
+  "manufacturer": {
+    "id": "adidas",
+    "color": "secondary",
+    "outline": "primary"
+  }
+}

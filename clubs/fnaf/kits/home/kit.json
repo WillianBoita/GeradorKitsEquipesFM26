@@ -45,12 +45,12 @@
   },
   "badge": true,
   "sponsor": {
-    "id": "orbita-bank",
+    "id": "fazbear-entertainment",
     "color": "secondary",
     "outline": "primary"
   },
   "manufacturer": {
-    "id": "vertex",
+    "id": "nike",
     "color": "secondary"
   }
 }

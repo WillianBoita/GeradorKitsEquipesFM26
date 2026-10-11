@@ -1,0 +1,9 @@
+{
+  "id": "transformers",
+  "name": "Transformers",
+  "fmUniqueId": "2000778258",
+  "palette": { "primary": "#1F1F2E", "secondary": "#77f3ff", "accent": "#B11226" },
+  "style": { "categories": ["traditional"] },
+  "sponsors": { "toppat-clan": 1 },
+  "manufacturers": { "nike": 2 }
+}

@@ -1,7 +1,19 @@
 {
   "sponsors": [
-    { "id": "luna-air", "name": "Luna Air", "file": "sponsors/luna-air.svg" },
-    { "id": "orbita-bank", "name": "Órbita Bank", "file": "sponsors/orbita-bank.svg" }
+    { "id": "rosso-esports", "name": "Rosso Esports", "file": "sponsors/rosso-esports.png" },
+    { "id": "rosso-esports-white", "name": "Rosso Esports Branco", "file": "sponsors/rosso-esports-branco.png" },
+    { "id": "fazbear-entertainment", "name": "Fazbear Entertainment", "file": "sponsors/fazbear-entertainment.png" },
+    { "id": "dinoco", "name": "Dinoco", "file": "sponsors/dinoco.png" },
+    { "id": "gran-turismo", "name": "Gran Turismo", "file": "sponsors/gran-turismo.png" },
+    { "id": "ifunny", "name": "iFunny", "file": "sponsors/ifunny.png" },
+    { "id": "mojang", "name": "Mojang", "file": "sponsors/mojang-logo.svg" },
+    { "id": "reddit", "name": "Reddit", "file": "sponsors/reddit.png" },
+    { "id": "rusteze", "name": "Rusteze", "file": "sponsors/rusteze.png" },
+    { "id": "stark-industries", "name": "Stark Industries", "file": "sponsors/Stark_Industries.png" },
+    { "id": "toppat-clan", "name": "Toppat Clan", "file": "sponsors/toppat_clan.png" }
   ],
-  "manufacturers": [{ "id": "vertex", "name": "Vertex", "file": "manufacturers/vertex.svg" }]
+  "manufacturers": [
+    { "id": "nike", "name": "Nike", "file": "manufacturers/nike.png" },
+    { "id": "adidas", "name": "Adidas", "file": "manufacturers/adidas.png" }
+  ]
 }

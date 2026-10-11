@@ -1,0 +1,9 @@
+{
+  "id": "springtraps",
+  "name": "Springtraps",
+  "fmUniqueId": "2000778253",
+  "palette": { "primary": "#7c7742", "secondary": "#d4cc07", "accent": "#643c44" },
+  "style": { "categories": ["traditional"] },
+  "sponsors": { "fazbear-entertainment": 1 },
+  "manufacturers": { "adidas": 1 }
+}

@@ -35,12 +35,12 @@
   },
   "badge": true,
   "sponsor": {
-    "id": "luna-air",
+    "id": "rosso-esports-white",
     "color": "secondary",
     "outline": "accent"
   },
   "manufacturer": {
-    "id": "vertex",
+    "id": "nike",
     "color": "accent"
   }
 }

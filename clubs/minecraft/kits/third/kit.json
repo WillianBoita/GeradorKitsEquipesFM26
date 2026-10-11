@@ -7,7 +7,7 @@
   "colors": {
     "primary": "#55ff55",
     "secondary": "#835432",
-    "accent": "#94ffff"
+    "accent": "#00aa00"
   },
   "pattern": {
     "id": "stripes",
@@ -44,11 +44,11 @@
   },
   "badge": true,
   "sponsor": {
-    "id": "luna-air",
-    "color": "secondary"
+    "id": "mojang",
+    "color": "#000000"
   },
   "manufacturer": {
-    "id": "vertex",
-    "color": "secondary"
+    "id": "nike",
+    "color": "#000000"
   }
 }

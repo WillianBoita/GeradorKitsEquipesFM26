@@ -43,12 +43,12 @@
   },
   "badge": true,
   "sponsor": {
-    "id": "orbita-bank",
+    "id": "stark-industries",
     "color": "accent",
     "outline": "secondary"
   },
   "manufacturer": {
-    "id": "vertex",
+    "id": "adidas",
     "color": "secondary",
     "outline": "primary"
   }

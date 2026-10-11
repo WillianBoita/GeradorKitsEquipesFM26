@@ -1,0 +1,9 @@
+{
+  "id": "formula-1",
+  "name": "Formula 1",
+  "fmUniqueId": "2000778257",
+  "palette": { "primary": "#FF1E00", "secondary": "#15151E", "accent": "#FFFFF0" },
+  "style": { "categories": ["modern"] },
+  "sponsors": { "rosso-esports-white": 1 },
+  "manufacturers": { "adidas": 2 }
+}

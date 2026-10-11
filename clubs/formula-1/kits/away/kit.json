@@ -1,0 +1,53 @@
+{
+  "clubId": "formula-1",
+  "kitType": "away",
+  "generatedWith": {
+    "seed": 3874312537
+  },
+  "colors": {
+    "primary": "#ff1e00",
+    "secondary": "#15151e",
+    "accent": "#fffff0"
+  },
+  "pattern": {
+    "id": "halves",
+    "base": "secondary",
+    "overlay": "accent",
+    "params": {
+      "side": 1
+    }
+  },
+  "layers": [
+    {
+      "id": "side-lines",
+      "color": "primary",
+      "params": {
+        "width": 0.016
+      }
+    }
+  ],
+  "collar": {
+    "style": "polo-v",
+    "color": "primary"
+  },
+  "sleeves": {
+    "style": "match-body",
+    "color": "accent",
+    "cuffColor": "accent"
+  },
+  "shorts": {
+    "color": "secondary"
+  },
+  "socks": {
+    "color": "secondary"
+  },
+  "badge": true,
+  "sponsor": {
+    "id": "rosso-esports-white",
+    "color": "primary"
+  },
+  "manufacturer": {
+    "id": "adidas",
+    "color": "accent"
+  }
+}

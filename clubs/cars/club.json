@@ -1,0 +1,9 @@
+{
+  "id": "cars",
+  "name": "Cars",
+  "fmUniqueId": "2000778256",
+  "palette": { "primary": "#C33332", "secondary": "#FFFFFF", "accent": "#FAE333" },
+  "style": { "categories": ["traditional"] },
+  "sponsors": { "rusteze": 2, "dinoco": 1 },
+  "manufacturers": { "nike": 1 }
+}

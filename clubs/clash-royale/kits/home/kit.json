@@ -1,0 +1,55 @@
+{
+  "clubId": "clash-royale",
+  "kitType": "home",
+  "generatedWith": {
+    "seed": 201498973
+  },
+  "colors": {
+    "primary": "#305cde",
+    "secondary": "#ff0000",
+    "accent": "#ffffff"
+  },
+  "pattern": {
+    "id": "hoops",
+    "base": "primary",
+    "overlay": "secondary",
+    "params": {
+      "count": 9,
+      "ratio": 0.31
+    }
+  },
+  "layers": [
+    {
+      "id": "hoop-line",
+      "color": "accent",
+      "params": {
+        "position": 0.782,
+        "thickness": 0.022
+      }
+    }
+  ],
+  "collar": {
+    "style": "polo",
+    "color": "secondary"
+  },
+  "sleeves": {
+    "style": "match-body",
+    "color": "secondary",
+    "cuffColor": "secondary"
+  },
+  "shorts": {
+    "color": "secondary"
+  },
+  "socks": {
+    "color": "primary"
+  },
+  "badge": true,
+  "sponsor": {
+    "id": "toppat-clan",
+    "color": "accent"
+  },
+  "manufacturer": {
+    "id": "adidas",
+    "color": "accent"
+  }
+}

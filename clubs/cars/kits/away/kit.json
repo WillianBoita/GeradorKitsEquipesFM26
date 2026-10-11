@@ -1,0 +1,54 @@
+{
+  "clubId": "cars",
+  "kitType": "away",
+  "generatedWith": {
+    "seed": 3109337176
+  },
+  "colors": {
+    "primary": "#c33332",
+    "secondary": "#ffffff",
+    "accent": "#fae333"
+  },
+  "pattern": {
+    "id": "sash",
+    "base": "secondary",
+    "overlay": "accent",
+    "params": {
+      "width": 72.376,
+      "direction": 1
+    }
+  },
+  "layers": [
+    {
+      "id": "side-lines",
+      "color": "primary",
+      "params": {
+        "width": 0.013
+      }
+    }
+  ],
+  "collar": {
+    "style": "polo",
+    "color": "accent"
+  },
+  "sleeves": {
+    "style": "match-body",
+    "color": "accent",
+    "cuffColor": "accent"
+  },
+  "shorts": {
+    "color": "accent"
+  },
+  "socks": {
+    "color": "secondary"
+  },
+  "badge": true,
+  "sponsor": {
+    "id": "rusteze",
+    "color": "primary"
+  },
+  "manufacturer": {
+    "id": "nike",
+    "color": "primary"
+  }
+}

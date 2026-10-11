@@ -1,0 +1,9 @@
+{
+  "id": "battle-bay",
+  "name": "Battle Bay",
+  "fmUniqueId": "2000778259",
+  "palette": { "primary": "#B22222", "secondary": "#FFFFFF", "accent": "#FFDE21" },
+  "style": { "categories": ["retro"] },
+  "sponsors": { "toppat-clan": 1 },
+  "manufacturers": { "adidas": 2 }
+}
