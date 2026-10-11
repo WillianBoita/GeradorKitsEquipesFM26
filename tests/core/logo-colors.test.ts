@@ -1,13 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { contrastRatio } from "../../src/core/color.js";
-import { isColorRole } from "../../src/core/kit.js";
-import { backgroundRoles, badgeOutlineColor, chooseLogoColors, MIN_LOGO_CONTRAST, overlayShare, type LogoColors } from "../../src/core/logo-colors.js";
-import { createRng } from "../../src/core/random.js";
+import { backgroundRoles, logoOutlineColor, overlayShare } from "../../src/core/logo-colors.js";
 import { getPatternTemplate } from "../../src/patterns/registry.js";
 import { makeKit } from "../fixtures/kits.js";
-
-const PALETTE = { primary: "#123456", secondary: "#ffffff", accent: "#ffd700" };
-const [NAVY, WHITE, GOLD] = [PALETTE.primary, PALETTE.secondary, PALETTE.accent];
 
 describe("backgroundRoles", () => {
   it("returns only the base for a solid kit", () => {
@@ -37,98 +31,43 @@ describe("backgroundRoles", () => {
 describe("overlayShare", () => {
   it("measures the part of a logo box that the overlay paints", () => {
     expect(overlayShare(getPatternTemplate("solid"), {}, "sponsor")).toBe(0);
-    // Faixa em y 155,3–217,4: cobre 18 das 24 linhas da grade do patrocinador (y 182–228) e nada do escudo (y 102–138).
+    // Faixa em y 155,3–217,4: cobre 18 das 24 linhas da grade do patrocinador (y 182–228) e nada do escudo (y 102–146).
     expect(overlayShare(getPatternTemplate("chest-band"), { position: 0.45, width: 0.15 }, "sponsor")).toBe(0.75);
     expect(overlayShare(getPatternTemplate("chest-band"), { position: 0.45, width: 0.15 }, "badge")).toBe(0);
   });
 });
 
-describe("chooseLogoColors", () => {
-  it("prefers the palette color with the highest contrast", () => {
-    // Contra navy: branco 12,72, ouro 9,07.
-    expect(chooseLogoColors(PALETTE, [NAVY])).toEqual({ color: "secondary" });
+describe("logoOutlineColor", () => {
+  it("outlines every logo in white on a dark kit", () => {
+    for (const slot of ["badge", "sponsor", "manufacturer"] as const) expect(logoOutlineColor(makeKit(), slot)).toBe("#ffffff");
   });
 
-  it("needs contrast against every background color", () => {
-    expect(chooseLogoColors(PALETTE, [WHITE, GOLD])).toEqual({ color: "primary" });
+  it("outlines every logo in black on a light kit", () => {
+    const kit = makeKit({ pattern: { id: "solid", base: "secondary", overlay: "primary", params: {} } });
+    for (const slot of ["badge", "sponsor", "manufacturer"] as const) expect(logoOutlineColor(kit, slot)).toBe("#000000");
   });
 
-  it("falls back to white or black when no palette color reaches the minimum", () => {
-    // Contra navy: vermelho-escuro 1,27, verde 2,48, branco 12,72.
-    expect(chooseLogoColors({ primary: "#123456", secondary: "#8b0000", accent: "#2e7d32" }, [NAVY])).toEqual({ color: "#ffffff" });
+  it("measures the background of each logo box", () => {
+    // A faixa branca cobre 75% do patrocinador e nada do escudo: o escudo fica no navy e o patrocinador segue a faixa dominante.
+    const kit = makeKit({ pattern: { id: "chest-band", base: "primary", overlay: "secondary", params: { position: 0.45, width: 0.15 } } });
+    expect(logoOutlineColor(kit, "badge")).toBe("#ffffff");
+    expect(logoOutlineColor(kit, "sponsor")).toBe("#000000");
   });
 
-  it("adds an outline when no single color works, as on the galaticos home sash", () => {
-    expect(chooseLogoColors(PALETTE, [WHITE, NAVY])).toEqual({ color: "primary", outline: "secondary" });
-  });
-
-  it("picks the fill that reads on the dominant background, as on the galaticos third stripes", () => {
-    expect(chooseLogoColors(PALETTE, [GOLD, NAVY])).toEqual({ color: "primary", outline: "secondary" });
-  });
-
-  it("prefers a palette fill with a neutral outline over a neutral fill", () => {
-    // Paleta toda clara sobre branco e preto: nenhum par só com a paleta passa; cinza-claro tem o maior contraste contra o branco dominante.
-    expect(chooseLogoColors({ primary: "#ffd700", secondary: "#f5f5dc", accent: "#d3d3d3" }, ["#ffffff", "#000000"])).toEqual({
-      color: "accent",
-      outline: "#000000",
-    });
-  });
-
-  it("breaks ties between outlines by candidate order", () => {
-    // Fill navy (secondary) vence pelo fundo dominante branco; ouro e cinza-claro servem de contorno, ouro vem antes.
-    expect(chooseLogoColors({ primary: "#ffd700", secondary: "#123456", accent: "#d3d3d3" }, ["#ffffff", "#000000"])).toEqual({
-      color: "secondary",
-      outline: "primary",
-    });
-  });
-
-  it("always finds a legible choice", () => {
-    const rng = createRng(2024);
-    const hex = () =>
-      `#${Array.from({ length: 3 }, () =>
-        Math.floor(rng.next() * 256)
-          .toString(16)
-          .padStart(2, "0"),
-      ).join("")}`;
-    for (let index = 0; index < 500; index++) {
-      const palette = { primary: hex(), secondary: hex(), accent: hex() };
-      const background = [hex(), hex()];
-      const choice: LogoColors | undefined = chooseLogoColors(palette, background);
-      expect(choice).toBeDefined();
-      const resolve = (value: string) => (isColorRole(value) ? palette[value] : value);
-      const color = resolve(choice!.color);
-      const outline = choice!.outline === undefined ? undefined : resolve(choice!.outline);
-      if (outline !== undefined) expect(contrastRatio(color, outline)).toBeGreaterThanOrEqual(MIN_LOGO_CONTRAST);
-      for (const bg of background) {
-        expect(Math.max(contrastRatio(color, bg), outline === undefined ? 0 : contrastRatio(outline, bg))).toBeGreaterThanOrEqual(MIN_LOGO_CONTRAST);
-      }
-    }
-  });
-});
-
-describe("badgeOutlineColor", () => {
-  it("outlines the badge in white on a dark kit", () => {
-    expect(badgeOutlineColor(makeKit())).toBe("#ffffff");
-  });
-
-  it("outlines the badge in black on a light kit", () => {
-    expect(badgeOutlineColor(makeKit({ pattern: { id: "solid", base: "secondary", overlay: "primary", params: {} } }))).toBe("#000000");
-  });
-
-  it("needs contrast against every color behind the badge", () => {
+  it("needs contrast against every color behind the logo", () => {
     // Cinza sozinho pede preto (4,69 contra 4,48), mas as listras navy atrás do escudo derrubam o preto para 1,65.
     const kit = makeKit({
       colors: { primary: "#777777", secondary: "#123456", accent: "#ffd700" },
       pattern: { id: "stripes", base: "primary", overlay: "secondary", params: { count: 7, ratio: 0.3 } },
     });
     expect(backgroundRoles(kit, "badge")).toEqual(["primary", "secondary"]);
-    expect(badgeOutlineColor(kit)).toBe("#ffffff");
+    expect(logoOutlineColor(kit, "badge")).toBe("#ffffff");
   });
 
-  it("follows the dominant color when no outline reads on every color behind the badge", () => {
+  it("follows the dominant color when no outline reads on every color behind the logo", () => {
     // Navy dominante com faixa branca, como na home do playstation: o preto tem o maior mínimo (1,77 contra 1,00), mas some no navy.
     const kit = makeKit({ pattern: { id: "diagonal", base: "primary", overlay: "secondary", params: { count: 5, ratio: 0.339, direction: 0 } } });
     expect(backgroundRoles(kit, "badge")).toEqual(["primary", "secondary"]);
-    expect(badgeOutlineColor(kit)).toBe("#ffffff");
+    expect(logoOutlineColor(kit, "badge")).toBe("#ffffff");
   });
 });

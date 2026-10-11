@@ -1,15 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  COLLAR_STYLES,
-  KIT_TYPES,
-  MAX_LAYERS,
-  parseKitDefinition,
-  resolveLogoColor,
-  SLEEVE_CUTS,
-  sleeveCut,
-  visibleRoles,
-  type KitLayer,
-} from "../../src/core/kit.js";
+import { COLLAR_STYLES, KIT_TYPES, MAX_LAYERS, parseKitDefinition, SLEEVE_CUTS, sleeveCut, visibleRoles, type KitLayer } from "../../src/core/kit.js";
 import { MAX_SEED } from "../../src/core/random.js";
 import { makeKit } from "../fixtures/kits.js";
 
@@ -125,7 +115,7 @@ describe("parseKitDefinition", () => {
   });
 
   it("accepts badge, sponsor and manufacturer and keeps them through a JSON round trip", () => {
-    const kit = makeKit({ badge: true, sponsor: { id: "luna-air", color: "primary", outline: "secondary" }, manufacturer: { id: "vertex", color: "#000000" } });
+    const kit = makeKit({ badge: true, sponsor: { id: "luna-air" }, manufacturer: { id: "vertex" } });
     expect(parseKitDefinition(JSON.parse(JSON.stringify(kit)))).toEqual(kit);
   });
 
@@ -136,24 +126,13 @@ describe("parseKitDefinition", () => {
     expect(kit).not.toHaveProperty("manufacturer");
   });
 
-  it("normalizes hex logo colors", () => {
-    expect(parseKitDefinition(makeKit({ sponsor: { id: "luna-air", color: "#FFF" } })).sponsor).toEqual({ id: "luna-air", color: "#ffffff" });
+  it("rejects the logo colors of the silhouette era", () => {
+    expect(() => parseKitDefinition({ ...makeKit(), sponsor: { id: "luna-air", color: "primary" } })).toThrow(/color/);
+    expect(() => parseKitDefinition({ ...makeKit(), manufacturer: { id: "vertex", outline: "#000000" } })).toThrow(/outline/);
   });
 
-  it("rejects logo colors that are neither a palette role nor a hex color", () => {
-    expect(() => parseKitDefinition({ ...makeKit(), sponsor: { id: "luna-air", color: "gold" } })).toThrow(/sponsor\.color/);
-  });
-
-  it("rejects invalid logo ids and unknown logo keys", () => {
-    expect(() => parseKitDefinition({ ...makeKit(), manufacturer: { id: "Vertex", color: "primary" } })).toThrow(/manufacturer\.id/);
-    expect(() => parseKitDefinition({ ...makeKit(), sponsor: { id: "luna-air", color: "primary", colour: "accent" } })).toThrow(/colour/);
-  });
-});
-
-describe("resolveLogoColor", () => {
-  it("resolves palette roles and keeps hex colors", () => {
-    expect(resolveLogoColor(makeKit(), "accent")).toBe("#ffd700");
-    expect(resolveLogoColor(makeKit(), "#000000")).toBe("#000000");
+  it("rejects invalid logo ids", () => {
+    expect(() => parseKitDefinition({ ...makeKit(), manufacturer: { id: "Vertex" } })).toThrow(/manufacturer\.id/);
   });
 });
 

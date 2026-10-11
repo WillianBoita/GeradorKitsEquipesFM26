@@ -35,11 +35,9 @@
   },
   "badge": true,
   "sponsor": {
-    "id": "rosso-esports",
-    "color": "accent"
+    "id": "rosso-esports"
   },
   "manufacturer": {
-    "id": "adidas",
-    "color": "accent"
+    "id": "adidas"
   }
 }

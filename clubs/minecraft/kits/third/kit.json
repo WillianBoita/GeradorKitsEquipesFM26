@@ -44,11 +44,9 @@
   },
   "badge": true,
   "sponsor": {
-    "id": "mojang",
-    "color": "#000000"
+    "id": "mojang"
   },
   "manufacturer": {
-    "id": "nike",
-    "color": "#000000"
+    "id": "nike"
   }
 }

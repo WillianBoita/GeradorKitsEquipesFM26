@@ -81,17 +81,8 @@ async function outlineLayer(mask: AlphaMask, outline: LogoOutline, position: { l
   return { input: await tint(dilate(mask, outline.width), outline.color), left: position.left - outline.width, top: position.top - outline.width };
 }
 
-// Patrocinador e fabricante viram silhueta: só o alfa do arquivo importa, a cor vem do kit.
-export async function brandLogoLayers(input: Buffer, box: PixelBox, color: string, outline?: LogoOutline): Promise<LogoLayer[]> {
-  const image = await fitImage(input, box.width, box.height);
-  const mask = alphaMask(image);
-  const position = centered(box, image.width, image.height);
-  const fill = { input: await tint(mask, color), ...position };
-  if (!outline) return [fill];
-  return [await outlineLayer(mask, outline, position), fill];
-}
-
-export async function badgeLayers(input: Buffer, box: PixelBox, outline: LogoOutline): Promise<LogoLayer[]> {
+// Escudo, patrocinador e fabricante mantêm as cores do arquivo; a borda sai da silhueta (alfa) e fica por baixo.
+export async function logoLayers(input: Buffer, box: PixelBox, outline: LogoOutline): Promise<LogoLayer[]> {
   const image = await fitImage(input, box.width, box.height);
   const position = centered(box, image.width, image.height);
   const png = await sharp(image.data, { raw: { width: image.width, height: image.height, channels: 4 } })

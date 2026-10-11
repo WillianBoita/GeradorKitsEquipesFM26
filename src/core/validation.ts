@@ -3,20 +3,9 @@ import { listLayerTemplates, listPatternTemplates } from "../patterns/registry.j
 import { patternCandidates } from "../styles/pattern-weights.js";
 import { findStyleProfile, knownStyleIds } from "../styles/profiles.js";
 import type { ClubIdentity } from "./club.js";
-import { colorDistance, contrastRatio } from "./color.js";
-import {
-  BRAND_KINDS,
-  BRAND_LISTS,
-  COLOR_ROLES,
-  KIT_TYPES,
-  resolveLogoColor,
-  visibleRoles,
-  type ColorRole,
-  type KitDefinition,
-  type KitType,
-  type LogoSlot,
-} from "./kit.js";
-import { backgroundRoles, MIN_LOGO_CONTRAST, overlayShare } from "./logo-colors.js";
+import { colorDistance } from "./color.js";
+import { BRAND_KINDS, BRAND_LISTS, COLOR_ROLES, KIT_TYPES, visibleRoles, type ColorRole, type KitDefinition, type KitType, type LogoSlot } from "./kit.js";
+import { overlayShare } from "./logo-colors.js";
 import type { Palette } from "./palette.js";
 
 export interface ValidationIssue {
@@ -120,33 +109,6 @@ export function validatePalette(palette: Palette): ValidationIssue[] {
   return validateColors(palette);
 }
 
-function logoContrastIssues(kit: KitDefinition): ValidationIssue[] {
-  return BRAND_KINDS.flatMap((kind) => {
-    const logo = kit[kind];
-    if (!logo) return [];
-    const color = resolveLogoColor(kit, logo.color);
-    const outline = logo.outline === undefined ? undefined : resolveLogoColor(kit, logo.outline);
-    const label = `${kit.kitType} kit ${kind} ${color}`;
-    const issues: ValidationIssue[] = [];
-    if (outline !== undefined && contrastRatio(color, outline) < MIN_LOGO_CONTRAST) {
-      const contrast = contrastRatio(color, outline).toFixed(2);
-      issues.push({ rule: "logo-contrast", message: `${label} and its outline ${outline} have contrast ${contrast} (minimum ${MIN_LOGO_CONTRAST})` });
-    }
-    for (const role of backgroundRoles(kit, kind)) {
-      const background = kit.colors[role];
-      const contrast = Math.max(contrastRatio(color, background), outline === undefined ? 0 : contrastRatio(outline, background));
-      if (contrast < MIN_LOGO_CONTRAST) {
-        const subject = outline === undefined ? label : `${label} with outline ${outline}`;
-        issues.push({
-          rule: "logo-contrast",
-          message: `${subject} has contrast ${contrast.toFixed(2)} against ${role} ${background} (minimum ${MIN_LOGO_CONTRAST})`,
-        });
-      }
-    }
-    return issues;
-  });
-}
-
 function layerIssues(kit: KitDefinition): ValidationIssue[] {
   const layerIds = listLayerTemplates().map((template) => template.id);
   const templates = new Map(listPatternTemplates().map((template) => [template.id, template]));
@@ -173,8 +135,7 @@ function layerIssues(kit: KitDefinition): ValidationIssue[] {
 export function validateKit(kit: KitDefinition): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const known = knownPatternIds();
-  const patternKnown = known.includes(kit.pattern.id);
-  if (!patternKnown) {
+  if (!known.includes(kit.pattern.id)) {
     issues.push({ rule: "unknown-pattern", message: `${kit.kitType} kit uses unknown pattern "${kit.pattern.id}" (known: ${known.join(", ")})` });
   }
   const { base, overlay } = kit.pattern;
@@ -187,8 +148,6 @@ export function validateKit(kit: KitDefinition): ValidationIssue[] {
       issues.push({ rule: "pattern-contrast", message: `${kit.kitType} kit base ${kit.colors[base]} and overlay ${kit.colors[overlay]} are ${problem}` });
     }
   }
-  // Sem colorAt não há como medir o fundo; unknown-pattern já explica o problema.
-  if (patternKnown) issues.push(...logoContrastIssues(kit));
   return [...issues, ...layerIssues(kit)];
 }
 

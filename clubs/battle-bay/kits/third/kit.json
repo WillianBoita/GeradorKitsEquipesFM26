@@ -36,11 +36,9 @@
   },
   "badge": true,
   "sponsor": {
-    "id": "toppat-clan",
-    "color": "#000000"
+    "id": "toppat-clan"
   },
   "manufacturer": {
-    "id": "adidas",
-    "color": "#000000"
+    "id": "adidas"
   }
 }

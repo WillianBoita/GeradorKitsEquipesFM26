@@ -1,6 +1,6 @@
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
-import { brandLogoLayers, fitImage } from "../../src/renderers/logo-image.js";
+import { fitImage, logoLayers } from "../../src/renderers/logo-image.js";
 import { makeLogoPng } from "../fixtures/assets.js";
 
 describe("fitImage", () => {
@@ -28,25 +28,25 @@ describe("fitImage", () => {
   });
 });
 
-describe("brandLogoLayers", () => {
+describe("logoLayers", () => {
   const box = { left: 10, top: 20, width: 124, height: 48 };
+  const outline = { color: "#ffffff", width: 2 };
 
-  it("returns one centered silhouette in the logo color", async () => {
-    const layers = await brandLogoLayers(await makeLogoPng(60, 20), box, "#ffd700");
-    expect(layers).toHaveLength(1);
-    expect(layers[0]).toMatchObject({ left: 10, top: 23 });
-    const { data, info } = await sharp(layers[0]!.input).raw().toBuffer({ resolveWithObject: true });
+  it("keeps the file colors, centered in the box", async () => {
+    const layers = await logoLayers(await makeLogoPng(60, 20, "#00ff00"), box, outline);
+    expect(layers[1]).toMatchObject({ left: 10, top: 23 });
+    const { data, info } = await sharp(layers[1]!.input).raw().toBuffer({ resolveWithObject: true });
     const index = (20 * info.width + 62) * info.channels;
-    expect([...data.subarray(index, index + 4)]).toEqual([0xff, 0xd7, 0x00, 255]);
+    expect([...data.subarray(index, index + 4)]).toEqual([0, 0xff, 0, 255]);
   });
 
-  it("puts the outline under the fill, grown by the outline width on every side", async () => {
-    const layers = await brandLogoLayers(await makeLogoPng(60, 20), box, "#ffd700", { color: "#ffffff", width: 2 });
+  it("puts the outline under the logo, grown by the outline width on every side", async () => {
+    const layers = await logoLayers(await makeLogoPng(60, 20), box, outline);
     expect(layers.map(({ left, top }) => [left, top])).toEqual([
       [8, 21],
       [10, 23],
     ]);
-    const [outline, fill] = await Promise.all(layers.map((layer) => sharp(layer.input).metadata()));
-    expect([outline!.width, outline!.height]).toEqual([fill!.width + 4, fill!.height + 4]);
+    const [under, logo] = await Promise.all(layers.map((layer) => sharp(layer.input).metadata()));
+    expect([under!.width, under!.height]).toEqual([logo!.width + 4, logo!.height + 4]);
   });
 });

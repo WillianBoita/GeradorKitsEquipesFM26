@@ -206,11 +206,7 @@ describe("renderKit3dPng", () => {
 });
 
 describe("renderKit3dPng logos", () => {
-  const brandedKit = makeKit({
-    badge: true,
-    sponsor: { id: "luna-air", color: "accent", outline: "secondary" },
-    manufacturer: { id: "vertex", color: "#000000" },
-  });
+  const brandedKit = makeKit({ badge: true, sponsor: { id: "luna-air" }, manufacturer: { id: "vertex" } });
   const logos = async (): Promise<KitLogoImages> => ({
     badge: await makeLogoPng(40, 40, "#00ff00"),
     sponsor: Buffer.from(LOGO_SVG),
@@ -241,18 +237,19 @@ describe("renderKit3dPng logos", () => {
     for (const [slot, count] of hits) expect(count, slot).toBeGreaterThan(0);
   });
 
-  it("keeps the badge colors and paints the brands with the kit colors", async () => {
+  it("keeps the colors of the logo files", async () => {
     const texture = await raster(await renderKit3dPng(brandedKit, { logos: await logos() }));
     expect(pixel(texture, ...boxCenter("badge"))).toEqual(GREEN);
-    expect(pixel(texture, ...boxCenter("manufacturer"))).toEqual([0, 0, 0, 255]);
+    expect(pixel(texture, ...boxCenter("manufacturer"))).toEqual([0xff, 0, 0xff, 255]);
   });
 
-  it("outlines the badge in white on a dark kit", async () => {
+  it.each(["badge", "sponsor", "manufacturer"] as const)("outlines the %s in white on a dark kit", async (slot) => {
     const texture = await raster(await renderKit3dPng(brandedKit, { logos: await logos() }));
-    const [x, centerY] = boxCenter("badge");
-    const top = Math.floor(frontLogoBox("badge").y * KIT_3D_SIZE) - 4;
+    const [x, centerY] = boxCenter(slot);
+    const top = Math.floor(frontLogoBox(slot).y * KIT_3D_SIZE) - 4;
     const column = Array.from({ length: centerY - top }, (_, offset) => pixel(texture, x, top + offset));
-    expect(column).toContainEqual(SECONDARY);
+    // A borda de 2 px pode cair entre pixels: o mais claro dela sai quase branco, não branco exato.
+    expect(Math.min(...column.map((color) => channelDistance(color, SECONDARY)))).toBeLessThanOrEqual(4);
   });
 
   it("scales the logos with the size", async () => {

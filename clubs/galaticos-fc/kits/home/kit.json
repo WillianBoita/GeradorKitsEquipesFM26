@@ -34,11 +34,9 @@
   },
   "badge": true,
   "sponsor": {
-    "id": "rosso-esports-white",
-    "color": "accent"
+    "id": "rosso-esports"
   },
   "manufacturer": {
-    "id": "nike",
-    "color": "accent"
+    "id": "nike"
   }
 }

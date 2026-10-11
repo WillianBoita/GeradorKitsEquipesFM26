@@ -45,11 +45,9 @@
   },
   "badge": true,
   "sponsor": {
-    "id": "ifunny",
-    "color": "primary"
+    "id": "reddit"
   },
   "manufacturer": {
-    "id": "adidas",
-    "color": "primary"
+    "id": "ifunny"
   }
 }

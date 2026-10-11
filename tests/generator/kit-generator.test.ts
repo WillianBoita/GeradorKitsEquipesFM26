@@ -269,13 +269,11 @@ describe("generateKitSet logos", () => {
     expect(sponsors).toEqual(new Set(["luna-air", "orbita-bank"]));
   });
 
-  it("chooses legible colors for the galaticos set of seed 42", () => {
-    const { home, away, third } = generateKitSet(branded, 42);
-    expect(home.sponsor).toMatchObject({ color: "primary", outline: "secondary" });
-    expect(home.manufacturer).toMatchObject({ color: "primary", outline: "secondary" });
-    expect(away.sponsor).toEqual({ id: away.sponsor!.id, color: "primary" });
-    expect(third.sponsor).toMatchObject({ color: "primary", outline: "secondary" });
-    expect(third.manufacturer).toEqual({ id: "vertex", color: "primary" });
+  it("saves only the brand ids, since the logos keep their file colors", () => {
+    for (const kit of Object.values(generateKitSet(branded, 42))) {
+      expect(kit.sponsor).toEqual({ id: kit.sponsor!.id });
+      expect(kit.manufacturer).toEqual({ id: "vertex" });
+    }
   });
 
   it("leaves out the logos the club does not configure", () => {
@@ -312,10 +310,10 @@ function setsDigest(club: ClubIdentity, badge: boolean): string {
 }
 
 // Guarda da Fase 3b: o clube sem categories (perfil classic) não pode mudar de kit para a mesma seed.
-// O branded (categoria modern) muda de propósito quando os pesos de gola, manga (Fase 4a) ou camada (Fase 4b) dos perfis mudam; atualize o hash só nessas mudanças.
+// O branded (categoria modern) muda de propósito quando os pesos de gola, manga (Fase 4a) ou camada (Fase 4b) dos perfis mudam ou quando muda o que vai nos logos (só o id desde que os logos mantêm as cores do arquivo); atualize o hash só nessas mudanças.
 describe("generateKitSet Phase 3b baseline", () => {
   it("keeps the sets of a club with pattern weights and brands", () => {
-    expect(setsDigest(branded, true)).toBe("6bb62a38bb1b4b32ce215d794e119ab307123a88a03290b9611cadabdd7c1191");
+    expect(setsDigest(branded, true)).toBe("c20550b8efc79d1ee736bae0e0670bc5dc0e4a6fff4c1f6f3d3cb2fff6b163f4");
   });
 
   it("keeps the sets of a club without categories or pattern weights", () => {

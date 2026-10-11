@@ -35,11 +35,9 @@
   },
   "badge": true,
   "sponsor": {
-    "id": "stark-industries",
-    "color": "secondary"
+    "id": "stark-industries"
   },
   "manufacturer": {
-    "id": "adidas",
-    "color": "#000000"
+    "id": "adidas"
   }
 }

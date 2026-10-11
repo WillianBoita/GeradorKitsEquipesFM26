@@ -21,6 +21,7 @@ const PRIMARY: Rgba = [0x12, 0x34, 0x56, 255];
 const SECONDARY: Rgba = [0xff, 0xff, 0xff, 255];
 const ACCENT: Rgba = [0xff, 0xd7, 0x00, 255];
 const GREEN: Rgba = [0, 0xff, 0, 255];
+const MAGENTA: Rgba = [0xff, 0, 0xff, 255];
 
 // Fração do tronco (sem gola e mangas) pintada pelo overlay branco; o canal vermelho separa branco (0xff) do navy da base (0x12).
 async function torsoOverlayShare(png: Buffer): Promise<number> {
@@ -255,8 +256,9 @@ describe("renderKit2dPng", () => {
 });
 
 describe("renderKit2dPng logos", () => {
-  const sponsorLogo = () => ({ sponsor: Buffer.from(LOGO_SVG) });
-  const sponsorKit = (outline?: "secondary") => makeKit({ sponsor: { id: "luna-air", color: "accent", ...(outline ? { outline } : {}) } });
+  const sponsorLogo = () => ({ sponsor: Buffer.from(LOGO_SVG.replace("<path", '<path fill="#00ff00"')) });
+  const sponsorKit = makeKit({ sponsor: { id: "luna-air" } });
+  const lightKit = (logos: object) => makeKit({ pattern: { id: "solid", base: "secondary", overlay: "primary", params: {} }, ...logos });
 
   it("renders a kit without logos exactly as the Phase 2a renderer", async () => {
     const kit = makeKit();
@@ -267,23 +269,21 @@ describe("renderKit2dPng logos", () => {
   });
 
   // LOGO_SVG ocupa 124×41 a partir de (145, 184); o furo central fica entre x 194–219 e y 196–212.
-  it("paints the sponsor silhouette with the logo color and leaves its hole transparent", async () => {
-    const png = await renderKit2dPng(sponsorKit(), { logos: sponsorLogo() });
-    expect(await pixelAt(png, 155, 205)).toEqual(ACCENT);
+  it("keeps the sponsor colors and leaves its hole transparent", async () => {
+    const png = await renderKit2dPng(sponsorKit, { logos: sponsorLogo() });
+    expect(await pixelAt(png, 155, 205)).toEqual(GREEN);
     expect(await pixelAt(png, 207, 205)).toEqual(PRIMARY);
   });
 
-  it("draws the outline around the sponsor only when the kit asks for it", async () => {
-    const withOutline = await renderKit2dPng(sponsorKit("secondary"), { logos: sponsorLogo() });
-    const without = await renderKit2dPng(sponsorKit(), { logos: sponsorLogo() });
-    expect(await pixelAt(withOutline, 155, 183)).toEqual(SECONDARY);
-    expect(await pixelAt(withOutline, 155, 205)).toEqual(ACCENT);
-    expect(await pixelAt(without, 155, 183)).toEqual(PRIMARY);
+  // y = 183 fica logo acima do LOGO_SVG, que começa em y 184.
+  it("outlines the sponsor in white on a dark kit and in black on a light kit", async () => {
+    expect(await pixelAt(await renderKit2dPng(sponsorKit, { logos: sponsorLogo() }), 155, 183)).toEqual(SECONDARY);
+    expect(await pixelAt(await renderKit2dPng(lightKit({ sponsor: { id: "luna-air" } }), { logos: sponsorLogo() }), 155, 183)).toEqual([0, 0, 0, 255]);
   });
 
-  it("paints the manufacturer with its own color", async () => {
-    const kit = makeKit({ manufacturer: { id: "vertex", color: "#000000" } });
-    expect(await pixelAt(await renderKit2dPng(kit, { logos: { manufacturer: await makeLogoPng(30, 30) } }), 164, 120)).toEqual([0, 0, 0, 255]);
+  it("keeps the manufacturer colors", async () => {
+    const png = await renderKit2dPng(makeKit({ manufacturer: { id: "vertex" } }), { logos: { manufacturer: await makeLogoPng(30, 30) } });
+    expect(await pixelAt(png, 164, 120)).toEqual(MAGENTA);
   });
 
   it("keeps the badge colors", async () => {
@@ -291,27 +291,33 @@ describe("renderKit2dPng logos", () => {
     expect(await pixelAt(png, 250, 120)).toEqual(GREEN);
   });
 
+  // A caixa do escudo é x 225–269, y 102–146; sem a margem transparente de 2 px do arquivo (2,2 px na caixa), o verde vai de 228 a 266 e de 105 a 143.
+  it("fills the whole 44 px badge box", async () => {
+    const png = await renderKit2dPng(makeKit({ badge: true }), { logos: { badge: await makeLogoPng(40, 40, "#00ff00") } });
+    expect(await pixelAt(png, 228, 105)).toEqual(GREEN);
+    expect(await pixelAt(png, 266, 143)).toEqual(GREEN);
+  });
+
   it("outlines the badge in white on a dark kit and in black on a light kit", async () => {
     const logos = { badge: await makeLogoPng(40, 40, "#00ff00") };
-    const light = makeKit({ badge: true, pattern: { id: "solid", base: "secondary", overlay: "primary", params: {} } });
-    // x = 232 é a margem transparente do escudo, na borda esquerda da caixa (x 232–268).
-    expect(await pixelAt(await renderKit2dPng(makeKit({ badge: true }), { logos }), 232, 120)).toEqual(SECONDARY);
-    expect(await pixelAt(await renderKit2dPng(light, { logos }), 232, 120)).toEqual([0, 0, 0, 255]);
+    // x = 226 é a margem transparente do escudo, na borda esquerda da caixa.
+    expect(await pixelAt(await renderKit2dPng(makeKit({ badge: true }), { logos }), 226, 120)).toEqual(SECONDARY);
+    expect(await pixelAt(await renderKit2dPng(lightKit({ badge: true }), { logos }), 226, 120)).toEqual([0, 0, 0, 255]);
   });
 
   it("scales logos with the image size", async () => {
-    expect(await pixelAt(await renderKit2dPng(sponsorKit(), { size: 828, logos: sponsorLogo() }), 310, 410)).toEqual(ACCENT);
+    expect(await pixelAt(await renderKit2dPng(sponsorKit, { size: 828, logos: sponsorLogo() }), 310, 410)).toEqual(GREEN);
   });
 
   it.each(["badge", "sponsor", "manufacturer"] as const)("fails when the kit declares a %s without its image", async (slot) => {
-    const kit = makeKit({ badge: true, sponsor: { id: "luna-air", color: "accent" }, manufacturer: { id: "vertex", color: "accent" } });
+    const kit = makeKit({ badge: true, sponsor: { id: "luna-air" }, manufacturer: { id: "vertex" } });
     const logos: KitLogoImages = { badge: await makeLogoPng(40, 40), sponsor: Buffer.from(LOGO_SVG), manufacturer: await makeLogoPng(30, 30) };
     delete logos[slot];
     await expect(renderKit2dPng(kit, { logos })).rejects.toThrow(`Kit declares a ${slot} but no ${slot} image was provided`);
   });
 
   it("is deterministic with logos", async () => {
-    const kit = makeKit({ badge: true, sponsor: { id: "luna-air", color: "accent", outline: "secondary" } });
+    const kit = makeKit({ badge: true, sponsor: { id: "luna-air" } });
     const logos = { badge: await makeLogoPng(40, 40, "#00ff00"), ...sponsorLogo() };
     expect((await renderKit2dPng(kit, { logos })).equals(await renderKit2dPng(kit, { logos }))).toBe(true);
   });

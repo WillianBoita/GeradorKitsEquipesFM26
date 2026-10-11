@@ -4,6 +4,6 @@
   "fmUniqueId": "2000778254",
   "palette": { "primary": "#1C1C1C", "secondary": "#F7CA05", "accent": "#9494FF" },
   "style": { "categories": ["retro"] },
-  "sponsors": { "reddit": 1, "ifunny": 2 },
-  "manufacturers": { "adidas": 1 }
+  "sponsors": { "reddit": 1 },
+  "manufacturers": { "ifunny": 1 }
 }

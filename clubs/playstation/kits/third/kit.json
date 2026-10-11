@@ -52,11 +52,9 @@
   },
   "badge": true,
   "sponsor": {
-    "id": "gran-turismo",
-    "color": "secondary"
+    "id": "gran-turismo"
   },
   "manufacturer": {
-    "id": "adidas",
-    "color": "secondary"
+    "id": "adidas"
   }
 }

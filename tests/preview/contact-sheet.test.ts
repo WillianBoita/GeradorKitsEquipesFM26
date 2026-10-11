@@ -60,8 +60,8 @@ describe("kitDetails", () => {
     const kit = makeKit({
       generatedWith: { seed: 42 },
       pattern: { id: "stripes", base: "primary", overlay: "secondary", params: { count: 7, ratio: 0.3 } },
-      sponsor: { id: "luna-air", color: "accent" },
-      manufacturer: { id: "vertex", color: "accent" },
+      sponsor: { id: "luna-air" },
+      manufacturer: { id: "vertex" },
     });
     expect(kitDetails(kit)).toEqual([
       "stripes · classic · count 7, ratio 0.3",

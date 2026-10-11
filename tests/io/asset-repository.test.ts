@@ -24,7 +24,7 @@ async function truncatedPng(): Promise<Buffer> {
   return png.subarray(0, Math.floor(png.length / 2));
 }
 
-const BRANDED_KIT = makeKit({ badge: true, sponsor: { id: "luna-air", color: "accent" }, manufacturer: { id: "vertex", color: "accent" } });
+const BRANDED_KIT = makeKit({ badge: true, sponsor: { id: "luna-air" }, manufacturer: { id: "vertex" } });
 const ALL_REFS = { badge: true, sponsors: ["luna-air", "orbita-bank"], manufacturers: ["vertex"] };
 
 describe("loadKitLogos", () => {
@@ -53,7 +53,7 @@ describe("loadKitLogos", () => {
 
   it("rejects ids missing from the registry", async () => {
     const dirs = await setup();
-    const kit = makeKit({ sponsor: { id: "acme", color: "accent" } });
+    const kit = makeKit({ sponsor: { id: "acme" } });
     await expect(loadKitLogos(kit, await loadAssetRegistry(dirs.assetsDir), dirs)).rejects.toThrow('Unknown sponsor "acme" (known: luna-air, orbita-bank)');
   });
 

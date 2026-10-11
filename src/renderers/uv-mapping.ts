@@ -130,7 +130,7 @@ export function regionViews(region: UvRegion): RegionView[] {
   }
 }
 
-// A caixa 3D é a imagem da caixa 2D: o fundo atrás do logo é o que backgroundRoles mediu no 2D, e a cor do logo no kit.json continua valendo.
+// A caixa 3D é a imagem da caixa 2D: o fundo atrás do logo é o que backgroundRoles mede no 2D, e a cor da borda continua valendo.
 export function frontLogoBox(slot: LogoSlot): UvRect {
   const box = LOGO_BOXES[slot];
   const transform = torsoTransform(frontRegion(), "front");

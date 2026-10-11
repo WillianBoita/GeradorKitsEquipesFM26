@@ -35,11 +35,9 @@
   },
   "badge": true,
   "sponsor": {
-    "id": "fazbear-entertainment",
-    "color": "#ffffff"
+    "id": "fazbear-entertainment"
   },
   "manufacturer": {
-    "id": "adidas",
-    "color": "secondary"
+    "id": "adidas"
   }
 }

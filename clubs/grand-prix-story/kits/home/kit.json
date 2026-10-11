@@ -52,13 +52,9 @@
   },
   "badge": true,
   "sponsor": {
-    "id": "toppat-clan",
-    "color": "secondary",
-    "outline": "primary"
+    "id": "rosso-esports"
   },
   "manufacturer": {
-    "id": "adidas",
-    "color": "secondary",
-    "outline": "primary"
+    "id": "adidas"
   }
 }

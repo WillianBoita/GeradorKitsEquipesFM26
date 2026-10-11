@@ -35,13 +35,9 @@
   },
   "badge": true,
   "sponsor": {
-    "id": "toppat-clan",
-    "color": "primary",
-    "outline": "secondary"
+    "id": "toppat-clan"
   },
   "manufacturer": {
-    "id": "nike",
-    "color": "primary",
-    "outline": "secondary"
+    "id": "nike"
   }
 }

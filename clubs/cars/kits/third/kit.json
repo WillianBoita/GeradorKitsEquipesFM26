@@ -43,11 +43,9 @@
   },
   "badge": true,
   "sponsor": {
-    "id": "rusteze",
-    "color": "#000000"
+    "id": "dinoco"
   },
   "manufacturer": {
-    "id": "nike",
-    "color": "secondary"
+    "id": "rusteze"
   }
 }

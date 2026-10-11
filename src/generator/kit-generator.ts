@@ -10,7 +10,6 @@ import {
   type KitLayer,
   type KitType,
 } from "../core/kit.js";
-import { backgroundRoles, chooseLogoColors, type LogoColors } from "../core/logo-colors.js";
 import { resolvePalette, type Palette } from "../core/palette.js";
 import { createRng, deriveSeed, type Rng } from "../core/random.js";
 import { formatIssues, validateClub, validatePalette, type ValidationIssue } from "../core/validation.js";
@@ -147,17 +146,7 @@ function withLogos(kit: KitDefinition, logos: LogoChoice): KitDefinition {
   if (logos.badge) result.badge = true;
   for (const kind of BRAND_KINDS) {
     const id = logos[kind];
-    if (id !== undefined) result[kind] = { id, ...legibleColors(kit, kind) };
+    if (id !== undefined) result[kind] = { id };
   }
   return result;
-}
-
-function legibleColors(kit: KitDefinition, kind: BrandKind): LogoColors {
-  const colors = chooseLogoColors(
-    kit.colors,
-    backgroundRoles(kit, kind).map((role) => kit.colors[role]),
-  );
-  // Inalcançável com cores válidas: o par branco + preto sempre passa (spec da Fase 2b, seção 5.4).
-  if (!colors) throw new Error(`No legible ${kind} color for the ${kit.kitType} kit of club "${kit.clubId}"`);
-  return colors;
 }

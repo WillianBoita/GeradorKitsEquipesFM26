@@ -3,7 +3,7 @@ import path from "node:path";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import { parseSeed, runCli, USAGE } from "../../src/cli/run-cli.js";
-import { KIT_TYPES, parseKitDefinition, resolveLogoColor, type KitType } from "../../src/core/kit.js";
+import { KIT_TYPES, parseKitDefinition, type KitType } from "../../src/core/kit.js";
 import { deriveSeed, MAX_SEED } from "../../src/core/random.js";
 import { frontLogoBox } from "../../src/renderers/uv-mapping.js";
 import { makeAssetsDir, makeOpaquePng, writeClubLogo } from "../fixtures/assets.js";
@@ -44,10 +44,6 @@ async function pixelAt(png: Buffer, x: number, y: number): Promise<number[]> {
   return [...data.subarray(index, index + 4)];
 }
 
-function rgba(hex: string): number[] {
-  return [...[1, 3, 5].map((start) => Number.parseInt(hex.slice(start, start + 2), 16)), 255];
-}
-
 async function brandedSetup(withLogo = true): Promise<{ clubs: string; assets: string }> {
   const clubs = await makeClubsDir({ "galaticos-fc": JSON.stringify(GALATICOS_BRANDED_CLUB) });
   if (withLogo) await writeClubLogo(clubs, "galaticos-fc");
@@ -55,6 +51,8 @@ async function brandedSetup(withLogo = true): Promise<{ clubs: string; assets: s
 }
 
 const GREEN = [0, 255, 0, 255];
+// Cor do vertex.png de makeAssetsDir.
+const MAGENTA = [255, 0, 255, 255];
 
 describe("parseSeed", () => {
   it.each([
@@ -249,7 +247,7 @@ describe("runCli generate with logos", () => {
       expect(kit.manufacturer?.id).toBe("vertex");
       const png = await readFile(pngFile(out, "galaticos-fc", kit.kitType));
       expect(await pixelAt(png, 250, 120)).toEqual(GREEN);
-      expect(await pixelAt(png, 164, 120)).toEqual(rgba(resolveLogoColor(kit, kit.manufacturer!.color)));
+      expect(await pixelAt(png, 164, 120)).toEqual(MAGENTA);
     }
   });
 
@@ -358,10 +356,10 @@ describe("runCli render", () => {
     const { clubs, assets } = await brandedSetup();
     const dir = await makeTempDir("cli");
     const [definition, png] = [path.join(dir, "kit.json"), path.join(dir, "kit.png")];
-    await writeFile(definition, JSON.stringify(makeKit({ badge: true, manufacturer: { id: "vertex", color: "#000000" } })));
+    await writeFile(definition, JSON.stringify(makeKit({ badge: true, manufacturer: { id: "vertex" } })));
     expect(await runCli(["render", "--definition", definition, "--out", png, "--clubs", clubs, "--assets", assets], captureIo().io)).toBe(0);
     expect(await pixelAt(await readFile(png), 250, 120)).toEqual(GREEN);
-    expect(await pixelAt(await readFile(png), 164, 120)).toEqual([0, 0, 0, 255]);
+    expect(await pixelAt(await readFile(png), 164, 120)).toEqual(MAGENTA);
   });
 
   it("names the missing badge when rendering", async () => {
@@ -387,7 +385,7 @@ describe("runCli render", () => {
     const { clubs, assets } = await brandedSetup();
     const dir = await makeTempDir("cli");
     const [definition, png] = [path.join(dir, "kit.json"), path.join(dir, "kit_3d.png")];
-    await writeFile(definition, JSON.stringify(makeKit({ badge: true, manufacturer: { id: "vertex", color: "#000000" } })));
+    await writeFile(definition, JSON.stringify(makeKit({ badge: true, manufacturer: { id: "vertex" } })));
     const argv = ["render", "--definition", definition, "--out", png, "--render", "3d", "--clubs", clubs, "--assets", assets];
     expect(await runCli(argv, captureIo().io)).toBe(0);
     const center = (slot: "badge" | "manufacturer"): [number, number] => {
@@ -395,7 +393,7 @@ describe("runCli render", () => {
       return [Math.floor((box.x + box.width / 2) * 1024), Math.floor((box.y + box.height / 2) * 1024)];
     };
     expect(await pixelAt(await readFile(png), ...center("badge"))).toEqual(GREEN);
-    expect(await pixelAt(await readFile(png), ...center("manufacturer"))).toEqual([0, 0, 0, 255]);
+    expect(await pixelAt(await readFile(png), ...center("manufacturer"))).toEqual(MAGENTA);
   });
 
   it.each(["4d", "3D"])("rejects --render %s", async (value) => {
@@ -523,20 +521,6 @@ describe("runCli validate", () => {
     expect(errors[0]).toContain(`  - missing-asset: manufacturer "vertex" file not found: ${path.join(setup.assets, "manufacturers", "vertex.png")}`);
     expect(errors[0]).toContain('  - opaque-logo: sponsor "orbita-bank" (sponsors/orbita-bank.png) has no transparent pixels');
     expect(errors[0]).toContain('  - invalid-file: sponsor "luna-air" (sponsors/luna-air.svg) is not a valid image');
-  });
-
-  it("reports a hand-edited logo color without contrast", async () => {
-    const setup = await generatedBrandedSetup();
-    const home = await readHome(setup.clubs);
-    const edited = {
-      ...home,
-      pattern: { id: "solid", base: "primary", overlay: "secondary", params: {} },
-      sponsor: { id: home.sponsor!.id, color: "primary" },
-    };
-    await writeFile(kitFile(setup.clubs, "galaticos-fc", "home"), JSON.stringify(edited));
-    const { code, errors } = await validateBranded(setup);
-    expect(code).toBe(1);
-    expect(errors[0]).toContain("  - logo-contrast: home kit sponsor #123456 has contrast 1.00 against primary #123456 (minimum 3)");
   });
 
   it("fails every club when the asset registry is missing", async () => {

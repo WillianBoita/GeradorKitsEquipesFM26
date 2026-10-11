@@ -47,8 +47,9 @@ export interface LogoBox {
 }
 
 // Escudo no peito esquerdo do jogador (direita de quem olha), fabricante no direito, patrocinador no centro; todas abaixo das golas (y ≤ 101) e fora da carcela da polo.
+// O escudo e o patrocinador terminam em x 269: no máximo dos parâmetros, a double-pinline da direita começa em x 271.
 export const LOGO_BOXES: Record<LogoSlot, LogoBox> = {
-  badge: { x: 232, y: 102, width: 36, height: 36 },
+  badge: { x: 225, y: 102, width: 44, height: 44 },
   manufacturer: { x: 149, y: 105, width: 30, height: 30 },
   sponsor: { x: 145, y: 181, width: 124, height: 48 },
 };

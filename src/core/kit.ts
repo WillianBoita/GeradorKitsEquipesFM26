@@ -16,9 +16,8 @@ export const MAX_LAYERS = 2;
 
 export const KitTypeSchema = z.enum(KIT_TYPES);
 export const ColorRoleSchema = z.enum(COLOR_ROLES);
-// Papel acompanha edições da paleta; hex cobre branco e preto, que não são papéis.
-export const LogoColorSchema = z.union([ColorRoleSchema, HexColorSchema]);
-const BrandLogoSchema = z.strictObject({ id: AssetIdSchema, color: LogoColorSchema, outline: LogoColorSchema.optional() });
+// O logo mantém as cores do arquivo e a borda é calculada na renderização: só o id vai para o kit.json.
+const BrandLogoSchema = z.strictObject({ id: AssetIdSchema });
 // Camada de detalhe sobre o padrão principal, só no corpo; o id aponta para um padrão com layerSlot.
 const LayerSchema = z.strictObject({ id: z.string().min(1), color: ColorRoleSchema, params: z.record(z.string(), z.number()).default({}) });
 
@@ -47,21 +46,12 @@ export type SleeveStyle = (typeof SLEEVE_STYLES)[number];
 export type SleeveCut = (typeof SLEEVE_CUTS)[number];
 export type BrandKind = (typeof BRAND_KINDS)[number];
 export type LogoSlot = "badge" | BrandKind;
-export type LogoColor = z.infer<typeof LogoColorSchema>;
 export type BrandLogo = z.infer<typeof BrandLogoSchema>;
 export type KitLayer = z.infer<typeof LayerSchema>;
 export type KitDefinition = z.infer<typeof KitDefinitionSchema>;
 
 export function parseKitDefinition(input: unknown): KitDefinition {
   return parseWith(KitDefinitionSchema, input, "kit definition");
-}
-
-export function isColorRole(value: string): value is ColorRole {
-  return (COLOR_ROLES as readonly string[]).includes(value);
-}
-
-export function resolveLogoColor(kit: KitDefinition, value: LogoColor): string {
-  return isColorRole(value) ? kit.colors[value] : value;
 }
 
 // Kit sem cut é set-in: os kit.json de antes da Fase 4a não declaram o corte.
