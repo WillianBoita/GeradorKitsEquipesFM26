@@ -1,7 +1,7 @@
 import { XMLValidator } from "fast-xml-parser";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
-import type { KitDefinition } from "../../src/core/kit.js";
+import type { CollarStyle, KitDefinition } from "../../src/core/kit.js";
 import type { KitLogoImages } from "../../src/renderers/kit-logos.js";
 import { renderKit2dPng } from "../../src/renderers/renderer-2d.js";
 import { KIT_3D_SIZE, renderKit3dPng, renderKit3dSvg } from "../../src/renderers/renderer-3d.js";
@@ -50,9 +50,11 @@ describe("renderKit3dSvg", () => {
     expect(renderKit3dSvg(patternKit("sash"))).toBe(renderKit3dSvg(patternKit("sash")));
   });
 
-  it("ignores the collar style, left to the collar shapes", () => {
-    const plain = renderKit3dSvg(makeKit());
-    for (const style of ["v-neck", "polo", "polo-v"] as const) expect(renderKit3dSvg(makeKit({ collar: { style, color: "accent" } }))).toBe(plain);
+  it("draws the collar clip and the stripes only on striped kits, with the placket last", () => {
+    expect(renderKit3dSvg(makeKit())).not.toContain('<clipPath id="collar">');
+    const svg = renderKit3dSvg(makeKit({ collar: { style: "polo", color: "accent" }, trimStripe: { style: "double", color: "secondary" } }));
+    expect(svg).toContain('<clipPath id="collar">');
+    expect(svg.lastIndexOf('<rect x="505" y="630" width="20" height="46"')).toBeGreaterThan(svg.indexOf('clip-path="url(#collar)"'));
   });
 
   it("draws the raglan yoke and seams only on raglan sleeves", () => {
@@ -106,7 +108,7 @@ describe("renderKit3dPng", () => {
       ["left cuff", 768, 560, ACCENT],
       ["right long cuff", 13, 150, ACCENT],
       ["left long cuff", 1010, 150, ACCENT],
-      ["collar", 549, 597, ACCENT],
+      ["collar", 555, 597, ACCENT],
       ["collar", 477, 597, ACCENT],
       ["right shorts", 177, 896, ACCENT],
       ["left shorts", 850, 896, ACCENT],
@@ -261,6 +263,81 @@ describe("renderKit3dPng", () => {
     expect(pixel(setIn, 397, 498)).toEqual(ACCENT);
     expect(pixel(raglan, 397, 498)).toEqual(PRIMARY);
     expect(pixel(raglan, 420, 498)).toEqual(ACCENT);
+  });
+
+  // Âncoras medidas no PSD (spec da 4c, seção 4.2); o miolo da gola mostra o tronco.
+  const COLLAR_ANCHORS: [CollarStyle, [number, number][]][] = [
+    [
+      "round",
+      [
+        [474, 597],
+        [514, 557],
+        [514, 635],
+      ],
+    ],
+    [
+      "v-neck",
+      [
+        [474, 597],
+        [514, 645],
+      ],
+    ],
+    [
+      "polo",
+      [
+        [480, 634],
+        [514, 660],
+      ],
+    ],
+    [
+      "polo-v",
+      [
+        [475, 628],
+        [514, 648],
+      ],
+    ],
+  ];
+
+  it.each(COLLAR_ANCHORS)("draws the %s collar", async (style, anchors) => {
+    const texture = await raster(await renderKit3dPng(makeKit({ collar: { style, color: "accent" } })));
+    for (const [x, y] of anchors) expect(pixel(texture, x, y), `${x},${y}`).toEqual(ACCENT);
+    expect(pixel(texture, 514, 597)).toEqual(PRIMARY);
+  });
+
+  it("stops the round collar above the point of the v-neck", async () => {
+    expect(pixel(await raster(await renderKit3dPng(makeKit())), 514, 648)).toEqual(PRIMARY);
+  });
+
+  const stripedKit = (style: "single" | "double") =>
+    makeKit({
+      collar: { style: "round", color: "accent" },
+      sleeves: { style: "solid", color: "secondary", cuffColor: "accent" },
+      trimStripe: { style, color: "secondary" },
+    });
+
+  it("draws the collar stripes from the outer edge of the collar", async () => {
+    const single = await raster(await renderKit3dPng(stripedKit("single")));
+    expect(pixel(single, 473, 597)).toEqual(SECONDARY);
+    for (const x of [469, 477]) expect(pixel(single, x, 597), `x ${x}`).toEqual(ACCENT);
+    const double = await raster(await renderKit3dPng(stripedKit("double")));
+    for (const x of [470, 476]) expect(pixel(double, x, 597), `x ${x}`).toEqual(SECONDARY);
+    for (const x of [473, 478]) expect(pixel(double, x, 597), `x ${x}`).toEqual(ACCENT);
+  });
+
+  it("draws the stripes on the short-sleeve and the long-sleeve cuffs", async () => {
+    const single = await raster(await renderKit3dPng(stripedKit("single")));
+    expect(pixel(single, 257, 560)).toEqual(SECONDARY);
+    expect(pixel(single, 246, 560)).toEqual(ACCENT);
+    expect(pixel(single, 13, 150)).toEqual(SECONDARY);
+    expect(pixel(single, 3, 150)).toEqual(ACCENT);
+    const double = await raster(await renderKit3dPng(stripedKit("double")));
+    for (const x of [248, 264]) expect(pixel(double, x, 560), `x ${x}`).toEqual(SECONDARY);
+    expect(pixel(double, 257, 560)).toEqual(ACCENT);
+  });
+
+  it("scales the stripes with the texture size", async () => {
+    const texture = await raster(await renderKit3dPng(stripedKit("single"), { size: 512 }));
+    expect(pixel(texture, 128, 280)).toEqual(SECONDARY);
   });
 });
 

@@ -1,10 +1,12 @@
 import sharp from "sharp";
-import { sleeveCut, type KitDefinition, type LogoSlot } from "../core/kit.js";
+import { sleeveCut, type CollarStyle, type KitDefinition, type LogoSlot } from "../core/kit.js";
+import { FM26_COLLARS } from "../fm26/collars.js";
 import { FM26_KIT_LAYOUT, FM26_TEXTURE_SIZE, type UvPoint, type UvRect, type UvRegion } from "../fm26/layout.js";
 import { fillSvg, kitDesign, type KitDesign, type KitFill } from "./kit-design.js";
 import { kitLogoLayers, type KitLogoImages } from "./kit-logos.js";
 import type { PixelBox } from "./logo-image.js";
 import { SHIRT_2D_VIEWBOX } from "./shirt-2d-shape.js";
+import { centeredStripeStrokes, edgeStripeStrokes, stripeStrokesSvg } from "./trim-stripes.js";
 import { affineSvg, frontLogoBox, regionViews, torsoScale } from "./uv-mapping.js";
 
 export const KIT_3D_SIZE = FM26_TEXTURE_SIZE;
@@ -12,6 +14,8 @@ export const KIT_3D_SIZE = FM26_TEXTURE_SIZE;
 const OUTLINE_WIDTH = 2;
 // Costura da raglan como a camada "lines" do PSD: preto com opacidade 51/255.
 const SEAM_STROKE = 'fill="none" stroke="#000000" stroke-opacity="0.2" stroke-width="2"';
+// Profundidade nominal das listras da gola, medidas a partir da borda externa: a banda mais estreita das golas U e V, nas costas, tem 10 px.
+const COLLAR_STRIPE_WIDTH = 10;
 
 export interface Render3dOptions {
   size?: number;
@@ -100,14 +104,35 @@ function cuffLine(cuff: UvRect): { d: string; width: number } {
 
 function cuffSvg(cuff: UvRect, design: KitDesign): string {
   const { d, width } = cuffLine(cuff);
-  return `<path d="${d}" fill="none" stroke="${design.cuffs}" stroke-width="${width}"/>`;
+  const stripe = design.trimStripe;
+  const stripes = stripe === undefined ? "" : stripeStrokesSvg(d, centeredStripeStrokes(width, stripe.style), { stripe: stripe.color, trim: design.cuffs });
+
+  return `<path d="${d}" fill="none" stroke="${design.cuffs}" stroke-width="${width}"/>${stripes}`;
+}
+
+// Banda entre os contornos externo e interno; as listras traçam o contorno externo recortadas pela banda, e a carcela vem por último, como no PSD.
+function collarSvg(style: CollarStyle, design: KitDesign): RegionSvg {
+  const shape = FM26_COLLARS[style];
+  const outer = shapePath(shape.outer, true);
+  const band = `${outer} ${shapePath(shape.inner, true)}`;
+  const placket = shape.placket ? `<rect ${rectAttributes(shape.placket)} fill="${design.collar}"/>` : "";
+  const fill = `<path d="${band}" fill="${design.collar}" fill-rule="evenodd"/>`;
+  const stripe = design.trimStripe;
+  if (stripe === undefined) return { body: `${fill}${placket}` };
+
+  const strokes = edgeStripeStrokes(COLLAR_STRIPE_WIDTH, stripe.style);
+
+  return {
+    clip: `<clipPath id="collar"><path d="${band}" clip-rule="evenodd"/></clipPath>`,
+    body: `${fill}<g clip-path="url(#collar)">${stripeStrokesSvg(outer, strokes, { stripe: stripe.color, trim: design.collar }, ' stroke-linejoin="round"')}</g>${placket}`,
+  };
 }
 
 export function renderKit3dSvg(kit: KitDefinition, options: Render3dOptions = {}): string {
   const size = options.size ?? KIT_3D_SIZE;
   const texture = FM26_TEXTURE_SIZE;
   const design = kitDesign(kit);
-  const { regions, cuffs, collar, raglan } = FM26_KIT_LAYOUT;
+  const { regions, cuffs, raglan } = FM26_KIT_LAYOUT;
   const raglanCut = sleeveCut(kit) === "raglan";
   const drawn = regions.map((region, index) => ({ region, svg: regionSvg(region, `region-${index}`, design) }));
   // A raglan fica entre o tronco e as mangas: a manga curta, recortada pela cava, cobre a sobreposição.
@@ -116,18 +141,17 @@ export function renderKit3dSvg(kit: KitDefinition, options: Render3dOptions = {}
     ...(raglanCut ? [raglanSvg(design)] : []),
     ...drawn.filter(({ region }) => !isTorso(region)).map(({ svg }) => svg),
   ];
-  const ring = { cx: collar.cx * texture, cy: collar.cy * texture, r: ((collar.innerRadius + collar.outerRadius) / 2) * texture };
-  const ringWidth = (collar.outerRadius - collar.innerRadius) * texture;
+  const collar = collarSvg(kit.collar.style, design);
 
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${texture} ${texture}">`,
-    `<defs>${parts.map((part) => part.clip ?? "").join("")}</defs>`,
+    `<defs>${[...parts, collar].map((part) => part.clip ?? "").join("")}</defs>`,
     // Fundo opaco na cor base do corpo, como as máscaras do FM: o jogo pode amostrar além das ilhas nas bordas.
     `<rect width="${texture}" height="${texture}" fill="${baseColor(design.body)}"/>`,
     ...parts.map((part) => part.body),
     ...(raglanCut ? raglan.seams.map((seam) => `<path d="${shapePath(seam, false)}" ${SEAM_STROKE}/>`) : []),
     ...cuffs.map((cuff) => cuffSvg(cuff, design)),
-    `<circle cx="${ring.cx}" cy="${ring.cy}" r="${ring.r}" fill="none" stroke="${design.collar}" stroke-width="${ringWidth}"/>`,
+    collar.body,
     "</svg>",
   ].join("");
 }

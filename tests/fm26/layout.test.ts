@@ -61,14 +61,6 @@ describe("FM26_KIT_LAYOUT", () => {
     }
   });
 
-  it("keeps the collar ring inside the texture", () => {
-    const { cx, cy, innerRadius, outerRadius } = FM26_KIT_LAYOUT.collar;
-    expect(innerRadius).toBeGreaterThan(0);
-    expect(outerRadius).toBeGreaterThan(innerRadius);
-    for (const value of [cx - outerRadius, cy - outerRadius]) expect(value).toBeGreaterThanOrEqual(0);
-    for (const value of [cx + outerRadius, cy + outerRadius]) expect(value).toBeLessThanOrEqual(1);
-  });
-
   it("never overlaps two regions", () => {
     const { regions } = FM26_KIT_LAYOUT;
     for (const [index, region] of regions.entries()) {
@@ -103,23 +95,13 @@ describe("FM26_KIT_LAYOUT", () => {
     }
   });
 
-  it("puts the short-sleeve cuffs and the collar ring on the trim color of the FM mask 01-0", async () => {
+  it("puts the short-sleeve cuffs on the trim color of the FM mask 01-0", async () => {
     const pixel = await readPixels(path.join(TEMPLATES_DIR, "FM26 3D Assets", "01-0.png"));
     const shortSleeveCuffs = FM26_KIT_LAYOUT.cuffs.filter((cuff) =>
       FM26_KIT_LAYOUT.regions.some((region) => region.part === "sleeve" && overlaps(cuff, region.rect)),
     );
     expect(shortSleeveCuffs).toHaveLength(2);
     for (const cuff of shortSleeveCuffs) expect(isTrimBlue(pixel(...centerPixel(cuff)))).toBe(true);
-    const { cx, cy, innerRadius, outerRadius } = FM26_KIT_LAYOUT.collar;
-    const radius = ((innerRadius + outerRadius) / 2) * FM26_TEXTURE_SIZE;
-    for (const [dx, dy] of [
-      [1, 0],
-      [-1, 0],
-      [0, 1],
-      [0, -1],
-    ] as const) {
-      expect(isTrimBlue(pixel(Math.round(cx * FM26_TEXTURE_SIZE + dx * radius), Math.round(cy * FM26_TEXTURE_SIZE + dy * radius)))).toBe(true);
-    }
   });
 
   // O PSD pinta punho na manga comprida; a máscara 01-0 do FM, não.

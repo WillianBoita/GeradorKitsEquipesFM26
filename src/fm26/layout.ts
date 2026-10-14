@@ -27,13 +27,6 @@ export interface UvRegion {
   outline?: UvPoint[];
 }
 
-export interface UvCircle {
-  cx: number;
-  cy: number;
-  innerRadius: number;
-  outerRadius: number;
-}
-
 export interface UvRaglan {
   // Ombros e faixa em volta da gola, na frente e nas costas: a manga raglan pinta aqui.
   yoke: UvPoint[];
@@ -45,7 +38,6 @@ export interface Fm26KitLayout {
   textureSize: number;
   regions: UvRegion[];
   cuffs: UvRect[];
-  collar: UvCircle;
   raglan: UvRaglan;
 }
 
@@ -124,9 +116,8 @@ export const FM26_KIT_LAYOUT: Fm26KitLayout = {
     region("shorts", rect(4, 774, 351, 1018), { side: "right" }),
     region("shorts", rect(676, 774, 1024, 1018), { side: "left" }),
   ],
-  // Punhos da manga curta e gola vêm da máscara 01-0 do próprio FM (cor 3, acabamento); os da manga comprida, da camada "sleeve end" do PSD, que a máscara não pinta.
+  // Punhos da manga curta vêm da máscara 01-0 do próprio FM (cor 3, acabamento); os da manga comprida, da camada "sleeve end" do PSD, que a máscara não pinta.
   cuffs: [rect(244, 411, 270, 722), rect(756, 411, 781, 722), rect(1, 3, 26, 318), rect(998, 3, 1023, 318)],
-  collar: { cx: 513 / FM26_TEXTURE_SIZE, cy: 597 / FM26_TEXTURE_SIZE, innerRadius: 29 / FM26_TEXTURE_SIZE, outerRadius: 43 / FM26_TEXTURE_SIZE },
   raglan: {
     // Um polígono: costura de trás de um lado ao outro, desce pela asa esquerda do jogador e volta pela costura da frente; os fechamentos caem dentro das mangas, pintadas por cima.
     yoke: [
