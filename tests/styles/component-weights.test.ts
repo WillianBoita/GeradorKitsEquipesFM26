@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { parseClubIdentity } from "../../src/core/club.js";
 import { COLLAR_STYLES } from "../../src/core/kit.js";
-import { collarCandidates, layerCountCandidates, sleeveCutCandidates, sleeveStyleCandidates } from "../../src/styles/component-weights.js";
+import {
+  collarCandidates,
+  layerCountCandidates,
+  sleeveCutCandidates,
+  sleeveStyleCandidates,
+  trimStripeCandidates,
+} from "../../src/styles/component-weights.js";
+import { TRIM_STRIPE_OPTIONS } from "../../src/styles/profiles.js";
 import { GALATICOS_CLUB } from "../fixtures/clubs.js";
 
 const club = (categories: string[]) => parseClubIdentity({ ...GALATICOS_CLUB, style: { categories } });
@@ -78,5 +85,24 @@ describe("layerCountCandidates", () => {
     expect(none).toBeCloseTo(0.65);
     expect(one).toBeCloseTo(0.25);
     expect(two).toBeCloseTo(0.1);
+  });
+});
+
+describe("trimStripeCandidates", () => {
+  it("never draws a trim stripe when the club has no categories", () => {
+    expect(trimStripeCandidates(club([]))).toEqual([
+      ["none", 1],
+      ["single", 0],
+      ["double", 0],
+    ]);
+  });
+
+  it("lists the options in a fixed order and favors stripes in the retro profile", () => {
+    const candidates = trimStripeCandidates(club(["retro"]));
+    expect(candidates.map(([option]) => option)).toEqual([...TRIM_STRIPE_OPTIONS]);
+    const [[, none], [, single], [, double]] = candidates;
+    expect(none).toBeCloseTo(0.4);
+    expect(single).toBeCloseTo(0.3);
+    expect(double).toBeCloseTo(0.3);
   });
 });
