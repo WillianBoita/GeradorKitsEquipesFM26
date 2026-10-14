@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { COLLAR_STYLES, KIT_TYPES, MAX_LAYERS, parseKitDefinition, SLEEVE_CUTS, sleeveCut, visibleRoles, type KitLayer } from "../../src/core/kit.js";
+import {
+  COLLAR_STYLES,
+  KIT_TYPES,
+  MAX_LAYERS,
+  parseKitDefinition,
+  SLEEVE_CUTS,
+  sleeveCut,
+  TRIM_STRIPE_STYLES,
+  visibleRoles,
+  type KitLayer,
+} from "../../src/core/kit.js";
 import { MAX_SEED } from "../../src/core/random.js";
 import { makeKit } from "../fixtures/kits.js";
 
@@ -77,6 +87,21 @@ describe("parseKitDefinition", () => {
     expect(() => parseKitDefinition({ ...makeKit(), collar: { style: "polo-x", color: "accent" } })).toThrow(/collar\.style/);
   });
 
+  it.each(TRIM_STRIPE_STYLES)("accepts the %s trim stripe and keeps it through a JSON round trip", (style) => {
+    const kit = makeKit({ trimStripe: { style, color: "primary" } });
+    expect(parseKitDefinition(JSON.parse(JSON.stringify(kit)))).toEqual(kit);
+  });
+
+  it("rejects unknown trim stripe styles, colors and keys and names the path", () => {
+    expect(() => parseKitDefinition({ ...makeKit(), trimStripe: { style: "triple", color: "primary" } })).toThrow(/trimStripe\.style/);
+    expect(() => parseKitDefinition({ ...makeKit(), trimStripe: { style: "single", color: "gold" } })).toThrow(/trimStripe\.color/);
+    expect(() => parseKitDefinition({ ...makeKit(), trimStripe: { style: "single", color: "primary", width: 2 } })).toThrow(/width/);
+  });
+
+  it("keeps kits from before Phase 4c without a trim stripe", () => {
+    expect(parseKitDefinition(makeKit())).not.toHaveProperty("trimStripe");
+  });
+
   it("rejects unknown color roles", () => {
     expect(() => parseKitDefinition({ ...makeKit(), collar: { style: "round", color: "gold" } })).toThrow(/Invalid kit definition/);
   });
@@ -142,6 +167,15 @@ describe("visibleRoles", () => {
       collar: { style: "round", color: "secondary" },
       sleeves: { style: "match-body", color: "secondary", cuffColor: "secondary" },
       layers: [{ id: "side-lines", color: "accent", params: {} }],
+    });
+    expect(visibleRoles(kit)).toEqual(["primary", "secondary", "accent"]);
+  });
+
+  it("counts the trim stripe color", () => {
+    const kit = makeKit({
+      collar: { style: "round", color: "secondary" },
+      sleeves: { style: "match-body", color: "secondary", cuffColor: "secondary" },
+      trimStripe: { style: "single", color: "accent" },
     });
     expect(visibleRoles(kit)).toEqual(["primary", "secondary", "accent"]);
   });

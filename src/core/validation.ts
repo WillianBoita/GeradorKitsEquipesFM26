@@ -109,6 +109,20 @@ export function validatePalette(palette: Palette): ValidationIssue[] {
   return validateColors(palette);
 }
 
+function trimStripeIssues(kit: KitDefinition): ValidationIssue[] {
+  const stripe = kit.trimStripe;
+  if (!stripe) return [];
+
+  const pieces = [
+    ["collar", kit.collar.color],
+    ["cuffs", kit.sleeves.cuffColor],
+  ] as const;
+
+  return pieces
+    .filter(([, color]) => color === stripe.color)
+    .map(([piece]) => ({ rule: "trim-stripe-color", message: `${kit.kitType} kit trim stripe uses ${stripe.color}, the color of the ${piece}` }));
+}
+
 function layerIssues(kit: KitDefinition): ValidationIssue[] {
   const layerIds = listLayerTemplates().map((template) => template.id);
   const templates = new Map(listPatternTemplates().map((template) => [template.id, template]));
@@ -148,7 +162,7 @@ export function validateKit(kit: KitDefinition): ValidationIssue[] {
       issues.push({ rule: "pattern-contrast", message: `${kit.kitType} kit base ${kit.colors[base]} and overlay ${kit.colors[overlay]} are ${problem}` });
     }
   }
-  return [...issues, ...layerIssues(kit)];
+  return [...issues, ...layerIssues(kit), ...trimStripeIssues(kit)];
 }
 
 export function validateKitAssets(kit: KitDefinition, registry: AssetRegistry): ValidationIssue[] {
@@ -184,7 +198,7 @@ export function validateKitTraditions(identity: ClubIdentity, kit: KitDefinition
   if (required !== undefined && !visibleRoles(kit).includes(required)) {
     issues.push({
       rule: "required-color",
-      message: `${kit.kitType} kit does not show ${required} ${kit.colors[required]} (traditions.requiredColor) on the pattern, layers, sleeves, collar or cuffs`,
+      message: `${kit.kitType} kit does not show ${required} ${kit.colors[required]} (traditions.requiredColor) on the pattern, layers, sleeves, collar, cuffs or trim stripe`,
     });
   }
   return issues;

@@ -271,6 +271,24 @@ describe("validateClub traditions", () => {
   });
 });
 
+describe("validateKit trim stripe", () => {
+  it("accepts a stripe in a color neither the collar nor the cuffs use", () => {
+    expect(validateKit(makeKit({ trimStripe: { style: "double", color: "secondary" } }))).toEqual([]);
+  });
+
+  it("reports a stripe in the color of the collar or of the cuffs", () => {
+    const kit = makeKit({
+      collar: { style: "round", color: "accent" },
+      sleeves: { style: "match-body", color: "secondary", cuffColor: "accent" },
+      trimStripe: { style: "single", color: "accent" },
+    });
+    expect(validateKit(kit)).toEqual([
+      { rule: "trim-stripe-color", message: "home kit trim stripe uses accent, the color of the collar" },
+      { rule: "trim-stripe-color", message: "home kit trim stripe uses accent, the color of the cuffs" },
+    ]);
+  });
+});
+
 describe("validateKitTraditions", () => {
   const traditions = club({ traditions: { forbiddenPatterns: ["sash"], patterns: { home: ["stripes"] } } });
   const kitWith = (kitType: "home" | "away", id: string) => makeKit({ kitType, pattern: { id, base: "primary", overlay: "secondary", params: {} } });
@@ -300,9 +318,22 @@ describe("validateKitTraditions", () => {
     const required = club({ traditions: { requiredColor: "accent" } });
     const hidden = makeKit({ collar: { style: "round", color: "secondary" }, sleeves: { style: "match-body", color: "secondary", cuffColor: "secondary" } });
     expect(validateKitTraditions(required, hidden)).toEqual([
-      { rule: "required-color", message: "home kit does not show accent #ffd700 (traditions.requiredColor) on the pattern, layers, sleeves, collar or cuffs" },
+      {
+        rule: "required-color",
+        message: "home kit does not show accent #ffd700 (traditions.requiredColor) on the pattern, layers, sleeves, collar, cuffs or trim stripe",
+      },
     ]);
     expect(validateKitTraditions(required, makeKit())).toEqual([]);
+  });
+
+  it("counts a trim stripe in the required color as shown", () => {
+    const required = club({ traditions: { requiredColor: "accent" } });
+    const hidden = makeKit({
+      collar: { style: "round", color: "secondary" },
+      sleeves: { style: "match-body", color: "secondary", cuffColor: "secondary" },
+      trimStripe: { style: "single", color: "accent" },
+    });
+    expect(validateKitTraditions(required, hidden)).toEqual([]);
   });
 
   it("reports a forbidden layer", () => {
