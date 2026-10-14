@@ -2,10 +2,10 @@ import { createHash } from "node:crypto";
 import { XMLValidator } from "fast-xml-parser";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
-import { COLLAR_STYLES, SLEEVE_CUTS } from "../../src/core/kit.js";
+import { COLLAR_STYLES, SLEEVE_CUTS, TRIM_STRIPE_STYLES, type CollarStyle, type KitDefinition, type TrimStripeStyle } from "../../src/core/kit.js";
 import type { KitLogoImages } from "../../src/renderers/kit-logos.js";
 import { KIT_2D_SIZE, renderKit2dPng, renderKit2dSvg } from "../../src/renderers/renderer-2d.js";
-import { LOGO_BOXES, RAGLAN_SEAMS_PATH } from "../../src/renderers/shirt-2d-shape.js";
+import { collarPath, collarTrimPath, LOGO_BOXES, RAGLAN_SEAMS_PATH } from "../../src/renderers/shirt-2d-shape.js";
 import { LOGO_SVG, makeLogoPng } from "../fixtures/assets.js";
 import { makeKit } from "../fixtures/kits.js";
 
@@ -252,6 +252,83 @@ describe("renderKit2dPng", () => {
   it("keeps every logo box on the plain base with the earliest gradient", async () => {
     const kit = makeKit({ pattern: { id: "gradient", base: "primary", overlay: "secondary", params: { start: 0 } } });
     expect(await logoBoxMismatches(await renderKit2dPng(kit))).toBe(0);
+  });
+});
+
+describe("renderKit2dPng trim stripes", () => {
+  const striped = (style: TrimStripeStyle, collar: CollarStyle = "round"): KitDefinition =>
+    makeKit({
+      collar: { style: collar, color: "accent" },
+      sleeves: { style: "solid", color: "secondary", cuffColor: "accent" },
+      trimStripe: { style, color: "secondary" },
+    });
+
+  it("draws a single stripe in the middle of the collar", async () => {
+    const png = await renderKit2dPng(striped("single"));
+    for (const y of [69, 70]) expect(await pixelAt(png, 207, y), `y ${y}`).toEqual(SECONDARY);
+    for (const y of [66, 73]) expect(await pixelAt(png, 207, y), `y ${y}`).toEqual(ACCENT);
+  });
+
+  it("draws a double stripe near the edges of the collar", async () => {
+    const png = await renderKit2dPng(striped("double"));
+    for (const y of [66, 72]) expect(await pixelAt(png, 207, y), `y ${y}`).toEqual(SECONDARY);
+    for (const y of [69, 70]) expect(await pixelAt(png, 207, y), `y ${y}`).toEqual(ACCENT);
+  });
+
+  // (357, 156) fica na linha central do punho; (361, 155) a 1,7–3,1 px dela, para fora.
+  it("draws the stripes on the cuffs", async () => {
+    const single = await renderKit2dPng(striped("single"));
+    expect(await pixelAt(single, 357, 156)).toEqual(SECONDARY);
+    expect(await pixelAt(single, 361, 155)).toEqual(ACCENT);
+    const double = await renderKit2dPng(striped("double"));
+    expect(await pixelAt(double, 361, 155)).toEqual(SECONDARY);
+    expect(await pixelAt(double, 357, 156)).toEqual(ACCENT);
+  });
+
+  // Distância até a borda inferior da aba esquerda: (172, 75) a 3,4–4,8 px, (182, 86) a 0,9–2,3 px, (173, 73) a 5,6–7,0 px.
+  it("tips the polo flaps along their edges", async () => {
+    const single = await renderKit2dPng(striped("single", "polo"));
+    expect(await pixelAt(single, 172, 75)).toEqual(SECONDARY);
+    expect(await pixelAt(single, 173, 73)).toEqual(ACCENT);
+    const double = await renderKit2dPng(striped("double", "polo"));
+    expect(await pixelAt(double, 182, 86)).toEqual(SECONDARY);
+    expect(await pixelAt(double, 172, 75)).toEqual(ACCENT);
+  });
+
+  it("draws the polo placket over the flap stripes", () => {
+    const svg = renderKit2dSvg(striped("double", "polo"));
+    expect(svg.lastIndexOf('<path d="M200 70 L214 70 L214 125 L200 125 Z"')).toBeGreaterThan(svg.indexOf('clip-path="url(#flaps)"'));
+  });
+
+  // O traço escuro da silhueta passa no meio da gola: com listra, ele sai do decote. "L300 62 L378 140" só aparece na silhueta (o corpo segue para L302 146).
+  it("drops the neckline from the silhouette outline only on striped kits", () => {
+    const plain = renderKit2dSvg(makeKit());
+    const svg = renderKit2dSvg(striped("single"));
+    expect(plain).toContain(`${collarPath("round")} L300 62 L378 140`);
+    expect(svg).not.toContain(`${collarPath("round")} L300 62 L378 140`);
+    expect(svg).toContain("M249 48 L300 62 L378 140");
+  });
+
+  it("keeps the trim of the polo collars as before", () => {
+    expect(collarTrimPath("polo")).toBe(
+      "M162 45 L146 60 L192 96 L203 72 Q182 64 165 48 Z M252 45 L268 60 L222 96 L211 72 Q232 64 249 48 Z M200 70 L214 70 L214 125 L200 125 Z",
+    );
+    expect(collarTrimPath("polo-v")).toBe("M163 46 L207 100 L198 100 L140 58 Z M251 46 L207 100 L216 100 L274 58 Z");
+    expect(collarTrimPath("round")).toBeUndefined();
+  });
+
+  const STRIPED_SHAPES = COLLAR_STYLES.flatMap((collar) => TRIM_STRIPE_STYLES.map((style) => [collar, style] as const));
+
+  it.each(STRIPED_SHAPES)("keeps every logo box on the plain body with the %s collar and a %s stripe", async (collar, style) => {
+    const kit = striped(style, collar);
+    expect(XMLValidator.validate(renderKit2dSvg(kit))).toBe(true);
+    expect(await logoBoxMismatches(await renderKit2dPng(kit))).toBe(0);
+  });
+
+  // O renderer não valida: um kit.json escrito à mão com a listra na cor da gola é desenhado assim mesmo.
+  it("draws a stripe in the collar color without failing", () => {
+    const kit = makeKit({ trimStripe: { style: "single", color: "accent" } });
+    expect(XMLValidator.validate(renderKit2dSvg(kit))).toBe(true);
   });
 });
 

@@ -5,7 +5,9 @@ import { kitLogoLayers, type KitLogoImages } from "./kit-logos.js";
 import type { PixelBox } from "./logo-image.js";
 import {
   bodyPath,
+  collarFlapsPath,
   collarPath,
+  collarPlacketPath,
   collarTrimPath,
   CUFFS_PATH,
   LOGO_BOXES,
@@ -15,12 +17,19 @@ import {
   sleevesPath,
   type LogoBox,
 } from "./shirt-2d-shape.js";
+import { centeredStripeStrokes, edgeStripeStrokes, stripeStrokesSvg } from "./trim-stripes.js";
 
 export const KIT_2D_SIZE = 414;
 // Espessura do contorno dos logos no viewBox 414; escala com o tamanho do PNG.
 const OUTLINE_WIDTH = 2;
 // Traço escuro da silhueta, repetido nas peças da gola polo: o mesmo texto mantém o SVG das golas antigas igual.
 const OUTLINE_STROKE = 'stroke="#000000" stroke-opacity="0.35" stroke-width="2" stroke-linejoin="round"';
+const ROUND_STROKE = 'stroke-linecap="round" stroke-linejoin="round"';
+// Larguras dos traços da gola e dos punhos; as listras são frações delas.
+const COLLAR_WIDTH = 10;
+const CUFF_WIDTH = 8;
+// Profundidade nominal da listra nas abas das golas polo, a partir da borda.
+const FLAP_STRIPE_WIDTH = 8;
 
 export interface Render2dOptions {
   size?: number;
@@ -31,9 +40,14 @@ export function renderKit2dSvg(kit: KitDefinition, options: Render2dOptions = {}
   const size = options.size ?? KIT_2D_SIZE;
   const view = SHIRT_2D_VIEWBOX;
   const design = kitDesign(kit);
-  const trim = collarTrimPath(kit.collar.style);
+  const style = kit.collar.style;
+  const trim = collarTrimPath(style);
   const cut = sleeveCut(kit);
   const sleevesShape = sleevesPath(cut);
+  const stripe = design.trimStripe;
+  // Sem listra, nenhum elemento novo: o SVG fica igual ao de antes da 4c (guarda da 3b).
+  const flaps = stripe === undefined ? undefined : collarFlapsPath(style);
+  const placket = stripe === undefined ? undefined : collarPlacketPath(style);
   // Manga lisa continua um <path> preenchido, como antes da camada: o SVG 2D não pode mudar (guarda da Fase 3b).
   const sleeves =
     design.sleeves.kind === "solid"
@@ -41,15 +55,30 @@ export function renderKit2dSvg(kit: KitDefinition, options: Render2dOptions = {}
       : `<g clip-path="url(#sleeves)">${fillSvg(design.sleeves, view, view)}</g>`;
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${view} ${view}">`,
-    `<defs><clipPath id="body"><path d="${bodyPath(kit.collar.style, cut)}"/></clipPath><clipPath id="sleeves"><path d="${sleevesShape}"/></clipPath></defs>`,
+    `<defs><clipPath id="body"><path d="${bodyPath(style, cut)}"/></clipPath><clipPath id="sleeves"><path d="${sleevesShape}"/></clipPath>${flaps === undefined ? "" : `<clipPath id="flaps"><path d="${flaps}"/></clipPath>`}</defs>`,
     `<g clip-path="url(#body)">${fillSvg(design.body, view, view, design.bodyLayers)}</g>`,
     sleeves,
     // Sem a costura, a raglan com manga match-body sairia igual à set-in.
     cut === "raglan" ? `<path d="${RAGLAN_SEAMS_PATH}" fill="none" ${OUTLINE_STROKE}/>` : "",
-    `<path d="${CUFFS_PATH}" fill="none" stroke="${design.cuffs}" stroke-width="8"/>`,
-    `<path d="${collarPath(kit.collar.style)}" fill="none" stroke="${design.collar}" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>`,
+    `<path d="${CUFFS_PATH}" fill="none" stroke="${design.cuffs}" stroke-width="${CUFF_WIDTH}"/>`,
+    stripe === undefined ? "" : stripeStrokesSvg(CUFFS_PATH, centeredStripeStrokes(CUFF_WIDTH, stripe.style), { stripe: stripe.color, trim: design.cuffs }),
+    `<path d="${collarPath(style)}" fill="none" stroke="${design.collar}" stroke-width="${COLLAR_WIDTH}" ${ROUND_STROKE}/>`,
+    stripe === undefined
+      ? ""
+      : stripeStrokesSvg(
+          collarPath(style),
+          centeredStripeStrokes(COLLAR_WIDTH, stripe.style),
+          { stripe: stripe.color, trim: design.collar },
+          ` ${ROUND_STROKE}`,
+        ),
     trim === undefined ? "" : `<path d="${trim}" fill="${design.collar}" ${OUTLINE_STROKE}/>`,
-    `<path d="${outlinePath(kit.collar.style)}" fill="none" ${OUTLINE_STROKE}/>`,
+    stripe === undefined || flaps === undefined
+      ? ""
+      : `<g clip-path="url(#flaps)">${stripeStrokesSvg(flaps, edgeStripeStrokes(FLAP_STRIPE_WIDTH, stripe.style), { stripe: stripe.color, trim: design.collar }, ' stroke-linejoin="round"')}</g>`,
+    // A carcela volta por cima das listras das abas, como no PSD do FM.
+    placket === undefined ? "" : `<path d="${placket}" fill="${design.collar}" ${OUTLINE_STROKE}/>`,
+    // Com listra, a silhueta não passa pelo decote: o traço escuro cairia em cima da listra simples.
+    `<path d="${outlinePath(style, stripe === undefined)}" fill="none" ${OUTLINE_STROKE}/>`,
     "</svg>",
   ].join("");
 }
