@@ -304,16 +304,25 @@ describe("generateKitSet logos", () => {
   });
 });
 
-function setsDigest(club: ClubIdentity, badge: boolean): string {
+function setsDigest(club: ClubIdentity, badge: boolean, withoutTrimStripe = false): string {
   const sets = Array.from({ length: 30 }, (_, seed) => generateKitSet(club, seed, { badge }));
-  return createHash("sha256").update(JSON.stringify(sets)).digest("hex");
+  // Sem a listra, o JSON volta ao de antes da 4c: a chave sai e a ordem das outras não muda.
+  const drawn = withoutTrimStripe
+    ? sets.map((set) => Object.fromEntries(Object.entries(set).map(([kitType, { trimStripe: _stripe, ...kit }]) => [kitType, kit])))
+    : sets;
+  return createHash("sha256").update(JSON.stringify(drawn)).digest("hex");
 }
 
 // Guarda da Fase 3b: o clube sem categories (perfil classic) não pode mudar de kit para a mesma seed.
-// O branded (categoria modern) muda de propósito quando os pesos de gola, manga (Fase 4a) ou camada (Fase 4b) dos perfis mudam ou quando muda o que vai nos logos (só o id desde que os logos mantêm as cores do arquivo); atualize o hash só nessas mudanças.
+// O branded (categoria modern) muda de propósito quando os pesos de gola, manga (Fase 4a), camada (Fase 4b) ou listra (Fase 4c) dos perfis mudam ou quando muda o que vai nos logos (só o id desde que os logos mantêm as cores do arquivo); atualize o hash só nessas mudanças.
 describe("generateKitSet Phase 3b baseline", () => {
   it("keeps the sets of a club with pattern weights and brands", () => {
-    expect(setsDigest(branded, true)).toBe("c20550b8efc79d1ee736bae0e0670bc5dc0e4a6fff4c1f6f3d3cb2fff6b163f4");
+    expect(setsDigest(branded, true)).toBe("5162fbd6ff6187a096ef0e23b42415b699637ce4520be8deb097305d33ab0fce");
+  });
+
+  // A listra é o último sorteio: tirando ela, os conjuntos do branded são os de antes da 4c.
+  it("keeps the branded sets of before Phase 4c apart from the trim stripe", () => {
+    expect(setsDigest(branded, true, true)).toBe("c20550b8efc79d1ee736bae0e0670bc5dc0e4a6fff4c1f6f3d3cb2fff6b163f4");
   });
 
   it("keeps the sets of a club without categories or pattern weights", () => {
@@ -414,16 +423,17 @@ describe("generateKitSet layers", () => {
     for (const kit of kitsOf(club)) for (const layer of kit.layers ?? []) expect(["hoop-line", "side-lines"]).not.toContain(layer.id);
   });
 
-  // As camadas são o último sorteio: sem nenhuma permitida, só o campo layers muda.
+  // As camadas vêm antes da listra: sem nenhuma permitida, o rng chega à listra em outro estado, e só os campos layers e trimStripe mudam.
   it("keeps the rest of the kit when the traditions forbid every layer", () => {
     const forbidAll = styled(["modern"], { traditions: { forbiddenPatterns: listLayerTemplates().map((template) => template.id) } });
     let dropped = 0;
     for (let seed = 0; seed < 100; seed++) {
       const [withLayers, withoutLayers] = [generateKitSet(styled(["modern"]), seed), generateKitSet(forbidAll, seed)];
       for (const kitType of KIT_TYPES) {
-        const { layers, ...rest } = withLayers[kitType];
+        const { layers, trimStripe: _stripe, ...rest } = withLayers[kitType];
+        const { trimStripe: _other, ...withoutStripe } = withoutLayers[kitType];
         if (layers) dropped++;
-        expect(withoutLayers[kitType]).toEqual(rest);
+        expect(withoutStripe).toEqual(rest);
       }
     }
     expect(dropped).toBeGreaterThan(0);
@@ -441,5 +451,38 @@ describe("generateKitSet layers", () => {
       }
     }
     expect(layered).toBeGreaterThan(0);
+  });
+});
+
+describe("generateKitSet trim stripes", () => {
+  const styled = (categories: string[], extra: object = {}) => parseClubIdentity({ ...GALATICOS_CLUB, style: { categories }, ...extra });
+  const kitsOf = (club: ClubIdentity, seeds = 100) => Array.from({ length: seeds }, (_, seed) => Object.values(generateKitSet(club, seed))).flat();
+
+  it("never draws a trim stripe for a club without categories", () => {
+    for (const kit of kitsOf(styled([]))) expect(kit).not.toHaveProperty("trimStripe");
+  });
+
+  it("draws both styles for a retro club, in a color the collar and the cuffs do not use", () => {
+    const kits = kitsOf(styled(["retro"]), 200);
+    expect(new Set(kits.map((kit) => kit.trimStripe?.style ?? "none"))).toEqual(new Set(["none", "single", "double"]));
+    for (const kit of kits) {
+      if (!kit.trimStripe) continue;
+      expect(kit.trimStripe.color).not.toBe(kit.collar.color);
+      expect(kit.trimStripe.color).not.toBe(kit.sleeves.cuffColor);
+      expect(validateKit(kit)).toEqual([]);
+    }
+  });
+
+  it("keeps the trim stripe apart from a required collar color", () => {
+    const club = styled(["retro"], { traditions: { requiredColor: "accent" } });
+    let striped = 0;
+    for (const kit of kitsOf(club, 200)) {
+      expect(visibleRoles(kit)).toContain("accent");
+      if (!kit.trimStripe) continue;
+      striped++;
+      expect(kit.trimStripe.color).not.toBe(kit.collar.color);
+      expect(kit.trimStripe.color).not.toBe(kit.sleeves.cuffColor);
+    }
+    expect(striped).toBeGreaterThan(0);
   });
 });
