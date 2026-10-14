@@ -1,5 +1,5 @@
 import type { LogoSlot } from "../core/kit.js";
-import { FM26_KIT_LAYOUT, type UvRect, type UvRegion } from "../fm26/layout.js";
+import { FM26_KIT_LAYOUT, outlineBounds, type UvRect, type UvRegion } from "../fm26/layout.js";
 import { LOGO_BOXES, TORSO_WINDOW } from "./shirt-2d-shape.js";
 
 // Matriz do SVG matrix(a b c d e f): (x, y) vira (a·x + c·y + e, b·x + d·y + f).
@@ -108,6 +108,15 @@ function torsoTransform(region: UvRegion, part: "front" | "back"): Affine {
   return compose(placement(region, rect), torsoView(part, rect));
 }
 
+// A manga curta entra na coluna até a cava: as metades cobrem o contorno inteiro em x, e o renderer recorta por ele.
+function sleeveSpan(region: UvRegion): { x: number; width: number } {
+  if (region.outline === undefined) return { x: region.rect.x, width: region.rect.width };
+
+  const bounds = outlineBounds(region.outline);
+  const left = Math.min(region.rect.x, bounds.x);
+  return { x: left, width: Math.max(region.rect.x + region.rect.width, bounds.x + bounds.width) - left };
+}
+
 export function regionViews(region: UvRegion): RegionView[] {
   switch (region.part) {
     case "front":
@@ -119,10 +128,11 @@ export function regionViews(region: UvRegion): RegionView[] {
       const half = region.rect.height / 2;
       const place = placement(region, rect);
       const [upper, lower] = sleeveViews(region.side, rect);
+      const span = sleeveSpan(region);
 
       return [
-        { rects: [{ ...region.rect, height: half }], transform: compose(place, upper) },
-        { rects: [{ ...region.rect, y: region.rect.y + half, height: half }], transform: compose(place, lower) },
+        { rects: [{ ...span, y: region.rect.y, height: half }], transform: compose(place, upper) },
+        { rects: [{ ...span, y: region.rect.y + half, height: half }], transform: compose(place, lower) },
       ];
     }
     default:
