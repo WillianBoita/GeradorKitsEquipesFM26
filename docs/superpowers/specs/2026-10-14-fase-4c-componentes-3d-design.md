@@ -116,7 +116,7 @@ export interface UvPoint {
 }
 ```
 
-Um helper `points(...px)` converte uma lista de pixels em `UvPoint[]`, como `rect()` faz hoje, e um helper `mirrorX(points)` espelha em x = 512.
+Um helper `points("x y, x y, ...")` converte pares em pixels, no formato da seção 4.1, em `UvPoint[]`, como `rect()` faz hoje (uma string só, para o Prettier não quebrar um número por linha), e um helper `mirrorX(points)` espelha em x = 512.
 
 ### 5.2 Manga curta
 
@@ -139,7 +139,7 @@ export interface UvRaglan {
 }
 ```
 
-`yoke` é um polígono só: costura de cima da asa esquerda até o centro, a mesma espelhada até a asa direita, desce pela borda da asa direita, costura de baixo da direita ao centro e do centro à esquerda, e fecha na asa esquerda. O fechamento em x 380,5 cai dentro da manga, que é pintada por cima. `seams` são as quatro polilinhas (cima e baixo, dos dois lados).
+As costuras medidas terminam em x 514,5; no layout elas param no eixo do espelho, em (512, 562) e (512, 604), para o lado espelhado não sobrepor. `yoke` é um polígono só: costura de cima da asa esquerda até o centro, a mesma espelhada até a asa direita, desce pela borda da asa direita, costura de baixo da direita ao centro e do centro à esquerda, e fecha na asa esquerda. O fechamento em x 380,5 cai dentro da manga, que é pintada por cima. `seams` são as quatro polilinhas (cima e baixo, dos dois lados).
 
 ### 5.5 Golas
 
@@ -230,6 +230,7 @@ A correção do `requiredColor` na gola não colide com a listra: ela só age qu
 - `classic` sempre sorteia `none` e não sorteia cor: os kits do clube sem categorias não mudam, nem a guarda dele.
 - A guarda do clube `branded` (`modern`) muda de propósito.
 - Clubes com `categories`, num novo `generate` com a mesma seed, mantêm o resto do kit (palette, padrão, gola, mangas, camadas, logos) e só ganham `trimStripe` quando ele sai.
+- A listra usa o mesmo `rng` depois das camadas: uma tradição que proíbe camadas muda quantos números as camadas consomem e pode mudar a listra, mas nada antes dela.
 
 ## 9. Desenho das listras
 
@@ -256,6 +257,7 @@ E dois modos de transformar as faixas em traços, ambos devolvendo a sequência 
 - Gola `round` e `v-neck`: modo centrado sobre o traço do decote (`W` = 10).
 - Gola `polo` e `polo-v`: modo centrado sobre o traço do decote e modo da borda nas abas (`W` = 8, recortado por cada aba). O trim da `polo` se divide em `flaps` e `placket` em `shirt-2d-shape.ts`; a carcela vem depois das listras e fica sem listra. Sem listra, o path desenhado continua o mesmo texto de hoje.
 - Punhos: modo centrado sobre `CUFFS_PATH` (`W` = 8).
+- Com listra, o contorno escuro da silhueta deixa de passar pelo decote: ele corre no meio do traço da gola e cobriria a listra `single`. A listra marca a gola no lugar dele.
 - Sem `trimStripe`, o SVG é byte a byte o atual (guarda da 3b).
 
 ### 9.4 3D
