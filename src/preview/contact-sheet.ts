@@ -43,6 +43,7 @@ export function kitDetails(kit: KitDefinition): string[] {
     joinParts([template.id, template.category, paramsText(template.id, kit.pattern.params)]),
     ...(kit.layers ?? []).map((layer) => joinParts([`layer ${layer.id}`, layer.color, paramsText(layer.id, layer.params)])),
     `collar ${kit.collar.style} · sleeves ${kit.sleeves.style} · ${sleeveCut(kit)}`,
+    ...(kit.trimStripe ? [`trim stripe ${kit.trimStripe.style} · ${kit.trimStripe.color}`] : []),
   ];
   if (kit.generatedWith) lines.push(`seed ${kit.generatedWith.seed}`);
   if (kit.sponsor) lines.push(`sponsor ${kit.sponsor.id}`);

@@ -41,6 +41,14 @@ describe("buildContactSheetHtml", () => {
 });
 
 describe("kitDetails", () => {
+  it("lists the trim stripe after the collar and sleeves", () => {
+    expect(kitDetails(makeKit({ trimStripe: { style: "double", color: "secondary" } }))).toEqual([
+      "solid · classic",
+      "collar round · sleeves match-body · set-in",
+      "trim stripe double · secondary",
+    ]);
+  });
+
   it("lists each layer with its color and resolved params, after the pattern", () => {
     const kit = makeKit({
       layers: [
