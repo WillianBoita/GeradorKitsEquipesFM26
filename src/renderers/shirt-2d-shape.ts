@@ -8,19 +8,23 @@ const V_NECKLINE = "M165 48 L207 100 L249 48";
 
 interface CollarShape {
   neckline: string;
-  trim?: string;
+  // Abas das golas polo: recebem a listra junto à borda.
+  flaps?: string;
+  // Carcela da polo: fica por cima da listra, como no PSD do FM.
+  placket?: string;
 }
 
-// neckline recorta o corpo e recebe o traço da gola; trim é a peça preenchida das golas polo (abas e carcela).
-// Fora da carcela (x 200–214), nenhum trim passa de y = 101: as caixas de logo começam em y = 102.
+// neckline recorta o corpo e recebe o traço da gola; flaps e placket são as peças preenchidas das golas polo.
+// Fora da carcela (x 200–214), nenhuma peça passa de y = 101: as caixas de logo começam em y = 102.
 const COLLARS: Record<CollarStyle, CollarShape> = {
   round: { neckline: ROUND_NECKLINE },
   "v-neck": { neckline: V_NECKLINE },
   polo: {
     neckline: ROUND_NECKLINE,
-    trim: "M162 45 L146 60 L192 96 L203 72 Q182 64 165 48 Z M252 45 L268 60 L222 96 L211 72 Q232 64 249 48 Z M200 70 L214 70 L214 125 L200 125 Z",
+    flaps: "M162 45 L146 60 L192 96 L203 72 Q182 64 165 48 Z M252 45 L268 60 L222 96 L211 72 Q232 64 249 48 Z",
+    placket: "M200 70 L214 70 L214 125 L200 125 Z",
   },
-  "polo-v": { neckline: V_NECKLINE, trim: "M163 46 L207 100 L198 100 L140 58 Z M251 46 L207 100 L216 100 L274 58 Z" },
+  "polo-v": { neckline: V_NECKLINE, flaps: "M163 46 L207 100 L198 100 L140 58 Z M251 46 L207 100 L216 100 L274 58 Z" },
 };
 
 // Na raglan o decote vai direto às axilas: os triângulos dos ombros saem do corpo e entram nas mangas.
@@ -29,7 +33,8 @@ const TORSO: Record<SleeveCut, string> = {
   raglan: "L302 146 L302 382 L112 382 L112 146 Z",
 };
 
-const SILHOUETTE = "L300 62 L378 140 L346 178 L302 146 L302 382 L112 382 L112 146 L68 178 L36 140 L114 62 Z";
+const SILHOUETTE_POINTS = "L300 62 L378 140 L346 178 L302 146 L302 382 L112 382 L112 146 L68 178 L36 140 L114 62";
+const SILHOUETTE = `${SILHOUETTE_POINTS} Z`;
 
 const SLEEVES: Record<SleeveCut, string> = {
   "set-in": "M300 62 L378 140 L346 178 L302 146 Z M114 62 L36 140 L68 178 L112 146 Z",
@@ -62,7 +67,16 @@ export function collarPath(style: CollarStyle): string {
 }
 
 export function collarTrimPath(style: CollarStyle): string | undefined {
-  return COLLARS[style].trim;
+  const parts = [COLLARS[style].flaps, COLLARS[style].placket].filter((part) => part !== undefined);
+  return parts.length > 0 ? parts.join(" ") : undefined;
+}
+
+export function collarFlapsPath(style: CollarStyle): string | undefined {
+  return COLLARS[style].flaps;
+}
+
+export function collarPlacketPath(style: CollarStyle): string | undefined {
+  return COLLARS[style].placket;
 }
 
 export function bodyPath(style: CollarStyle, cut: SleeveCut): string {
@@ -73,6 +87,7 @@ export function sleevesPath(cut: SleeveCut): string {
   return SLEEVES[cut];
 }
 
-export function outlinePath(style: CollarStyle): string {
-  return `${COLLARS[style].neckline} ${SILHOUETTE}`;
+// Sem o decote, a silhueta vai do fim ao começo da gola, (249, 48) e (165, 48), nas duas linhas de decote.
+export function outlinePath(style: CollarStyle, neckline = true): string {
+  return neckline ? `${COLLARS[style].neckline} ${SILHOUETTE}` : `M249 48 ${SILHOUETTE_POINTS} L165 48`;
 }

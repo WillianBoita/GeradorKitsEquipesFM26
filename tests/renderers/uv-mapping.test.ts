@@ -99,12 +99,16 @@ describe("regionViews", () => {
     }
   });
 
-  it("splits each sleeve into the upper and lower halves of its island", () => {
+  // A manga curta passa da borda do retângulo até a cava: as metades cobrem o contorno inteiro em x, e o renderer recorta por ele.
+  it("splits each sleeve into the upper and lower halves of its island, wide enough for the armhole", () => {
     for (const sleeve of SLEEVES) {
       const half = sleeve.rect.height / 2;
+      const [left, right] =
+        sleeve.outline === undefined ? [sleeve.rect.x, sleeve.rect.x + sleeve.rect.width] : sleeve.side === "right" ? [240 / T, 395 / T] : [629 / T, 785 / T];
+      const span = { x: left, width: right - left };
       expect(regionViews(sleeve).map((view) => view.rects)).toEqual([
-        [{ ...sleeve.rect, height: half }],
-        [{ ...sleeve.rect, y: sleeve.rect.y + half, height: half }],
+        [{ ...span, y: sleeve.rect.y, height: half }],
+        [{ ...span, y: sleeve.rect.y + half, height: half }],
       ]);
     }
   });

@@ -1,7 +1,7 @@
 import type { ClubIdentity } from "../core/club.js";
 import { COLLAR_STYLES, SLEEVE_CUTS, SLEEVE_STYLES, type CollarStyle, type SleeveCut, type SleeveStyle } from "../core/kit.js";
 import { resolveProfileWeights } from "./profile-weights.js";
-import { LAYER_COUNTS, type LayerCount, type Weights } from "./profiles.js";
+import { LAYER_COUNTS, TRIM_STRIPE_OPTIONS, type LayerCount, type TrimStripeOption, type Weights } from "./profiles.js";
 
 // Ordem do enum, não das chaves do perfil: rng.weighted percorre os candidatos nesta ordem, e reordenar uma tabela não pode mudar os kits de uma seed.
 function candidates<K extends string>(values: readonly K[], weights: Weights<K>): [K, number][] {
@@ -33,5 +33,12 @@ export function layerCountCandidates(identity: ClubIdentity): [LayerCount, numbe
   return candidates(
     LAYER_COUNTS,
     resolveProfileWeights(identity, (profile) => profile.layerCountWeights),
+  );
+}
+
+export function trimStripeCandidates(identity: ClubIdentity): [TrimStripeOption, number][] {
+  return candidates(
+    TRIM_STRIPE_OPTIONS,
+    resolveProfileWeights(identity, (profile) => profile.trimStripeWeights),
   );
 }

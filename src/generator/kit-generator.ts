@@ -8,13 +8,14 @@ import {
   type ColorRole,
   type KitDefinition,
   type KitLayer,
+  type KitTrimStripe,
   type KitType,
 } from "../core/kit.js";
 import { resolvePalette, type Palette } from "../core/palette.js";
 import { createRng, deriveSeed, type Rng } from "../core/random.js";
 import { formatIssues, validateClub, validatePalette, type ValidationIssue } from "../core/validation.js";
 import type { PatternTemplate } from "../patterns/types.js";
-import { collarCandidates, layerCountCandidates, sleeveCutCandidates, sleeveStyleCandidates } from "../styles/component-weights.js";
+import { collarCandidates, layerCountCandidates, sleeveCutCandidates, sleeveStyleCandidates, trimStripeCandidates } from "../styles/component-weights.js";
 import { layerCandidates, patternCandidates } from "../styles/pattern-weights.js";
 
 export type KitSet = Record<KitType, KitDefinition>;
@@ -78,9 +79,10 @@ export function generateKit(identity: ClubIdentity, kitType: KitType, palette: P
   const cuffColor = rng.pick(trimRoles);
   const shortsColor = rng.pick([base, overlay]);
   const socksColor = rng.pick([shortsColor, base]);
-  // O corte (Fase 4a) e as camadas (Fase 4b) são os últimos sorteios: entraram depois e não podem deslocar os anteriores.
+  // O corte (Fase 4a), as camadas (Fase 4b) e a listra (Fase 4c) são os últimos sorteios: entraram depois e não podem deslocar os anteriores.
   const cut = rng.weighted(sleeveCutCandidates(identity));
   const layers = pickLayers(identity, { id: template.id, base, overlay }, rng);
+  const trimStripe = pickTrimStripe(identity, collarColor, cuffColor, rng);
   const kit: KitDefinition = {
     clubId: identity.id,
     kitType,
@@ -92,6 +94,8 @@ export function generateKit(identity: ClubIdentity, kitType: KitType, palette: P
     collar: { style: collarStyle, color: collarColor },
     // cut só aparece na raglan: o kit.json de quem não sorteia raglan fica igual ao de antes da 4a.
     sleeves: { style: sleeveStyle, ...(cut === "raglan" ? { cut } : {}), color: overlay, cuffColor },
+    // trimStripe só aparece quando sai listra: o kit.json de quem não sorteia listra fica igual ao de antes da 4c.
+    ...(trimStripe ? { trimStripe } : {}),
     shorts: { color: shortsColor },
     socks: { color: socksColor },
   };
@@ -119,6 +123,14 @@ function pickLayers(identity: ClubIdentity, pattern: Pick<KitDefinition["pattern
     layers.push({ id: template.id, color: rng.pick(colors), params: randomParams(template, rng) });
   }
   return layers;
+}
+
+// Gola e punhos ficam com a mesma listra; a cor é um papel que nenhum dos dois usa, e sobra sempre pelo menos um.
+function pickTrimStripe(identity: ClubIdentity, collarColor: ColorRole, cuffColor: ColorRole, rng: Rng): KitTrimStripe | undefined {
+  const style = rng.weighted(trimStripeCandidates(identity));
+  if (style === "none") return undefined;
+
+  return { style, color: rng.pick(COLOR_ROLES.filter((role) => role !== collarColor && role !== cuffColor)) };
 }
 
 function randomParams(template: PatternTemplate, rng: Rng): Record<string, number> {

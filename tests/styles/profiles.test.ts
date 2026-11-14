@@ -42,9 +42,21 @@ describe("STYLE_PROFILES", () => {
     expect(getStyleProfile("classic").sleeveCutWeights).toEqual({ "set-in": 1 });
   });
 
+  // Sem listra, as seeds de clubes sem estilo geram os mesmos kits (guarda Phase 3b baseline).
+  it("keeps classic without trim stripes", () => {
+    expect(getStyleProfile("classic").trimStripeWeights).toEqual({ none: 1 });
+  });
+
+  it("gives every other profile a chance of each trim stripe style", () => {
+    for (const profile of STYLE_PROFILES.filter((candidate) => candidate.id !== "classic")) {
+      expect(profile.trimStripeWeights.single, profile.id).toBeGreaterThan(0);
+      expect(profile.trimStripeWeights.double, profile.id).toBeGreaterThan(0);
+    }
+  });
+
   it("gives every profile a positive weight in each component table", () => {
     for (const profile of STYLE_PROFILES) {
-      for (const table of [profile.collarWeights, profile.sleeveStyleWeights, profile.sleeveCutWeights, profile.layerCountWeights]) {
+      for (const table of [profile.collarWeights, profile.sleeveStyleWeights, profile.sleeveCutWeights, profile.layerCountWeights, profile.trimStripeWeights]) {
         const weights = Object.values(table);
         expect(weights.length).toBeGreaterThan(0);
         for (const weight of weights) expect(weight).toBeGreaterThan(0);

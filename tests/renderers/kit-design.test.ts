@@ -56,6 +56,13 @@ describe("kitDesign", () => {
   });
 });
 
+describe("kitDesign trim stripe", () => {
+  it("resolves the trim stripe color, and leaves it out of kits without one", () => {
+    expect(kitDesign(makeKit({ trimStripe: { style: "double", color: "secondary" } })).trimStripe).toEqual({ style: "double", color: "#ffffff" });
+    expect(kitDesign(makeKit())).not.toHaveProperty("trimStripe");
+  });
+});
+
 describe("fillSvg", () => {
   it("paints a solid fill as one rect", () => {
     expect(fillSvg({ kind: "solid", color: "#ffd700" }, 100, 50)).toBe('<rect width="100" height="50" fill="#ffd700"/>');
