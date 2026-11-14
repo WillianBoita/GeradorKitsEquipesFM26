@@ -1,7 +1,7 @@
 import { XMLParser, XMLValidator } from "fast-xml-parser";
 import { describe, expect, it } from "vitest";
 import type { KitType } from "../../src/core/kit.js";
-import { buildConfigXml, fmTargetPath, isGeneratedConfigXml, validateConfigRecords, type ConfigRecord } from "../../src/fm26/config-xml.js";
+import { buildConfigXml, fmLogoTargetPath, fmTargetPath, isGeneratedConfigXml, validateConfigRecords, type ConfigRecord } from "../../src/fm26/config-xml.js";
 import type { RenderType } from "../../src/fm26/naming.js";
 
 const GALATICOS_2D: ConfigRecord[] = [
@@ -32,11 +32,22 @@ describe("fmTargetPath", () => {
   });
 });
 
+describe("fmLogoTargetPath", () => {
+  it("maps the club logo to logo", () => {
+    expect(fmLogoTargetPath("123456789")).toBe("graphics/pictures/club/123456789/logo");
+  });
+
+  it.each(["", "12a", "../1"])("rejects the fmUniqueId %j", (fmUniqueId) => {
+    expect(() => fmLogoTargetPath(fmUniqueId)).toThrow(/Invalid fmUniqueId/);
+  });
+});
+
 describe("validateConfigRecords", () => {
-  it("accepts 2D and 3D records for several clubs", () => {
+  it("accepts 2D, 3D and logo records for several clubs", () => {
     const records = [
       ...GALATICOS_2D,
       { from: "galaticos_fc_home_3d", to: "graphics/pictures/team/1/kit_textures/home" },
+      { from: "galaticos_fc_logo", to: "graphics/pictures/club/1/logo" },
       { from: "kong_team_home_2d", to: "graphics/pictures/team/2/kits/home" },
     ];
     expect(validateConfigRecords(records)).toEqual([]);
@@ -49,7 +60,11 @@ describe("validateConfigRecords", () => {
   it.each([
     "graphics/pictures/team/abc/kits/home",
     "graphics/pictures/team/1/kits/fourth",
+    "graphics/pictures/team/1/icon",
     "graphics/pictures/team/1/logo",
+    "graphics/pictures/club/1/logo/home",
+    "graphics/pictures/club/1/kits/home",
+    "graphics/pictures/team/1/kits",
     "graphics/pictures/team//kits/home",
     "/graphics/pictures/team/1/kits/home",
   ])("flags the to %j", (to) => {
@@ -76,6 +91,11 @@ describe("isGeneratedConfigXml", () => {
   it("recognizes its own output, with and without records", () => {
     expect(isGeneratedConfigXml(buildConfigXml(GALATICOS_2D))).toBe(true);
     expect(isGeneratedConfigXml(buildConfigXml([]))).toBe(true);
+  });
+
+  // Sem isso, o segundo export recusaria sobrescrever o config.xml que ele mesmo gravou com um escudo.
+  it("recognizes its own output with a logo record", () => {
+    expect(isGeneratedConfigXml(buildConfigXml([...GALATICOS_2D, { from: "galaticos_fc_logo", to: "graphics/pictures/club/1/logo" }]))).toBe(true);
   });
 
   it.each([

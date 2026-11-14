@@ -1,16 +1,20 @@
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import sharp from "sharp";
-import { exportConfigPath, exportFilePath } from "../config/paths.js";
+import { exportConfigPath, exportFilePath, exportLogoPath } from "../config/paths.js";
 import type { ClubIdentity } from "../core/club.js";
 import { errorMessage } from "../core/errors.js";
 import { KIT_TYPES, type KitDefinition, type KitType } from "../core/kit.js";
 import type { ValidationIssue } from "../core/validation.js";
+import { loadClubLogo } from "../io/asset-repository.js";
 import { kitDefinitionPath, listClubIds, loadClub, loadKit } from "../io/club-repository.js";
-import { buildConfigXml, fmTargetPath, isGeneratedConfigXml, type ConfigRecord } from "./config-xml.js";
-import { kitAssetName, type RenderType } from "./naming.js";
+import { renderClubLogoPng } from "../renderers/club-logo.js";
+import { buildConfigXml, fmLogoTargetPath, fmTargetPath, isGeneratedConfigXml, type ConfigRecord } from "./config-xml.js";
+import { clubLogoAssetName, kitAssetName, type RenderType } from "./naming.js";
 
 // Resoluções exigidas pelo FM26 (spec de integração, seção 6), independentes do tamanho padrão de cada renderer.
 export const FM26_RENDER_SIZES: Record<RenderType, number> = { "2d": 414, "3d": 1024 };
+// O FM26 não documenta o tamanho do logo; os pacotes atuais usam 200 ou 400 px e o jogo reduz o que precisar.
+export const FM26_LOGO_SIZE = 400;
 
 // Third é opcional: o clube só exporta menos registros.
 const REQUIRED_KIT_TYPES: readonly KitType[] = ["home", "away"];
@@ -70,6 +74,7 @@ export interface ExportOptions {
 export interface ExportedClub {
   club: ClubIdentity;
   kitTypes: KitType[];
+  logo: boolean;
 }
 
 export interface ExportResult {
@@ -101,6 +106,7 @@ interface LoadedClub {
   clubId: string;
   club?: ClubIdentity;
   kits: ClubKits;
+  logo?: Buffer;
   issues: ValidationIssue[];
 }
 
@@ -141,13 +147,19 @@ async function loadExportClub(clubId: string, clubsDir: string): Promise<LoadedC
       issues.push({ rule: "invalid-file", message: errorMessage(error) });
     }
   }
+  let logo: Buffer | undefined;
+  try {
+    logo = await loadClubLogo(club.id, clubsDir);
+  } catch (error) {
+    issues.push({ rule: "invalid-file", message: errorMessage(error) });
+  }
   const present = KIT_TYPES.filter((kitType) => kits[kitType] !== undefined || unreadable.includes(kitType));
   issues.push(...validateExportClub(club, present, clubsDir));
-  return { clubId, club, kits, issues };
+  return { clubId, club, kits, logo, issues };
 }
 
-// Ordem dos registros: render (2d antes de 3d) e depois tipo de kit, como no exemplo do spec de integração.
-async function renderClub(club: ClubIdentity, fmUniqueId: string, kits: ClubKits, options: ExportOptions): Promise<RenderedClub> {
+// Ordem dos registros: render (2d antes de 3d) e depois tipo de kit, como no exemplo do spec de integração; o escudo vem depois dos kits.
+async function renderClub(club: ClubIdentity, fmUniqueId: string, kits: ClubKits, logo: Buffer | undefined, options: ExportOptions): Promise<RenderedClub> {
   const files: ExportFile[] = [];
   const issues: ValidationIssue[] = [];
   for (const renderType of options.renderTypes) {
@@ -170,6 +182,10 @@ async function renderClub(club: ClubIdentity, fmUniqueId: string, kits: ClubKits
       files.push({ file: exportFilePath(options.outDir, club.id, kitType, renderType), png, record });
     }
   }
+  if (logo) {
+    const record = { from: clubLogoAssetName(club.id), to: fmLogoTargetPath(fmUniqueId) };
+    files.push({ file: exportLogoPath(options.outDir, club.id), png: await renderClubLogoPng(logo, FM26_LOGO_SIZE), record });
+  }
   return { files, issues };
 }
 
@@ -188,10 +204,10 @@ export async function exportKits(options: ExportOptions): Promise<ExportResult> 
     const fmUniqueId = entry.club?.fmUniqueId;
     // Clubes válidos renderizam mesmo depois de uma falha, para o usuário ver todos os problemas de uma vez.
     if (entry.club && fmUniqueId !== undefined && issues.length === 0) {
-      const rendered = await renderClub(entry.club, fmUniqueId, entry.kits, options);
+      const rendered = await renderClub(entry.club, fmUniqueId, entry.kits, entry.logo, options);
       issues.push(...rendered.issues);
       files.push(...rendered.files);
-      exported.push({ club: entry.club, kitTypes: KIT_TYPES.filter((kitType) => entry.kits[kitType] !== undefined) });
+      exported.push({ club: entry.club, kitTypes: KIT_TYPES.filter((kitType) => entry.kits[kitType] !== undefined), logo: entry.logo !== undefined });
     }
     if (issues.length > 0) failures.push({ clubId: entry.clubId, issues });
   }

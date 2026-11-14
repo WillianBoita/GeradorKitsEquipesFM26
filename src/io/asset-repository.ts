@@ -56,6 +56,14 @@ export async function loadKitLogos(kit: KitDefinition, registry: AssetRegistry, 
   return images;
 }
 
+// O escudo é opcional para o clube: só um arquivo presente que não é imagem vira erro.
+export async function loadClubLogo(clubId: string, clubsDir: string): Promise<Buffer | undefined> {
+  const file = clubLogoPath(clubId, clubsDir);
+  const content = await readIfExists(file);
+  if (content && !(await isImage(content))) throw new Error(`Invalid image file: ${file}`);
+  return content;
+}
+
 // Confere cada arquivo uma vez; ids fora do registry ficam para a regra unknown-asset.
 export async function checkAssetFiles(clubId: string, refs: AssetRefs, registry: AssetRegistry, dirs: AssetDirs): Promise<ValidationIssue[]> {
   const issues: ValidationIssue[] = [];

@@ -24,3 +24,12 @@ export function kitAssetName(clubId: string, kitType: KitType, renderType: Rende
 export function kitAssetFileName(clubId: string, kitType: KitType, renderType: RenderType): string {
   return `${kitAssetName(clubId, kitType, renderType)}.png`;
 }
+
+// Termina em _logo e os nomes de kit em _2d/_3d: os dois nunca colidem, nem com "logo" no id do clube.
+export function clubLogoAssetName(clubId: string): string {
+  return `${clubSlug(clubId)}_logo`;
+}
+
+export function clubLogoAssetFileName(clubId: string): string {
+  return `${clubLogoAssetName(clubId)}.png`;
+}

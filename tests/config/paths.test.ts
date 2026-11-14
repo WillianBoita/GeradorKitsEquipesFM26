@@ -7,6 +7,7 @@ import {
   CONFIG_XML_FILE,
   exportConfigPath,
   exportFilePath,
+  exportLogoPath,
   FM26_EXPORT_DIR,
   kitRenderPath,
   OUTPUT_DIR,
@@ -47,6 +48,7 @@ describe("FM26 export paths", () => {
 
   it("puts every PNG flat in the export folder, next to config.xml", () => {
     expect(exportFilePath("/tmp/out", "galaticos-fc", "away", "2d")).toBe(path.join("/tmp/out", "galaticos_fc_away_2d.png"));
+    expect(exportLogoPath("/tmp/out", "galaticos-fc")).toBe(path.join("/tmp/out", "galaticos_fc_logo.png"));
     expect(exportConfigPath("/tmp/out")).toBe(path.join("/tmp/out", CONFIG_XML_FILE));
     expect(CONFIG_XML_FILE).toBe("config.xml");
   });

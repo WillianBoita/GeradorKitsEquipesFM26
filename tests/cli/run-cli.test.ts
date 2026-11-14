@@ -561,6 +561,18 @@ describe("runCli export", () => {
     expect(errors).toEqual([]);
   });
 
+  it("exports the club logo and lists it after the kits", async () => {
+    const clubs = await makeClubsDir({ "galaticos-fc": JSON.stringify({ ...GALATICOS_CLUB, fmUniqueId: "1" }) });
+    await writeClubLogo(clubs, "galaticos-fc");
+    await runCli(["generate", "--club", "galaticos-fc", "--seed", "42", "--clubs", clubs, "--out", await makeTempDir("cli")], captureIo().io);
+    const out = await exportDir();
+    const { io, logs } = captureIo();
+    expect(await runCli(["export", "--clubs", clubs, "--out", out], io)).toBe(0);
+    expect(await sharp(path.join(out, "galaticos_fc_logo.png")).metadata()).toMatchObject({ format: "png", width: 400, height: 400 });
+    expect(await readFile(path.join(out, "config.xml"), "utf8")).toContain('<record from="galaticos_fc_logo" to="graphics/pictures/club/1/logo"/>');
+    expect(logs).toEqual(["Exported Galáticos FC: home, away, third, logo", `Wrote 7 records to ${path.join(out, "config.xml")}`]);
+  });
+
   it("exports the same 3D texture that render --render 3d writes", async () => {
     const { clubs } = await exportableClubs();
     const out = await exportDir();

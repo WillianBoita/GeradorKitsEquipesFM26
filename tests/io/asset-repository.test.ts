@@ -1,9 +1,9 @@
-import { rm, writeFile } from "node:fs/promises";
+import { readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import { loadAssetRegistry } from "../../src/assets/registry.js";
-import { checkAssetFiles, loadKitLogos, type AssetDirs } from "../../src/io/asset-repository.js";
+import { checkAssetFiles, loadClubLogo, loadKitLogos, type AssetDirs } from "../../src/io/asset-repository.js";
 import { LOGO_SVG, makeAssetsDir, makeOpaquePng, writeClubLogo } from "../fixtures/assets.js";
 import { GALATICOS_CLUB, makeClubsDir } from "../fixtures/clubs.js";
 import { makeKit } from "../fixtures/kits.js";
@@ -70,6 +70,25 @@ describe("loadKitLogos", () => {
     const file = path.join(dirs.clubsDir, "galaticos-fc", "logo.png");
     await writeFile(file, await truncatedPng());
     await expect(loadKitLogos(BRANDED_KIT, await loadAssetRegistry(dirs.assetsDir), dirs)).rejects.toThrow(`Invalid image file: ${file}`);
+  });
+});
+
+describe("loadClubLogo", () => {
+  it("reads the same file the kits use as badge", async () => {
+    const dirs = await setup();
+    expect(await loadClubLogo("galaticos-fc", dirs.clubsDir)).toEqual(await readFile(path.join(dirs.clubsDir, "galaticos-fc", "logo.png")));
+  });
+
+  it("returns undefined for a club without logo.png", async () => {
+    const dirs = await setup(false);
+    expect(await loadClubLogo("galaticos-fc", dirs.clubsDir)).toBeUndefined();
+  });
+
+  it("names a logo.png whose pixel data is truncated", async () => {
+    const dirs = await setup();
+    const file = path.join(dirs.clubsDir, "galaticos-fc", "logo.png");
+    await writeFile(file, await truncatedPng());
+    await expect(loadClubLogo("galaticos-fc", dirs.clubsDir)).rejects.toThrow(`Invalid image file: ${file}`);
   });
 });
 

@@ -1,7 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { KitType } from "../core/kit.js";
-import { clubSlug, kitAssetFileName, type RenderType } from "../fm26/naming.js";
+import { clubLogoAssetFileName, clubSlug, kitAssetFileName, type RenderType } from "../fm26/naming.js";
 
 // Dois níveis acima funciona tanto para src/config (tsx) quanto para dist/config (build).
 const PROJECT_ROOT = fileURLToPath(new URL("../../", import.meta.url));
@@ -26,6 +26,10 @@ export function kitRenderPath(outDir: string, clubId: string, kitType: KitType, 
 // Pasta plana: o FM26 ignora `from` com subpasta, então PNGs e config.xml ficam juntos.
 export function exportFilePath(outDir: string, clubId: string, kitType: KitType, renderType: RenderType): string {
   return path.join(outDir, kitAssetFileName(clubId, kitType, renderType));
+}
+
+export function exportLogoPath(outDir: string, clubId: string): string {
+  return path.join(outDir, clubLogoAssetFileName(clubId));
 }
 
 export function exportConfigPath(outDir: string): string {

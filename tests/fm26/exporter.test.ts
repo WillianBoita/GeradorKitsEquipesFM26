@@ -10,12 +10,15 @@ import {
   duplicateFmUniqueIdIssues,
   ExportAbortedError,
   exportKits,
+  FM26_LOGO_SIZE,
   FM26_RENDER_SIZES,
   validateExportClub,
   type RenderKit,
 } from "../../src/fm26/exporter.js";
 import type { RenderType } from "../../src/fm26/naming.js";
-import { kitDefinitionPath, saveKit } from "../../src/io/club-repository.js";
+import { clubLogoPath, kitDefinitionPath, saveKit } from "../../src/io/club-repository.js";
+import { renderClubLogoPng } from "../../src/renderers/club-logo.js";
+import { writeClubLogo } from "../fixtures/assets.js";
 import { GALATICOS_CLUB, KONG_CLUB, makeClubsDir } from "../fixtures/clubs.js";
 import { makeKit } from "../fixtures/kits.js";
 import { makeTempDir } from "../fixtures/temp.js";
@@ -36,6 +39,10 @@ async function solidPng(width: number, height = width): Promise<Buffer> {
 describe("FM26_RENDER_SIZES", () => {
   it("matches the FM26 2D and 3D resolutions", () => {
     expect(FM26_RENDER_SIZES).toEqual({ "2d": 414, "3d": 1024 });
+  });
+
+  it("exports the club logo at the largest size FM26 logo packs use", () => {
+    expect(FM26_LOGO_SIZE).toBe(400);
   });
 });
 
@@ -156,6 +163,10 @@ function record(clubSlug: string, fmUniqueId: string, kitType: KitType, renderTy
   };
 }
 
+function logoRecord(clubSlug: string, fmUniqueId: string) {
+  return { from: `${clubSlug}_logo`, to: `graphics/pictures/club/${fmUniqueId}/logo` };
+}
+
 describe("exportKits", () => {
   it("writes every 2D PNG and one config.xml into a flat folder", async () => {
     const clubsDir = await clubsWithKits({ "galaticos-fc": GALATICOS_EXPORT });
@@ -165,10 +176,34 @@ describe("exportKits", () => {
     expect(await sharp(path.join(outDir, "galaticos_fc_home_2d.png")).metadata()).toMatchObject({ format: "png", width: 414, height: 414 });
     expect(await readFile(path.join(outDir, "config.xml"), "utf8")).toBe(buildConfigXml(KIT_TYPES.map((kitType) => record("galaticos_fc", "1", kitType))));
     expect(result).toEqual({
-      clubs: [{ club: parseClubIdentity(GALATICOS_EXPORT), kitTypes: ["home", "away", "third"] }],
+      clubs: [{ club: parseClubIdentity(GALATICOS_EXPORT), kitTypes: ["home", "away", "third"], logo: false }],
       configFile: path.join(outDir, "config.xml"),
       recordCount: 3,
     });
+  });
+
+  it("writes the club logo as the kits use it and maps it after the kits", async () => {
+    const clubsDir = await clubsWithKits({ "galaticos-fc": GALATICOS_EXPORT });
+    await writeClubLogo(clubsDir, "galaticos-fc");
+    const outDir = await outputDir();
+    const result = await exportKits({ clubsDir, outDir, renderTypes: ["2d"], renderKit: fakeRenderer().renderKit });
+    const expected = await renderClubLogoPng(await readFile(clubLogoPath("galaticos-fc", clubsDir)), FM26_LOGO_SIZE);
+    expect((await readFile(path.join(outDir, "galaticos_fc_logo.png"))).equals(expected)).toBe(true);
+    expect(await readFile(path.join(outDir, "config.xml"), "utf8")).toBe(
+      buildConfigXml([...KIT_TYPES.map((kitType) => record("galaticos_fc", "1", kitType)), logoRecord("galaticos_fc", "1")]),
+    );
+    expect(result.clubs[0]?.logo).toBe(true);
+    expect(result.recordCount).toBe(4);
+  });
+
+  it("aborts without writing anything when logo.png is not an image", async () => {
+    const clubsDir = await clubsWithKits({ "galaticos-fc": GALATICOS_EXPORT });
+    const logo = clubLogoPath("galaticos-fc", clubsDir);
+    await writeFile(logo, "not an image");
+    const outDir = await outputDir();
+    const error = await expectAbort(exportKits({ clubsDir, outDir, renderTypes: ["2d"], renderKit: fakeRenderer().renderKit }));
+    expect(error.failures).toEqual([{ clubId: "galaticos-fc", issues: [{ rule: "invalid-file", message: `Invalid image file: ${logo}` }] }]);
+    expect(await exists(outDir)).toBe(false);
   });
 
   it("exports two records when the third kit is absent", async () => {
@@ -180,12 +215,14 @@ describe("exportKits", () => {
     expect(await exists(path.join(outDir, "galaticos_fc_third_2d.png"))).toBe(false);
   });
 
-  it("orders records by club id, then render type, then kit type", async () => {
+  it("orders records by club id, then render type, then kit type, with each club's logo after its kits", async () => {
     const clubsDir = await clubsWithKits({ "kong-team": KONG_EXPORT, "galaticos-fc": GALATICOS_EXPORT });
+    await writeClubLogo(clubsDir, "galaticos-fc");
     const outDir = await outputDir();
     await exportKits({ clubsDir, outDir, renderTypes: ["2d", "3d"], renderKit: fakeRenderer().renderKit });
     const expected = [
       ...(["2d", "3d"] as const).flatMap((renderType) => KIT_TYPES.map((kitType) => record("galaticos_fc", "1", kitType, renderType))),
+      logoRecord("galaticos_fc", "1"),
       ...(["2d", "3d"] as const).flatMap((renderType) => KIT_TYPES.map((kitType) => record("kong_team", "2", kitType, renderType))),
     ];
     expect(await readFile(path.join(outDir, "config.xml"), "utf8")).toBe(buildConfigXml(expected));

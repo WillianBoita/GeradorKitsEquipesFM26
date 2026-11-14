@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { KIT_TYPES } from "../../src/core/kit.js";
-import { clubSlug, kitAssetFileName, kitAssetName, parseRenderType, RENDER_TYPES } from "../../src/fm26/naming.js";
+import { clubLogoAssetFileName, clubLogoAssetName, clubSlug, kitAssetFileName, kitAssetName, parseRenderType, RENDER_TYPES } from "../../src/fm26/naming.js";
 
 describe("clubSlug", () => {
   it.each([
@@ -30,6 +30,22 @@ describe("kitAssetName", () => {
     const names = KIT_TYPES.flatMap((kitType) => RENDER_TYPES.map((renderType) => kitAssetName("galaticos-fc", kitType, renderType)));
     expect(new Set(names).size).toBe(KIT_TYPES.length * RENDER_TYPES.length);
     for (const name of names) expect(name).toMatch(/^[a-z0-9_]+$/);
+  });
+});
+
+describe("clubLogoAssetName", () => {
+  it("follows {club-slug}_logo and adds .png only to the file name", () => {
+    expect(clubLogoAssetName("galaticos-fc")).toBe("galaticos_fc_logo");
+    expect(clubLogoAssetFileName("galaticos-fc")).toBe("galaticos_fc_logo.png");
+  });
+
+  // Nomes de kit sempre terminam em _2d ou _3d, mesmo quando o id do clube contém "logo".
+  it("never matches a kit name", () => {
+    const kitNames = ["galaticos-fc", "galaticos-fc-logo"].flatMap((id) =>
+      KIT_TYPES.flatMap((kitType) => RENDER_TYPES.map((renderType) => kitAssetName(id, kitType, renderType))),
+    );
+    expect(kitNames).not.toContain(clubLogoAssetName("galaticos-fc"));
+    expect(kitNames).not.toContain(clubLogoAssetName("galaticos-fc-logo"));
   });
 });
 

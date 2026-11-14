@@ -14,13 +14,20 @@ const TARGET_FOLDERS: Record<RenderType, string> = { "2d": "kits", "3d": "kit_te
 const INDENT = "    ";
 // Com from e to restritos a estes padrões não há o que escapar: o XML sai bem formado por construção.
 const FROM_PATTERN = /^[a-z0-9_]+$/;
-const TO_PATTERN = new RegExp(`^graphics/pictures/team/\\d+/(${Object.values(TARGET_FOLDERS).join("|")})/(${KIT_TYPES.join("|")})$`);
+const TO_PATTERN = new RegExp(`^graphics/pictures/(team/\\d+/(${Object.values(TARGET_FOLDERS).join("|")})/(${KIT_TYPES.join("|")})|club/\\d+/logo)$`);
 
 // O Unique ID do editor vai puro no caminho. O teste no jogo (2026-10-03) refutou a hipótese fmRandomId × 2³² + fmUniqueId: só o ID puro apareceu.
 export function fmTargetPath(fmUniqueId: string, kitType: KitType, renderType: RenderType): string {
   const id = parseWith(FmUniqueIdSchema, fmUniqueId, "fmUniqueId");
   const type = parseWith(KitTypeSchema, kitType, "kit type");
   return `graphics/pictures/team/${id}/${TARGET_FOLDERS[parseWith(RenderTypeSchema, renderType, "render type")]}/${type}`;
+}
+
+// O escudo é do clube (club/), o kit é do time (team/), com o mesmo Unique ID: o jogo ignorou team/<id>/logo (2026-10-11), e os pacotes
+// FMG e TCM26 usam club/<id>/logo com os IDs que os pacotes de kit usam em team/. No FM26 só o logo normal existe: small, icon,
+// left/back/right e @2x saíram e podem conflitar (moderador da SI).
+export function fmLogoTargetPath(fmUniqueId: string): string {
+  return `graphics/pictures/club/${parseWith(FmUniqueIdSchema, fmUniqueId, "fmUniqueId")}/logo`;
 }
 
 function duplicates(records: readonly ConfigRecord[], key: keyof ConfigRecord): ValidationIssue[] {
@@ -44,7 +51,10 @@ export function validateConfigRecords(records: readonly ConfigRecord[]): Validat
     if (!FROM_PATTERN.test(record.from))
       issues.push({ rule: "invalid-from", message: `"${record.from}" must contain only lowercase letters, digits and underscores` });
     if (!TO_PATTERN.test(record.to)) {
-      issues.push({ rule: "invalid-to", message: `"${record.to}" is not graphics/pictures/team/<fmUniqueId>/<kits|kit_textures>/<home|away|third>` });
+      issues.push({
+        rule: "invalid-to",
+        message: `"${record.to}" is not graphics/pictures/team/<fmUniqueId>/<kits|kit_textures>/<home|away|third> or graphics/pictures/club/<fmUniqueId>/logo`,
+      });
     }
   }
   return [...issues, ...duplicates(records, "from"), ...duplicates(records, "to")];

@@ -231,7 +231,7 @@ async function exportCommand(args: string[], io: CliIo): Promise<number> {
   const renderKit: RenderKit = async (kit, renderType) => renderKitPng(kit, renderType, await loadKitLogos(kit, registry, dirs));
   try {
     const result = await exportKits({ clubsDir: values.clubs, outDir: path.resolve(values.out), renderTypes: RENDER_TYPES, renderKit });
-    for (const { club, kitTypes } of result.clubs) io.log(`Exported ${club.name}: ${kitTypes.join(", ")}`);
+    for (const { club, kitTypes, logo } of result.clubs) io.log(`Exported ${club.name}: ${[...kitTypes, ...(logo ? ["logo"] : [])].join(", ")}`);
     io.log(`Wrote ${result.recordCount} records to ${result.configFile}`);
     return 0;
   } catch (error) {
