@@ -2,6 +2,7 @@ import { XMLValidator } from "fast-xml-parser";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import type { CollarStyle, KitDefinition } from "../../src/core/kit.js";
+import { FM26_FABRIC, type AlphaTile } from "../../src/fm26/fabric.js";
 import type { KitLogoImages } from "../../src/renderers/kit-logos.js";
 import { renderKit2dPng } from "../../src/renderers/renderer-2d.js";
 import { KIT_3D_SIZE, renderKit3dPng, renderKit3dSvg } from "../../src/renderers/renderer-3d.js";
@@ -33,6 +34,39 @@ function boxCenter(slot: "badge" | "sponsor" | "manufacturer", size = KIT_3D_SIZ
   const box = frontLogoBox(slot);
   return [Math.floor((box.x + box.width / 2) * size), Math.floor((box.y + box.height / 2) * size)];
 }
+
+// Desvio máximo que a trama põe num canal: a opacidade da camada sobre branco puro, mais 1 nível de arredondamento.
+const FABRIC_DRIFT = Math.ceil(255 * FM26_FABRIC.opacity) + 1;
+
+function expectNear(actual: number[], color: number[], drift: number, label?: string): void {
+  expect(channelDistance(actual, color), label).toBeLessThanOrEqual(drift);
+}
+
+type Box = [x0: number, y0: number, x1: number, y1: number];
+
+// Maior diferença entre a caixa da textura e o bloco ancorado em origin: cada pixel é a cor base misturada com o tom na opacidade da camada vezes dígito / 15.
+function tileDeviation(texture: Raster, [x0, y0, x1, y1]: Box, tile: AlphaTile, origin: [number, number], base: number[], tone: number, opacity: number) {
+  let worst = 0;
+  let painted = 0;
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      const digit = parseInt(tile.rows[(y - origin[1]) % tile.height]![(x - origin[0]) % tile.width]!, 16);
+      const alpha = (opacity * digit) / 15;
+      const want = [...base.slice(0, 3).map((value) => Math.round(value + (tone - value) * alpha)), 255];
+      worst = Math.max(worst, channelDistance(pixel(texture, x, y), want));
+      if (digit > 0) painted++;
+    }
+  }
+  return { worst, painted };
+}
+
+function flatDeviation(texture: Raster, [x0, y0, x1, y1]: Box, color: number[]): number {
+  let worst = 0;
+  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) worst = Math.max(worst, channelDistance(pixel(texture, x, y), color));
+  return worst;
+}
+
+const weave = (texture: Raster, box: Box, base: number[]) => tileDeviation(texture, box, FM26_FABRIC.tile, [0, 0], base, 0, FM26_FABRIC.opacity);
 
 const PRIMARY = [0x12, 0x34, 0x56, 255];
 const SECONDARY = [0xff, 0xff, 0xff, 255];
@@ -66,6 +100,16 @@ describe("renderKit3dSvg", () => {
     expect(setIn).not.toContain('stroke-opacity="0.2"');
   });
 
+  // Pilha do PSD: o grupo "texture" fica acima das costuras das mangas e abaixo de punhos e gola.
+  it("draws the fabric after the raglan seams and before the cuffs and the collar", () => {
+    const svg = renderKit3dSvg(makeKit({ sleeves: { style: "match-body", cut: "raglan", color: "secondary", cuffColor: "accent" } }));
+    const fabric = svg.indexOf('fill="url(#fabric)"');
+    expect(svg).toContain('<clipPath id="fabric-area">');
+    expect(fabric).toBeGreaterThan(svg.lastIndexOf('stroke-opacity="0.2"'));
+    expect(fabric).toBeLessThan(svg.indexOf('stroke-width="26"'));
+    expect(fabric).toBeLessThan(svg.indexOf('fill-rule="evenodd"'));
+  });
+
   it("draws a kit with an empty layer list like a kit without layers", () => {
     expect(renderKit3dSvg(makeKit({ layers: [] }))).toBe(renderKit3dSvg(makeKit()));
   });
@@ -87,6 +131,72 @@ describe("renderKit3dPng", () => {
     expect(channels[3]!.min).toBe(255);
   });
 
+  // makeKit(): corpo e mangas primary, punhos e gola accent, calção secondary, meias primary.
+  const SHIRT_BOXES: [string, Box][] = [
+    ["front", [420, 700, 500, 760]],
+    ["back", [420, 250, 500, 310]],
+    ["front hem", [420, 1005, 500, 1018]],
+    ["back hem", [420, 118, 500, 133]],
+    ["right short sleeve", [280, 480, 340, 540]],
+    ["left short sleeve", [690, 480, 750, 540]],
+    ["right armhole strip", [362, 480, 384, 540]],
+    ["right long sleeve", [100, 100, 180, 160]],
+    ["left long sleeve", [840, 100, 920, 160]],
+  ];
+
+  it("weaves the fabric over the whole shirt exactly as the tile", async () => {
+    const texture = await raster(await renderKit3dPng(makeKit()));
+    for (const [part, box] of SHIRT_BOXES) expect(weave(texture, box, PRIMARY).worst, part).toBeLessThanOrEqual(1);
+  });
+
+  it("keeps the weave off the cuffs, the collar, the shorts, the socks and the space outside the islands", async () => {
+    const texture = await raster(await renderKit3dPng(makeKit()));
+    const plain: [string, Box, number[]][] = [
+      ["right cuff", [246, 480, 268, 540], ACCENT],
+      ["left cuff", [758, 480, 779, 540], ACCENT],
+      ["right long cuff", [3, 100, 24, 160], ACCENT],
+      ["left long cuff", [1000, 100, 1021, 160], ACCENT],
+      ["collar", [470, 592, 477, 603], ACCENT],
+      ["shorts", [100, 850, 180, 910], SECONDARY],
+      ["foot of the sock", [100, 704, 180, 714], PRIMARY],
+      ["outside the islands", [420, 20, 500, 80], PRIMARY],
+    ];
+    for (const [part, box, color] of plain) expect(flatDeviation(texture, box, color), part).toBe(0);
+  });
+
+  it("leaves a black shirt untouched: black fabric on black", async () => {
+    const texture = await raster(await renderKit3dPng(makeKit({ colors: { primary: "#000000", secondary: "#ffffff", accent: "#ffd700" } })));
+    expect(flatDeviation(texture, [420, 700, 500, 760], [0, 0, 0, 255])).toBe(0);
+  });
+
+  it("weaves over both colors of a patterned shirt", async () => {
+    const texture = await raster(await renderKit3dPng(patternKit("halves")));
+    const boxes: Box[] = [
+      [400, 800, 440, 840],
+      [590, 800, 630, 840],
+    ];
+    const bases = boxes.map((box) => [PRIMARY, SECONDARY].find((base) => weave(texture, box, base).worst <= 1));
+    expect(new Set(bases)).toEqual(new Set([PRIMARY, SECONDARY]));
+  });
+
+  it("weaves over the raglan yoke", async () => {
+    const texture = await raster(await renderKit3dPng(makeKit({ sleeves: { style: "solid", cut: "raglan", color: "accent", cuffColor: "secondary" } })));
+    expect(weave(texture, [412, 574, 424, 586], ACCENT).worst).toBeLessThanOrEqual(1);
+  });
+
+  it("keeps the weave within its drift at half size", async () => {
+    const texture = await raster(await renderKit3dPng(makeKit(), { size: 512 }));
+    let changed = 0;
+    for (let y = 350; y < 380; y++) {
+      for (let x = 210; x < 250; x++) {
+        const color = pixel(texture, x, y);
+        expectNear(color, PRIMARY, FABRIC_DRIFT, `${x},${y}`);
+        if (channelDistance(color, PRIMARY) > 0) changed++;
+      }
+    }
+    expect(changed).toBeGreaterThan(0);
+  });
+
   it("paints every part with its color", async () => {
     const kit = makeKit({
       collar: { style: "round", color: "accent" },
@@ -95,35 +205,35 @@ describe("renderKit3dPng", () => {
       socks: { color: "secondary" },
     });
     const texture = await raster(await renderKit3dPng(kit));
-    const expected: [string, number, number, number[]][] = [
-      ["front", 512, 900, PRIMARY],
-      ["back", 512, 300, PRIMARY],
-      ["front hem", 512, 1011, PRIMARY],
-      ["outside the islands", 512, 60, PRIMARY],
-      ["right short sleeve", 310, 650, SECONDARY],
-      ["left short sleeve", 730, 650, SECONDARY],
-      ["right long sleeve", 178, 163, SECONDARY],
-      ["left long sleeve", 846, 163, SECONDARY],
-      ["right cuff", 257, 560, ACCENT],
-      ["left cuff", 768, 560, ACCENT],
-      ["right long cuff", 13, 150, ACCENT],
-      ["left long cuff", 1010, 150, ACCENT],
-      ["collar", 555, 597, ACCENT],
-      ["collar", 477, 597, ACCENT],
-      ["right shorts", 177, 896, ACCENT],
-      ["left shorts", 850, 896, ACCENT],
-      ["right sock", 120, 573, SECONDARY],
-      ["left sock", 903, 573, SECONDARY],
+    const expected: [string, number, number, number[], number][] = [
+      ["front", 512, 900, PRIMARY, FABRIC_DRIFT],
+      ["back", 512, 300, PRIMARY, FABRIC_DRIFT],
+      ["front hem", 512, 1011, PRIMARY, FABRIC_DRIFT],
+      ["outside the islands", 512, 60, PRIMARY, 0],
+      ["right short sleeve", 310, 650, SECONDARY, FABRIC_DRIFT],
+      ["left short sleeve", 730, 650, SECONDARY, FABRIC_DRIFT],
+      ["right long sleeve", 178, 163, SECONDARY, FABRIC_DRIFT],
+      ["left long sleeve", 846, 163, SECONDARY, FABRIC_DRIFT],
+      ["right cuff", 257, 560, ACCENT, 0],
+      ["left cuff", 768, 560, ACCENT, 0],
+      ["right long cuff", 13, 150, ACCENT, 0],
+      ["left long cuff", 1010, 150, ACCENT, 0],
+      ["collar", 555, 597, ACCENT, 0],
+      ["collar", 477, 597, ACCENT, 0],
+      ["right shorts", 177, 896, ACCENT, 0],
+      ["left shorts", 850, 896, ACCENT, 0],
+      ["right sock", 120, 573, SECONDARY, 0],
+      ["left sock", 903, 573, SECONDARY, 0],
     ];
-    for (const [part, x, y, color] of expected) expect(pixel(texture, x, y), part).toEqual(color);
+    for (const [part, x, y, color, drift] of expected) expectNear(pixel(texture, x, y), color, drift, part);
   });
 
   it("continues the pattern into the front and back hems", async () => {
     const texture = await raster(await renderKit3dPng(patternKit("stripes")));
     const colors = new Set<string>();
     for (let x = 362; x < 664; x += 11) {
-      expect(pixel(texture, x, 1011), `front ${x}`).toEqual(pixel(texture, x, 990));
-      expect(pixel(texture, x, 126), `back ${x}`).toEqual(pixel(texture, x, 145));
+      expectNear(pixel(texture, x, 1011), pixel(texture, x, 990), FABRIC_DRIFT, `front ${x}`);
+      expectNear(pixel(texture, x, 126), pixel(texture, x, 145), FABRIC_DRIFT, `back ${x}`);
       colors.add(pixel(texture, x, 1011).join());
     }
     expect(colors.size).toBeGreaterThanOrEqual(2);
@@ -141,7 +251,7 @@ describe("renderKit3dPng", () => {
         if (inWing(x, y) || inWing(x, 1137 - y)) continue;
         const front = pixel(texture, x, y);
         colors.add(front.join());
-        expect(channelDistance(front, pixel(texture, x, 1137 - y)), `${x},${y}`).toBeLessThanOrEqual(32);
+        expect(channelDistance(front, pixel(texture, x, 1137 - y)), `${x},${y}`).toBeLessThanOrEqual(32 + FABRIC_DRIFT);
       }
     }
     expect(colors.size).toBeGreaterThanOrEqual(2);
@@ -152,9 +262,9 @@ describe("renderKit3dPng", () => {
     const colors = new Set<string>();
     for (let y = 410; y < 720; y += 5) {
       const shoulder = pixel(texture, 350, y);
-      expect(pixel(texture, 280, y), `y ${y}`).toEqual(shoulder);
+      expectNear(pixel(texture, 280, y), shoulder, FABRIC_DRIFT, `y ${y}`);
       // A faixa da cava continua a manga (x 375 fica dentro dela até y ≈ 690).
-      if (y < 680) expect(pixel(texture, 375, y), `armhole y ${y}`).toEqual(shoulder);
+      if (y < 680) expectNear(pixel(texture, 375, y), shoulder, FABRIC_DRIFT, `armhole y ${y}`);
       colors.add(shoulder.join());
     }
     expect(colors.size).toBeGreaterThanOrEqual(2);
@@ -192,7 +302,7 @@ describe("renderKit3dPng", () => {
       ],
     ];
     expect(sleeves[0]![1]).not.toEqual(sleeves[1]![1]);
-    for (const [side, color, points] of sleeves) for (const [x, y] of points) expect(pixel(texture, x, y), `${side} ${x},${y}`).toEqual(color);
+    for (const [side, color, points] of sleeves) for (const [x, y] of points) expectNear(pixel(texture, x, y), color, FABRIC_DRIFT, `${side} ${x},${y}`);
   });
 
   it("draws the detail layers on the front and the back but not on the sleeves", async () => {
@@ -214,11 +324,11 @@ describe("renderKit3dPng", () => {
       [400, 640],
       [400, 498],
     ] as const) {
-      expect(pixel(texture, x, y), `${x},${y}`).toEqual(ACCENT);
+      expectNear(pixel(texture, x, y), ACCENT, FABRIC_DRIFT, `${x},${y}`);
     }
     // A shoulder-line atravessa a faixa das mangas e cairia em x 311–318 da asa direita e 707–714 da esquerda: sem camadas, as mangas ficam na base.
-    expect(pixel(texture, 314, 500)).toEqual(PRIMARY);
-    expect(pixel(texture, 710, 500)).toEqual(PRIMARY);
+    expectNear(pixel(texture, 314, 500), PRIMARY, FABRIC_DRIFT);
+    expectNear(pixel(texture, 710, 500), PRIMARY, FABRIC_DRIFT);
   });
 
   // Regressão da cava: antes da 4c, a faixa entre x 357 e a cava saía com o padrão do tronco.
@@ -230,10 +340,10 @@ describe("renderKit3dPng", () => {
       [648, 460],
       [648, 650],
     ] as const) {
-      expect(pixel(texture, x, y), `${x},${y}`).toEqual(ACCENT);
+      expectNear(pixel(texture, x, y), ACCENT, FABRIC_DRIFT, `${x},${y}`);
     }
-    expect(pixel(texture, 400, 460)).toEqual(PRIMARY);
-    expect(pixel(texture, 623, 460)).toEqual(PRIMARY);
+    expectNear(pixel(texture, 400, 460), PRIMARY, FABRIC_DRIFT);
+    expectNear(pixel(texture, 623, 460), PRIMARY, FABRIC_DRIFT);
   });
 
   it("paints the raglan yoke with the solid sleeve color, and only on raglan sleeves", async () => {
@@ -244,10 +354,10 @@ describe("renderKit3dPng", () => {
       [420, 580],
       [603, 580],
     ] as const) {
-      expect(pixel(raglan, x, y), `raglan ${x},${y}`).toEqual(ACCENT);
-      expect(pixel(setIn, x, y), `set-in ${x},${y}`).toEqual(PRIMARY);
+      expectNear(pixel(raglan, x, y), ACCENT, FABRIC_DRIFT, `raglan ${x},${y}`);
+      expectNear(pixel(setIn, x, y), PRIMARY, FABRIC_DRIFT, `set-in ${x},${y}`);
     }
-    expect(pixel(raglan, 420, 520)).toEqual(PRIMARY);
+    expectNear(pixel(raglan, 420, 520), PRIMARY, FABRIC_DRIFT);
   });
 
   // Como os triângulos da raglan no 2D: a manga match-body leva o padrão do corpo para o ombro, sem as camadas.
@@ -260,9 +370,9 @@ describe("renderKit3dPng", () => {
       });
     const raglan = await raster(await renderKit3dPng(kit("raglan")));
     const setIn = await raster(await renderKit3dPng(kit("set-in")));
-    expect(pixel(setIn, 397, 498)).toEqual(ACCENT);
-    expect(pixel(raglan, 397, 498)).toEqual(PRIMARY);
-    expect(pixel(raglan, 420, 498)).toEqual(ACCENT);
+    expectNear(pixel(setIn, 397, 498), ACCENT, FABRIC_DRIFT);
+    expectNear(pixel(raglan, 397, 498), PRIMARY, FABRIC_DRIFT);
+    expectNear(pixel(raglan, 420, 498), ACCENT, FABRIC_DRIFT);
   });
 
   // Âncoras medidas no PSD (spec da 4c, seção 4.2); o miolo da gola mostra o tronco.
@@ -301,11 +411,11 @@ describe("renderKit3dPng", () => {
   it.each(COLLAR_ANCHORS)("draws the %s collar", async (style, anchors) => {
     const texture = await raster(await renderKit3dPng(makeKit({ collar: { style, color: "accent" } })));
     for (const [x, y] of anchors) expect(pixel(texture, x, y), `${x},${y}`).toEqual(ACCENT);
-    expect(pixel(texture, 514, 597)).toEqual(PRIMARY);
+    expectNear(pixel(texture, 514, 597), PRIMARY, FABRIC_DRIFT);
   });
 
   it("stops the round collar above the point of the v-neck", async () => {
-    expect(pixel(await raster(await renderKit3dPng(makeKit())), 514, 648)).toEqual(PRIMARY);
+    expectNear(pixel(await raster(await renderKit3dPng(makeKit())), 514, 648), PRIMARY, FABRIC_DRIFT);
   });
 
   const stripedKit = (style: "single" | "double") =>

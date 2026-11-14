@@ -1,7 +1,9 @@
 import sharp from "sharp";
 import { sleeveCut, type CollarStyle, type KitDefinition, type LogoSlot } from "../core/kit.js";
 import { FM26_COLLARS } from "../fm26/collars.js";
+import { FM26_FABRIC } from "../fm26/fabric.js";
 import { FM26_KIT_LAYOUT, FM26_TEXTURE_SIZE, type UvPoint, type UvRect, type UvRegion } from "../fm26/layout.js";
+import { tilePatternSvg } from "./fabric-finish.js";
 import { fillSvg, kitDesign, type KitDesign, type KitFill } from "./kit-design.js";
 import { kitLogoLayers, type KitLogoImages } from "./kit-logos.js";
 import type { PixelBox } from "./logo-image.js";
@@ -23,7 +25,7 @@ export interface Render3dOptions {
 }
 
 interface RegionSvg {
-  clip?: string;
+  defs?: string;
   body: string;
 }
 
@@ -45,6 +47,10 @@ function isTorso(region: UvRegion): boolean {
   return region.part === "front" || region.part === "back";
 }
 
+function isShirt(region: UvRegion): boolean {
+  return isTorso(region) || region.part === "sleeve" || region.part === "longSleeve";
+}
+
 // A manga curta é o contorno até a cava; as outras regiões, o retângulo.
 function solidRegion(region: UvRegion, color: string): RegionSvg {
   return { body: region.outline ? `<path d="${shapePath(region.outline, true)}" fill="${color}"/>` : `<rect ${rectAttributes(region.rect)} fill="${color}"/>` };
@@ -56,10 +62,10 @@ function patternRegion(region: UvRegion, id: string, fill: KitFill, layers: KitD
   const views = regionViews(region).map((view, index) => ({ ...view, id: `${id}-${index}` }));
   const clip = views.map((view) => `<clipPath id="${view.id}">${view.rects.map((rect) => `<rect ${rectAttributes(rect)}/>`).join("")}</clipPath>`).join("");
   const body = views.map((view) => `<g clip-path="url(#${view.id})"><g transform="${affineSvg(view.transform)}">${pattern}</g></g>`).join("");
-  if (!region.outline) return { clip, body };
+  if (!region.outline) return { defs: clip, body };
 
   return {
-    clip: `${clip}<clipPath id="${id}-outline"><path d="${shapePath(region.outline, true)}"/></clipPath>`,
+    defs: `${clip}<clipPath id="${id}-outline"><path d="${shapePath(region.outline, true)}"/></clipPath>`,
     body: `<g clip-path="url(#${id}-outline)">${body}</g>`,
   };
 }
@@ -88,7 +94,7 @@ function raglanSvg(design: KitDesign): RegionSvg {
   const torso = FM26_KIT_LAYOUT.regions.filter(isTorso).map((region, index) => patternRegion(region, `raglan-${index}`, design.sleeves, []));
 
   return {
-    clip: `<clipPath id="raglan"><path d="${yoke}"/></clipPath>${torso.map((part) => part.clip ?? "").join("")}`,
+    defs: `<clipPath id="raglan"><path d="${yoke}"/></clipPath>${torso.map((part) => part.defs ?? "").join("")}`,
     body: `<g clip-path="url(#raglan)">${torso.map((part) => part.body).join("")}</g>`,
   };
 }
@@ -123,8 +129,26 @@ function collarSvg(style: CollarStyle, design: KitDesign): RegionSvg {
   const strokes = edgeStripeStrokes(COLLAR_STRIPE_WIDTH, stripe.style);
 
   return {
-    clip: `<clipPath id="collar"><path d="${band}" clip-rule="evenodd"/></clipPath>`,
+    defs: `<clipPath id="collar"><path d="${band}" clip-rule="evenodd"/></clipPath>`,
     body: `${fill}<g clip-path="url(#collar)">${stripeStrokesSvg(outer, strokes, { stripe: stripe.color, trim: design.collar }, ' stroke-linejoin="round"')}</g>${placket}`,
+  };
+}
+
+// Camada "fabric texture" do PSD: preto em baixa opacidade sobre a camisa inteira, recortado pelas ilhas do layout (a barra entra; a manga curta vai até a cava).
+function fabricSvg(): RegionSvg {
+  const texture = FM26_TEXTURE_SIZE;
+  const area = FM26_KIT_LAYOUT.regions
+    .filter(isShirt)
+    .map((region) => {
+      if (region.outline) return `<path d="${shapePath(region.outline, true)}"/>`;
+
+      return `<rect ${rectAttributes(region.rect)}/>${region.hem ? `<rect ${rectAttributes(region.hem)}/>` : ""}`;
+    })
+    .join("");
+
+  return {
+    defs: `<clipPath id="fabric-area">${area}</clipPath>${tilePatternSvg("fabric", FM26_FABRIC.tile, { x: 0, y: 0 }, "#000000")}`,
+    body: `<rect width="${texture}" height="${texture}" fill="url(#fabric)" fill-opacity="${FM26_FABRIC.opacity}" clip-path="url(#fabric-area)"/>`,
   };
 }
 
@@ -142,14 +166,17 @@ export function renderKit3dSvg(kit: KitDefinition, options: Render3dOptions = {}
     ...drawn.filter(({ region }) => !isTorso(region)).map(({ svg }) => svg),
   ];
   const collar = collarSvg(kit.collar.style, design);
+  const fabric = fabricSvg();
 
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${texture} ${texture}">`,
-    `<defs>${[...parts, collar].map((part) => part.clip ?? "").join("")}</defs>`,
+    `<defs>${[...parts, fabric, collar].map((part) => part.defs ?? "").join("")}</defs>`,
     // Fundo opaco na cor base do corpo, como as máscaras do FM: o jogo pode amostrar além das ilhas nas bordas.
     `<rect width="${texture}" height="${texture}" fill="${baseColor(design.body)}"/>`,
     ...parts.map((part) => part.body),
     ...(raglanCut ? raglan.seams.map((seam) => `<path d="${shapePath(seam, false)}" ${SEAM_STROKE}/>`) : []),
+    // Grupo "texture" do PSD: acima do desenho e das costuras das mangas, abaixo de punhos, gola e logos.
+    fabric.body,
     ...cuffs.map((cuff) => cuffSvg(cuff, design)),
     collar.body,
     "</svg>",
