@@ -2,7 +2,8 @@ import { XMLValidator } from "fast-xml-parser";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import type { CollarStyle, KitDefinition } from "../../src/core/kit.js";
-import { FM26_FABRIC, type AlphaTile } from "../../src/fm26/fabric.js";
+import { FM26_FABRIC, FM26_MESH, type AlphaTile, type MeshTone } from "../../src/fm26/fabric.js";
+import type { UvRect } from "../../src/fm26/layout.js";
 import type { KitLogoImages } from "../../src/renderers/kit-logos.js";
 import { renderKit2dPng } from "../../src/renderers/renderer-2d.js";
 import { KIT_3D_SIZE, renderKit3dPng, renderKit3dSvg } from "../../src/renderers/renderer-3d.js";
@@ -68,6 +69,22 @@ function flatDeviation(texture: Raster, [x0, y0, x1, y1]: Box, color: number[]):
 
 const weave = (texture: Raster, box: Box, base: number[]) => tileDeviation(texture, box, FM26_FABRIC.tile, [0, 0], base, 0, FM26_FABRIC.opacity);
 
+const MESH_DRIFT = Math.ceil(255 * FM26_MESH.opacity) + 1;
+
+const zoneBox = (rect: UvRect): Box => [rect.x, rect.y, rect.x + rect.width, rect.y + rect.height].map((value) => Math.round(value * KIT_3D_SIZE)) as Box;
+
+// Uma medida por lado da zona; o bloco é ancorado no canto do retângulo.
+function mesh(texture: Raster, zoneIndex: number, tone: MeshTone, base: number[]) {
+  const zone = FM26_MESH.zones[zoneIndex]!;
+  return zone.rects.map((rect) => {
+    const box = zoneBox(rect);
+    return tileDeviation(texture, box, zone.tiles[tone], [box[0], box[1]], base, tone === "black" ? 0 : 255, FM26_MESH.opacity);
+  });
+}
+
+const meshKit = (socks: "primary" | "secondary", shorts: "primary" | "secondary"): KitDefinition =>
+  makeKit({ socks: { color: socks }, shorts: { color: shorts } });
+
 const PRIMARY = [0x12, 0x34, 0x56, 255];
 const SECONDARY = [0xff, 0xff, 0xff, 255];
 const ACCENT = [0xff, 0xd7, 0x00, 255];
@@ -108,6 +125,14 @@ describe("renderKit3dSvg", () => {
     expect(fabric).toBeGreaterThan(svg.lastIndexOf('stroke-opacity="0.2"'));
     expect(fabric).toBeLessThan(svg.indexOf('stroke-width="26"'));
     expect(fabric).toBeLessThan(svg.indexOf('fill-rule="evenodd"'));
+  });
+
+  it("draws one mesh pattern per zone and side, after the fabric and before the cuffs", () => {
+    const svg = renderKit3dSvg(makeKit());
+    expect(svg.match(/<pattern id="mesh-\d-\d"/g)).toEqual(["0-0", "0-1", "1-0", "1-1", "2-0", "2-1", "3-0", "3-1"].map((id) => `<pattern id="mesh-${id}"`));
+    const first = svg.indexOf('fill="url(#mesh-0-0)"');
+    expect(first).toBeGreaterThan(svg.indexOf('fill="url(#fabric)"'));
+    expect(svg.indexOf('fill="url(#mesh-3-1)"')).toBeLessThan(svg.indexOf('stroke-width="26"'));
   });
 
   it("draws a kit with an empty layer list like a kit without layers", () => {
@@ -197,6 +222,46 @@ describe("renderKit3dPng", () => {
     expect(changed).toBeGreaterThan(0);
   });
 
+  it.each([
+    ["black on light socks", "secondary", "black", SECONDARY],
+    ["white on dark socks", "primary", "white", PRIMARY],
+  ] as const)("ribs the socks in %s", async (_label, role, tone, base) => {
+    const texture = await raster(await renderKit3dPng(meshKit(role, "secondary")));
+    for (const zoneIndex of [0, 1, 2]) {
+      for (const [side, { worst, painted }] of mesh(texture, zoneIndex, tone, base).entries()) {
+        expect(worst, `zone ${zoneIndex} side ${side}`).toBeLessThanOrEqual(1);
+        expect(painted, `zone ${zoneIndex} side ${side}`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("tones the waistband by the shorts, apart from the socks", async () => {
+    const lightShorts = await raster(await renderKit3dPng(meshKit("primary", "secondary")));
+    for (const { worst } of mesh(lightShorts, 3, "black", SECONDARY)) expect(worst).toBeLessThanOrEqual(1);
+    for (const { worst } of mesh(lightShorts, 0, "white", PRIMARY)) expect(worst).toBeLessThanOrEqual(1);
+    const darkShorts = await raster(await renderKit3dPng(meshKit("secondary", "primary")));
+    for (const { worst } of mesh(darkShorts, 3, "white", PRIMARY)) expect(worst).toBeLessThanOrEqual(1);
+    for (const { worst } of mesh(darkShorts, 0, "black", SECONDARY)) expect(worst).toBeLessThanOrEqual(1);
+  });
+
+  it("leaves the foot of the sock and the shorts outside the waistband plain", async () => {
+    const texture = await raster(await renderKit3dPng(meshKit("secondary", "secondary")));
+    const plain: [string, Box][] = [
+      ["right foot", [7, 702, 234, 716]],
+      ["left foot", [790, 702, 1017, 716]],
+      ["right shorts above the waistband", [4, 774, 349, 775]],
+      ["right shorts", [4, 800, 349, 1018]],
+      ["left shorts", [680, 800, 1024, 1018]],
+    ];
+    for (const [part, box] of plain) expect(flatDeviation(texture, box, SECONDARY), part).toBe(0);
+  });
+
+  it("ribs mid-gray socks in black", async () => {
+    const kit = makeKit({ colors: { primary: "#123456", secondary: "#ffffff", accent: "#808080" }, socks: { color: "accent" } });
+    const texture = await raster(await renderKit3dPng(kit));
+    for (const { worst } of mesh(texture, 1, "black", [0x80, 0x80, 0x80, 255])) expect(worst).toBeLessThanOrEqual(1);
+  });
+
   it("paints every part with its color", async () => {
     const kit = makeKit({
       collar: { style: "round", color: "accent" },
@@ -222,8 +287,8 @@ describe("renderKit3dPng", () => {
       ["collar", 477, 597, ACCENT, 0],
       ["right shorts", 177, 896, ACCENT, 0],
       ["left shorts", 850, 896, ACCENT, 0],
-      ["right sock", 120, 573, SECONDARY, 0],
-      ["left sock", 903, 573, SECONDARY, 0],
+      ["right sock", 120, 573, SECONDARY, MESH_DRIFT],
+      ["left sock", 903, 573, SECONDARY, MESH_DRIFT],
     ];
     for (const [part, x, y, color, drift] of expected) expectNear(pixel(texture, x, y), color, drift, part);
   });

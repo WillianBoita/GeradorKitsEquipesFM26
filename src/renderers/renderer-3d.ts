@@ -1,9 +1,9 @@
 import sharp from "sharp";
 import { sleeveCut, type CollarStyle, type KitDefinition, type LogoSlot } from "../core/kit.js";
 import { FM26_COLLARS } from "../fm26/collars.js";
-import { FM26_FABRIC } from "../fm26/fabric.js";
+import { FM26_FABRIC, FM26_MESH } from "../fm26/fabric.js";
 import { FM26_KIT_LAYOUT, FM26_TEXTURE_SIZE, type UvPoint, type UvRect, type UvRegion } from "../fm26/layout.js";
-import { tilePatternSvg } from "./fabric-finish.js";
+import { MESH_TONE_COLORS, meshTone, tilePatternSvg } from "./fabric-finish.js";
 import { fillSvg, kitDesign, type KitDesign, type KitFill } from "./kit-design.js";
 import { kitLogoLayers, type KitLogoImages } from "./kit-logos.js";
 import type { PixelBox } from "./logo-image.js";
@@ -152,6 +152,25 @@ function fabricSvg(): RegionSvg {
   };
 }
 
+// Camadas "mesh" do PSD: preto em peça clara, branco em peça escura; o tom das meias e o do cós são independentes.
+function meshSvg(design: KitDesign): RegionSvg {
+  const size = FM26_TEXTURE_SIZE;
+  const drawn = FM26_MESH.zones.flatMap((zone, zoneIndex) => {
+    const tone = meshTone(zone.piece === "sock" ? design.socks : design.shorts);
+
+    return zone.rects.map((rect, sideIndex) => {
+      const id = `mesh-${zoneIndex}-${sideIndex}`;
+
+      return {
+        defs: tilePatternSvg(id, zone.tiles[tone], { x: rect.x * size, y: rect.y * size }, MESH_TONE_COLORS[tone]),
+        body: `<rect ${rectAttributes(rect)} fill="url(#${id})" fill-opacity="${FM26_MESH.opacity}"/>`,
+      };
+    });
+  });
+
+  return { defs: drawn.map((part) => part.defs).join(""), body: drawn.map((part) => part.body).join("") };
+}
+
 export function renderKit3dSvg(kit: KitDefinition, options: Render3dOptions = {}): string {
   const size = options.size ?? KIT_3D_SIZE;
   const texture = FM26_TEXTURE_SIZE;
@@ -167,16 +186,18 @@ export function renderKit3dSvg(kit: KitDefinition, options: Render3dOptions = {}
   ];
   const collar = collarSvg(kit.collar.style, design);
   const fabric = fabricSvg();
+  const mesh = meshSvg(design);
 
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${texture} ${texture}">`,
-    `<defs>${[...parts, fabric, collar].map((part) => part.defs ?? "").join("")}</defs>`,
+    `<defs>${[...parts, fabric, mesh, collar].map((part) => part.defs ?? "").join("")}</defs>`,
     // Fundo opaco na cor base do corpo, como as máscaras do FM: o jogo pode amostrar além das ilhas nas bordas.
     `<rect width="${texture}" height="${texture}" fill="${baseColor(design.body)}"/>`,
     ...parts.map((part) => part.body),
     ...(raglanCut ? raglan.seams.map((seam) => `<path d="${shapePath(seam, false)}" ${SEAM_STROKE}/>`) : []),
     // Grupo "texture" do PSD: acima do desenho e das costuras das mangas, abaixo de punhos, gola e logos.
     fabric.body,
+    mesh.body,
     ...cuffs.map((cuff) => cuffSvg(cuff, design)),
     collar.body,
     "</svg>",
