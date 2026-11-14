@@ -37,6 +37,10 @@
     "color": "primary",
     "cuffColor": "secondary"
   },
+  "trimStripe": {
+    "style": "single",
+    "color": "primary"
+  },
   "shorts": {
     "color": "primary"
   },

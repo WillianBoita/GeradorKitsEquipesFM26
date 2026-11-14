@@ -1,12 +1,13 @@
 {
   "sponsors": [
-    { "id": "rosso-esports", "name": "Rosso Esports", "file": "sponsors/rosso-esports.png" },
     { "id": "fazbear-entertainment", "name": "Fazbear Entertainment", "file": "sponsors/fazbear-entertainment.png" },
     { "id": "dinoco", "name": "Dinoco", "file": "sponsors/dinoco.png" },
+    { "id": "nintendo", "name": "Nintendo", "file": "sponsors/nintendo.png" },
     { "id": "gran-turismo", "name": "Gran Turismo", "file": "sponsors/gran-turismo.png" },
     { "id": "mojang", "name": "Mojang", "file": "sponsors/mojang-logo.svg" },
     { "id": "reddit", "name": "Reddit", "file": "sponsors/reddit.png" },
     { "id": "stark-industries", "name": "Stark Industries", "file": "sponsors/Stark_Industries.png" },
+    { "id": "nestle", "name": "Nestle", "file": "sponsors/nestle.png" },
     { "id": "toppat-clan", "name": "Toppat Clan", "file": "sponsors/toppat_clan.png" }
   ],
   "manufacturers": [

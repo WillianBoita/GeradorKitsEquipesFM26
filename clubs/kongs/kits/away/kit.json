@@ -37,6 +37,10 @@
     "color": "accent",
     "cuffColor": "primary"
   },
+  "trimStripe": {
+    "style": "double",
+    "color": "accent"
+  },
   "shorts": {
     "color": "secondary"
   },
@@ -45,7 +49,7 @@
   },
   "badge": true,
   "sponsor": {
-    "id": "rosso-esports"
+    "id": "nintendo"
   },
   "manufacturer": {
     "id": "adidas"

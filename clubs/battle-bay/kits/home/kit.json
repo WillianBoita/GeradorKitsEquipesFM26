@@ -37,6 +37,10 @@
     "color": "secondary",
     "cuffColor": "accent"
   },
+  "trimStripe": {
+    "style": "double",
+    "color": "secondary"
+  },
   "shorts": {
     "color": "primary"
   },

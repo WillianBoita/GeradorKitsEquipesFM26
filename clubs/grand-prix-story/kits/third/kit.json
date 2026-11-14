@@ -26,6 +26,10 @@
     "color": "primary",
     "cuffColor": "primary"
   },
+  "trimStripe": {
+    "style": "double",
+    "color": "accent"
+  },
   "shorts": {
     "color": "primary"
   },
@@ -34,7 +38,7 @@
   },
   "badge": true,
   "sponsor": {
-    "id": "rosso-esports"
+    "id": "dinoco"
   },
   "manufacturer": {
     "id": "adidas"
