@@ -134,13 +134,23 @@ function collarSvg(style: CollarStyle, design: KitDesign): RegionSvg {
   };
 }
 
+// O librsvg junta os filhos de um clipPath num caminho só, com a regra nonzero: onde um contorno anti-horário se sobrepõe a um retângulo (horário), os dois se anulam. A asa espelhada por mirrorX vem no sentido contrário.
+function clockwise(shape: readonly UvPoint[]): readonly UvPoint[] {
+  const area = shape.reduce((sum, { x, y }, index) => {
+    const next = shape[(index + 1) % shape.length]!;
+    return sum + x * next.y - next.x * y;
+  }, 0);
+
+  return area >= 0 ? shape : [...shape].reverse();
+}
+
 // Camada "fabric texture" do PSD: preto em baixa opacidade sobre a camisa inteira, recortado pelas ilhas do layout (a barra entra; a manga curta vai até a cava).
 function fabricSvg(): RegionSvg {
   const texture = FM26_TEXTURE_SIZE;
   const area = FM26_KIT_LAYOUT.regions
     .filter(isShirt)
     .map((region) => {
-      if (region.outline) return `<path d="${shapePath(region.outline, true)}"/>`;
+      if (region.outline) return `<path d="${shapePath(clockwise(region.outline), true)}"/>`;
 
       return `<rect ${rectAttributes(region.rect)}/>${region.hem ? `<rect ${rectAttributes(region.hem)}/>` : ""}`;
     })

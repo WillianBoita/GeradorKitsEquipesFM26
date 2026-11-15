@@ -165,6 +165,7 @@ describe("renderKit3dPng", () => {
     ["right short sleeve", [280, 480, 340, 540]],
     ["left short sleeve", [690, 480, 750, 540]],
     ["right armhole strip", [362, 480, 384, 540]],
+    ["left armhole strip", [640, 480, 662, 540]],
     ["right long sleeve", [100, 100, 180, 160]],
     ["left long sleeve", [840, 100, 920, 160]],
   ];
