@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { MAX_LAYERS } from "../../src/core/kit.js";
 import { listLayerTemplates, listPatternTemplates } from "../../src/patterns/registry.js";
-import { DEFAULT_STYLE_PROFILE, findStyleProfile, getStyleProfile, knownStyleIds, LAYER_COUNTS, STYLE_PROFILES } from "../../src/styles/profiles.js";
+import {
+  DEFAULT_STYLE_PROFILE,
+  findStyleProfile,
+  getStyleProfile,
+  knownStyleIds,
+  LAYER_COUNTS,
+  SHORTS_TRIM_OPTIONS,
+  SOCKS_TRIM_OPTIONS,
+  STYLE_PROFILES,
+} from "../../src/styles/profiles.js";
 
 const patternIds = listPatternTemplates().map((template) => template.id);
 const layerIds = listLayerTemplates().map((template) => template.id);
@@ -54,9 +63,31 @@ describe("STYLE_PROFILES", () => {
     }
   });
 
+  // Sem acabamento, o calção e as meias de clubes sem estilo continuam lisos (guarda Phase 3b baseline).
+  it("keeps classic without shorts and socks trims", () => {
+    expect(getStyleProfile("classic").shortsTrimWeights).toEqual({ none: 1 });
+    expect(getStyleProfile("classic").socksTrimWeights).toEqual({ none: 1 });
+  });
+
+  it("gives every other profile a chance of each shorts and socks trim style and of none", () => {
+    for (const profile of STYLE_PROFILES.filter((candidate) => candidate.id !== "classic")) {
+      for (const option of SHORTS_TRIM_OPTIONS) expect(profile.shortsTrimWeights[option], `${profile.id} shorts ${option}`).toBeGreaterThan(0);
+      for (const option of SOCKS_TRIM_OPTIONS) expect(profile.socksTrimWeights[option], `${profile.id} socks ${option}`).toBeGreaterThan(0);
+    }
+  });
+
   it("gives every profile a positive weight in each component table", () => {
     for (const profile of STYLE_PROFILES) {
-      for (const table of [profile.collarWeights, profile.sleeveStyleWeights, profile.sleeveCutWeights, profile.layerCountWeights, profile.trimStripeWeights]) {
+      const tables = [
+        profile.collarWeights,
+        profile.sleeveStyleWeights,
+        profile.sleeveCutWeights,
+        profile.layerCountWeights,
+        profile.trimStripeWeights,
+        profile.shortsTrimWeights,
+        profile.socksTrimWeights,
+      ];
+      for (const table of tables) {
         const weights = Object.values(table);
         expect(weights.length).toBeGreaterThan(0);
         for (const weight of weights) expect(weight).toBeGreaterThan(0);

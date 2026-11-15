@@ -263,6 +263,83 @@ describe("renderKit3dPng", () => {
     for (const { worst } of mesh(texture, 1, "black", [0x80, 0x80, 0x80, 255])) expect(worst).toBeLessThanOrEqual(1);
   });
 
+  // Calção branco e meias brancas com acabamento escuro (ou o contrário): fora do cós o calção é liso, então a comparação é exata; nas meias, dentro do desvio do canelado.
+  const trimKit = (shorts: KitDefinition["shorts"], socks: KitDefinition["socks"]): KitDefinition => makeKit({ shorts, socks });
+
+  it.each([
+    ["side-stripe", [169, 857], [150, 190, 838, 876]],
+    ["side-piping", [170, 856], [160, 180, 846, 866]],
+  ] as const)("paints the %s down the outside seam of each leg", async (style, inside, outside) => {
+    const texture = await raster(await renderKit3dPng(trimKit({ color: "secondary", trim: { style, color: "primary" } }, { color: "secondary" })));
+    for (const y of [810, 900, 1017]) {
+      for (const x of inside) expect(pixel(texture, x, y), `${x},${y}`).toEqual(PRIMARY);
+      for (const x of outside) expect(pixel(texture, x, y), `${x},${y}`).toEqual(SECONDARY);
+    }
+    // No cós a listra passa por baixo do canelado.
+    for (const x of inside) expectNear(pixel(texture, x, 790), PRIMARY, MESH_DRIFT, `waistband ${x}`);
+  });
+
+  it("paints the hem band across the bottom of both legs", async () => {
+    const texture = await raster(await renderKit3dPng(trimKit({ color: "secondary", trim: { style: "hem-band", color: "accent" } }, { color: "secondary" })));
+    for (const x of [4, 177, 350, 676, 850, 1023]) {
+      expect(pixel(texture, x, 991), `above ${x}`).toEqual(SECONDARY);
+      expect(pixel(texture, x, 992), `top ${x}`).toEqual(ACCENT);
+      expect(pixel(texture, x, 1017), `bottom ${x}`).toEqual(ACCENT);
+    }
+  });
+
+  it("paints the turnover at the top of the socks and ribs it by its own color", async () => {
+    const texture = await raster(await renderKit3dPng(trimKit({ color: "secondary" }, { color: "secondary", trim: { style: "turnover", color: "primary" } })));
+    // A dobra cobre a primeira zona do canelado: tom branco sobre a dobra escura, preto no resto da meia clara.
+    for (const { worst, painted } of mesh(texture, 0, "white", PRIMARY)) {
+      expect(worst).toBeLessThanOrEqual(1);
+      expect(painted).toBeGreaterThan(0);
+    }
+    for (const zoneIndex of [1, 2]) for (const { worst } of mesh(texture, zoneIndex, "black", SECONDARY)) expect(worst).toBeLessThanOrEqual(1);
+    for (const x of [3, 120, 236, 786, 903, 1019]) expect(pixel(texture, x, 431), `top ${x}`).toEqual(PRIMARY);
+  });
+
+  it.each([
+    ["top-hoops", [470, 496], [455, 483, 510, 573]],
+    ["hoops", [477, 567, 657], [440, 522, 612, 690]],
+  ] as const)("paints the %s around both socks", async (style, inside, outside) => {
+    const texture = await raster(await renderKit3dPng(trimKit({ color: "secondary" }, { color: "secondary", trim: { style, color: "primary" } })));
+    for (const x of [5, 120, 235, 788, 903, 1018]) {
+      for (const y of inside) expectNear(pixel(texture, x, y), PRIMARY, MESH_DRIFT, `${x},${y}`);
+      for (const y of outside) expectNear(pixel(texture, x, y), SECONDARY, MESH_DRIFT, `${x},${y}`);
+    }
+  });
+
+  it("keeps the trims off the shirt and off the other piece", async () => {
+    const plain = await raster(await renderKit3dPng(trimKit({ color: "secondary" }, { color: "secondary" })));
+    const shorts = await raster(await renderKit3dPng(trimKit({ color: "secondary", trim: { style: "hem-band", color: "primary" } }, { color: "secondary" })));
+    const socks = await raster(await renderKit3dPng(trimKit({ color: "secondary" }, { color: "secondary", trim: { style: "hoops", color: "primary" } })));
+    const changed = (texture: Raster, [x0, y0, x1, y1]: Box) => {
+      let count = 0;
+      for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) if (channelDistance(pixel(texture, x, y), pixel(plain, x, y)) > 0) count++;
+      return count;
+    };
+    const shortsArea: Box[] = [
+      [0, 774, 357, 1024],
+      [668, 774, 1024, 1024],
+    ];
+    const socksArea: Box[] = [
+      [0, 430, 240, 716],
+      [786, 430, 1024, 716],
+    ];
+    const rest: Box[] = [
+      [0, 0, 1024, 430],
+      [240, 430, 786, 774],
+      [357, 774, 668, 1024],
+      [0, 716, 240, 774],
+      [786, 716, 1024, 774],
+    ];
+    for (const box of [...rest, ...socksArea]) expect(changed(shorts, box), `shorts trim in ${box.join(" ")}`).toBe(0);
+    for (const box of [...rest, ...shortsArea]) expect(changed(socks, box), `socks trim in ${box.join(" ")}`).toBe(0);
+    expect(shortsArea.reduce((sum, box) => sum + changed(shorts, box), 0)).toBeGreaterThan(0);
+    expect(socksArea.reduce((sum, box) => sum + changed(socks, box), 0)).toBeGreaterThan(0);
+  });
+
   it("paints every part with its color", async () => {
     const kit = makeKit({
       collar: { style: "round", color: "accent" },

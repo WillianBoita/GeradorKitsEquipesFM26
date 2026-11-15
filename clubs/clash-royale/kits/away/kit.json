@@ -42,7 +42,11 @@
     "color": "accent"
   },
   "socks": {
-    "color": "accent"
+    "color": "accent",
+    "trim": {
+      "style": "turnover",
+      "color": "primary"
+    }
   },
   "badge": true,
   "sponsor": {

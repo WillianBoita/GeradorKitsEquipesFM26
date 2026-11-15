@@ -42,10 +42,18 @@
     "color": "accent"
   },
   "shorts": {
-    "color": "secondary"
+    "color": "secondary",
+    "trim": {
+      "style": "hem-band",
+      "color": "accent"
+    }
   },
   "socks": {
-    "color": "primary"
+    "color": "primary",
+    "trim": {
+      "style": "turnover",
+      "color": "accent"
+    }
   },
   "badge": true,
   "sponsor": {

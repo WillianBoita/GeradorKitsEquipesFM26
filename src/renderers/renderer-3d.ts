@@ -3,6 +3,7 @@ import { sleeveCut, type CollarStyle, type KitDefinition, type LogoSlot } from "
 import { FM26_COLLARS } from "../fm26/collars.js";
 import { FM26_FABRIC, FM26_MESH } from "../fm26/fabric.js";
 import { FM26_KIT_LAYOUT, FM26_TEXTURE_SIZE, type UvPoint, type UvRect, type UvRegion } from "../fm26/layout.js";
+import { FM26_SHORTS_TRIMS, FM26_SOCKS_TRIMS, TRIM_SIDES, type TrimSide } from "../fm26/trims.js";
 import { MESH_TONE_COLORS, meshTone, tilePatternSvg } from "./fabric-finish.js";
 import { fillSvg, kitDesign, type KitDesign, type KitFill } from "./kit-design.js";
 import { kitLogoLayers, type KitLogoImages } from "./kit-logos.js";
@@ -70,6 +71,26 @@ function patternRegion(region: UvRegion, id: string, fill: KitFill, layers: KitD
   };
 }
 
+// Retângulos e cor do acabamento de uma ilha do calção ou das meias; sem acabamento, nada.
+function pieceTrim(piece: "shorts" | "sock", side: TrimSide, design: KitDesign): { rects: UvRect[]; color: string } | undefined {
+  if (piece === "shorts") return design.shortsTrim && { rects: FM26_SHORTS_TRIMS[design.shortsTrim.style][side], color: design.shortsTrim.color };
+
+  return design.socksTrim && { rects: FM26_SOCKS_TRIMS[design.socksTrim.style][side], color: design.socksTrim.color };
+}
+
+// Peça lisa com o acabamento por cima, abaixo do canelado.
+function pieceRegion(region: UvRegion, piece: "shorts" | "sock", color: string, design: KitDesign): RegionSvg {
+  const trim = region.side && pieceTrim(piece, region.side, design);
+  const base = solidRegion(region, color).body;
+  if (!trim) return { body: base };
+
+  return { body: `${base}${trim.rects.map((rect) => `<rect ${rectAttributes(rect)} fill="${trim.color}"/>`).join("")}` };
+}
+
+function contains(outer: UvRect, inner: UvRect): boolean {
+  return outer.x <= inner.x && outer.y <= inner.y && outer.x + outer.width >= inner.x + inner.width && outer.y + outer.height >= inner.y + inner.height;
+}
+
 function regionSvg(region: UvRegion, id: string, design: KitDesign): RegionSvg {
   switch (region.part) {
     case "front":
@@ -80,9 +101,9 @@ function regionSvg(region: UvRegion, id: string, design: KitDesign): RegionSvg {
       // Como no 2D, a manga match-body recebe só o padrão principal.
       return design.sleeves.kind === "solid" ? solidRegion(region, design.sleeves.color) : patternRegion(region, id, design.sleeves, []);
     case "shorts":
-      return solidRegion(region, design.shorts);
+      return pieceRegion(region, "shorts", design.shorts, design);
     case "sock":
-      return solidRegion(region, design.socks);
+      return pieceRegion(region, "sock", design.socks, design);
   }
 }
 
@@ -163,13 +184,17 @@ function fabricSvg(): RegionSvg {
 }
 
 // Camadas "mesh" do PSD: preto em peça clara, branco em peça escura; o tom das meias e o do cós são independentes.
+// Um acabamento que cobre a zona inteira (a dobra da meia) dá o tom dela; os que cobrem só parte ficam com o tom da peça.
 function meshSvg(design: KitDesign): RegionSvg {
   const size = FM26_TEXTURE_SIZE;
   const drawn = FM26_MESH.zones.flatMap((zone, zoneIndex) => {
-    const tone = meshTone(zone.piece === "sock" ? design.socks : design.shorts);
+    const pieceColor = zone.piece === "sock" ? design.socks : design.shorts;
 
     return zone.rects.map((rect, sideIndex) => {
       const id = `mesh-${zoneIndex}-${sideIndex}`;
+      // As zonas guardam o lado direito do jogador primeiro, na ordem de TRIM_SIDES.
+      const trim = pieceTrim(zone.piece, TRIM_SIDES[sideIndex]!, design);
+      const tone = meshTone(trim?.rects.some((covered) => contains(covered, rect)) ? trim.color : pieceColor);
 
       return {
         defs: tilePatternSvg(id, zone.tiles[tone], { x: rect.x * size, y: rect.y * size }, MESH_TONE_COLORS[tone]),

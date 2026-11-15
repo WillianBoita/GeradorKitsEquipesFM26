@@ -9,6 +9,9 @@ export const SLEEVE_STYLES = ["match-body", "solid"] as const;
 export const SLEEVE_CUTS = ["set-in", "raglan"] as const;
 // Listra de acabamento da gola e dos punhos, casada nas duas peças (Fase 4c).
 export const TRIM_STRIPE_STYLES = ["single", "double"] as const;
+// Acabamentos do calção e das meias, como nas máscaras do FM26 (Fase 4e); só aparecem na textura 3D.
+export const SHORTS_TRIM_STYLES = ["side-stripe", "side-piping", "hem-band"] as const;
+export const SOCKS_TRIM_STYLES = ["turnover", "top-hoops", "hoops"] as const;
 // Logos de marca: o id aponta para o registry de assets.
 export const BRAND_KINDS = ["sponsor", "manufacturer"] as const;
 // Nome da lista no registry e do pool no club.json para cada tipo de marca.
@@ -22,6 +25,8 @@ export const ColorRoleSchema = z.enum(COLOR_ROLES);
 const BrandLogoSchema = z.strictObject({ id: AssetIdSchema });
 // Camada de detalhe sobre o padrão principal, só no corpo; o id aponta para um padrão com layerSlot.
 const TrimStripeSchema = z.strictObject({ style: z.enum(TRIM_STRIPE_STYLES), color: ColorRoleSchema });
+const ShortsTrimSchema = z.strictObject({ style: z.enum(SHORTS_TRIM_STYLES), color: ColorRoleSchema });
+const SocksTrimSchema = z.strictObject({ style: z.enum(SOCKS_TRIM_STYLES), color: ColorRoleSchema });
 const LayerSchema = z.strictObject({ id: z.string().min(1), color: ColorRoleSchema, params: z.record(z.string(), z.number()).default({}) });
 
 export const KitDefinitionSchema = z.strictObject({
@@ -37,8 +42,9 @@ export const KitDefinitionSchema = z.strictObject({
   sleeves: z.strictObject({ style: z.enum(SLEEVE_STYLES), cut: z.enum(SLEEVE_CUTS).optional(), color: ColorRoleSchema, cuffColor: ColorRoleSchema }),
   // Ausente = sem listra: os kit.json de antes da Fase 4c continuam válidos.
   trimStripe: TrimStripeSchema.optional(),
-  shorts: z.strictObject({ color: ColorRoleSchema }),
-  socks: z.strictObject({ color: ColorRoleSchema }),
+  // trim ausente = peça lisa: os kit.json de antes da Fase 4e continuam válidos.
+  shorts: z.strictObject({ color: ColorRoleSchema, trim: ShortsTrimSchema.optional() }),
+  socks: z.strictObject({ color: ColorRoleSchema, trim: SocksTrimSchema.optional() }),
   badge: z.boolean().optional(),
   sponsor: BrandLogoSchema.optional(),
   manufacturer: BrandLogoSchema.optional(),
@@ -50,11 +56,15 @@ export type CollarStyle = (typeof COLLAR_STYLES)[number];
 export type SleeveStyle = (typeof SLEEVE_STYLES)[number];
 export type SleeveCut = (typeof SLEEVE_CUTS)[number];
 export type TrimStripeStyle = (typeof TRIM_STRIPE_STYLES)[number];
+export type ShortsTrimStyle = (typeof SHORTS_TRIM_STYLES)[number];
+export type SocksTrimStyle = (typeof SOCKS_TRIM_STYLES)[number];
 export type BrandKind = (typeof BRAND_KINDS)[number];
 export type LogoSlot = "badge" | BrandKind;
 export type BrandLogo = z.infer<typeof BrandLogoSchema>;
 export type KitLayer = z.infer<typeof LayerSchema>;
 export type KitTrimStripe = z.infer<typeof TrimStripeSchema>;
+export type KitShortsTrim = z.infer<typeof ShortsTrimSchema>;
+export type KitSocksTrim = z.infer<typeof SocksTrimSchema>;
 export type KitDefinition = z.infer<typeof KitDefinitionSchema>;
 
 export function parseKitDefinition(input: unknown): KitDefinition {

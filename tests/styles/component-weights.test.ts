@@ -4,11 +4,13 @@ import { COLLAR_STYLES } from "../../src/core/kit.js";
 import {
   collarCandidates,
   layerCountCandidates,
+  shortsTrimCandidates,
   sleeveCutCandidates,
   sleeveStyleCandidates,
+  socksTrimCandidates,
   trimStripeCandidates,
 } from "../../src/styles/component-weights.js";
-import { TRIM_STRIPE_OPTIONS } from "../../src/styles/profiles.js";
+import { SHORTS_TRIM_OPTIONS, SOCKS_TRIM_OPTIONS, TRIM_STRIPE_OPTIONS } from "../../src/styles/profiles.js";
 import { GALATICOS_CLUB } from "../fixtures/clubs.js";
 
 const club = (categories: string[]) => parseClubIdentity({ ...GALATICOS_CLUB, style: { categories } });
@@ -104,5 +106,31 @@ describe("trimStripeCandidates", () => {
     expect(none).toBeCloseTo(0.4);
     expect(single).toBeCloseTo(0.3);
     expect(double).toBeCloseTo(0.3);
+  });
+});
+
+describe("shortsTrimCandidates and socksTrimCandidates", () => {
+  it("never draws a shorts or socks trim when the club has no categories", () => {
+    expect(shortsTrimCandidates(club([]))).toEqual([
+      ["none", 1],
+      ["side-stripe", 0],
+      ["side-piping", 0],
+      ["hem-band", 0],
+    ]);
+    expect(socksTrimCandidates(club([]))).toEqual([
+      ["none", 1],
+      ["turnover", 0],
+      ["top-hoops", 0],
+      ["hoops", 0],
+    ]);
+  });
+
+  it("lists the options in a fixed order and follows the retro profile", () => {
+    const shorts = shortsTrimCandidates(club(["retro"]));
+    const socks = socksTrimCandidates(club(["retro"]));
+    expect(shorts.map(([option]) => option)).toEqual([...SHORTS_TRIM_OPTIONS]);
+    expect(socks.map(([option]) => option)).toEqual([...SOCKS_TRIM_OPTIONS]);
+    expect(shorts.map(([, weight]) => Number(weight.toFixed(4)))).toEqual([0.4, 0.3, 0.1, 0.2]);
+    expect(socks.map(([, weight]) => Number(weight.toFixed(4)))).toEqual([0.25, 0.3, 0.2, 0.25]);
   });
 });

@@ -49,6 +49,22 @@ describe("kitDetails", () => {
     ]);
   });
 
+  // O PNG do preview é o 2D, que só mostra a camisa: a linha é o único lugar onde o acabamento do calção e das meias aparece.
+  it("lists the shorts and socks trims after the trim stripe", () => {
+    const kit = makeKit({
+      trimStripe: { style: "single", color: "secondary" },
+      shorts: { color: "secondary", trim: { style: "side-stripe", color: "primary" } },
+      socks: { color: "primary", trim: { style: "turnover", color: "accent" } },
+    });
+    expect(kitDetails(kit)).toEqual([
+      "solid · classic",
+      "collar round · sleeves match-body · set-in",
+      "trim stripe single · secondary",
+      "shorts side-stripe · primary",
+      "socks turnover · accent",
+    ]);
+  });
+
   it("lists each layer with its color and resolved params, after the pattern", () => {
     const kit = makeKit({
       layers: [

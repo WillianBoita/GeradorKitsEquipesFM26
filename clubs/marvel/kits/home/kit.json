@@ -32,7 +32,11 @@
     "color": "primary"
   },
   "shorts": {
-    "color": "primary"
+    "color": "primary",
+    "trim": {
+      "style": "side-piping",
+      "color": "accent"
+    }
   },
   "socks": {
     "color": "primary"

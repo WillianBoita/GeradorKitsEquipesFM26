@@ -15,7 +15,15 @@ import { resolvePalette, type Palette } from "../core/palette.js";
 import { createRng, deriveSeed, type Rng } from "../core/random.js";
 import { formatIssues, validateClub, validatePalette, type ValidationIssue } from "../core/validation.js";
 import type { PatternTemplate } from "../patterns/types.js";
-import { collarCandidates, layerCountCandidates, sleeveCutCandidates, sleeveStyleCandidates, trimStripeCandidates } from "../styles/component-weights.js";
+import {
+  collarCandidates,
+  layerCountCandidates,
+  shortsTrimCandidates,
+  sleeveCutCandidates,
+  sleeveStyleCandidates,
+  socksTrimCandidates,
+  trimStripeCandidates,
+} from "../styles/component-weights.js";
 import { layerCandidates, patternCandidates } from "../styles/pattern-weights.js";
 
 export type KitSet = Record<KitType, KitDefinition>;
@@ -79,10 +87,12 @@ export function generateKit(identity: ClubIdentity, kitType: KitType, palette: P
   const cuffColor = rng.pick(trimRoles);
   const shortsColor = rng.pick([base, overlay]);
   const socksColor = rng.pick([shortsColor, base]);
-  // O corte (Fase 4a), as camadas (Fase 4b) e a listra (Fase 4c) são os últimos sorteios: entraram depois e não podem deslocar os anteriores.
+  // O corte (Fase 4a), as camadas (Fase 4b), a listra (Fase 4c) e os acabamentos do calção e das meias (Fase 4e) são os últimos sorteios: entraram depois e não podem deslocar os anteriores.
   const cut = rng.weighted(sleeveCutCandidates(identity));
   const layers = pickLayers(identity, { id: template.id, base, overlay }, rng);
   const trimStripe = pickTrimStripe(identity, collarColor, cuffColor, rng);
+  const shortsTrim = pickPieceTrim(shortsTrimCandidates(identity), shortsColor, rng);
+  const socksTrim = pickPieceTrim(socksTrimCandidates(identity), socksColor, rng);
   const kit: KitDefinition = {
     clubId: identity.id,
     kitType,
@@ -96,8 +106,9 @@ export function generateKit(identity: ClubIdentity, kitType: KitType, palette: P
     sleeves: { style: sleeveStyle, ...(cut === "raglan" ? { cut } : {}), color: overlay, cuffColor },
     // trimStripe só aparece quando sai listra: o kit.json de quem não sorteia listra fica igual ao de antes da 4c.
     ...(trimStripe ? { trimStripe } : {}),
-    shorts: { color: shortsColor },
-    socks: { color: socksColor },
+    // trim só aparece quando sai acabamento: o kit.json de quem não sorteia fica igual ao de antes da 4e.
+    shorts: { color: shortsColor, ...(shortsTrim ? { trim: shortsTrim } : {}) },
+    socks: { color: socksColor, ...(socksTrim ? { trim: socksTrim } : {}) },
   };
   const required = identity.traditions?.requiredColor;
   // Depois de todos os sorteios e sem chamada extra ao rng: o resto do kit fica igual ao de um clube sem a tradição.
@@ -131,6 +142,14 @@ function pickTrimStripe(identity: ClubIdentity, collarColor: ColorRole, cuffColo
   if (style === "none") return undefined;
 
   return { style, color: rng.pick(COLOR_ROLES.filter((role) => role !== collarColor && role !== cuffColor)) };
+}
+
+// Acabamento do calção ou das meias, numa das duas cores que a peça não usa.
+function pickPieceTrim<S extends string>(candidates: [S | "none", number][], pieceColor: ColorRole, rng: Rng): { style: S; color: ColorRole } | undefined {
+  const style = rng.weighted(candidates);
+  if (style === "none") return undefined;
+
+  return { style: style as S, color: rng.pick(COLOR_ROLES.filter((role) => role !== pieceColor)) };
 }
 
 function randomParams(template: PatternTemplate, rng: Rng): Record<string, number> {

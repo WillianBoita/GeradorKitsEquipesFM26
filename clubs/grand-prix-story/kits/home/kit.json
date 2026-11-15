@@ -45,10 +45,18 @@
     "cuffColor": "accent"
   },
   "shorts": {
-    "color": "primary"
+    "color": "primary",
+    "trim": {
+      "style": "hem-band",
+      "color": "secondary"
+    }
   },
   "socks": {
-    "color": "primary"
+    "color": "primary",
+    "trim": {
+      "style": "turnover",
+      "color": "secondary"
+    }
   },
   "badge": true,
   "sponsor": {

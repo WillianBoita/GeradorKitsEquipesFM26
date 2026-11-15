@@ -32,10 +32,18 @@
     "color": "primary"
   },
   "shorts": {
-    "color": "primary"
+    "color": "primary",
+    "trim": {
+      "style": "side-stripe",
+      "color": "secondary"
+    }
   },
   "socks": {
-    "color": "primary"
+    "color": "primary",
+    "trim": {
+      "style": "hoops",
+      "color": "secondary"
+    }
   },
   "badge": true,
   "sponsor": {

@@ -63,6 +63,21 @@ describe("kitDesign trim stripe", () => {
   });
 });
 
+describe("kitDesign shorts and socks trims", () => {
+  it("resolves the trim colors, and leaves them out of kits without trims", () => {
+    const design = kitDesign(
+      makeKit({
+        shorts: { color: "secondary", trim: { style: "side-stripe", color: "primary" } },
+        socks: { color: "primary", trim: { style: "turnover", color: "accent" } },
+      }),
+    );
+    expect(design.shortsTrim).toEqual({ style: "side-stripe", color: "#123456" });
+    expect(design.socksTrim).toEqual({ style: "turnover", color: "#ffd700" });
+    expect(kitDesign(makeKit())).not.toHaveProperty("shortsTrim");
+    expect(kitDesign(makeKit())).not.toHaveProperty("socksTrim");
+  });
+});
+
 describe("fillSvg", () => {
   it("paints a solid fill as one rect", () => {
     expect(fillSvg({ kind: "solid", color: "#ffd700" }, 100, 50)).toBe('<rect width="100" height="50" fill="#ffd700"/>');

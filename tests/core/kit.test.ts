@@ -4,8 +4,10 @@ import {
   KIT_TYPES,
   MAX_LAYERS,
   parseKitDefinition,
+  SHORTS_TRIM_STYLES,
   SLEEVE_CUTS,
   sleeveCut,
+  SOCKS_TRIM_STYLES,
   TRIM_STRIPE_STYLES,
   visibleRoles,
   type KitLayer,
@@ -100,6 +102,33 @@ describe("parseKitDefinition", () => {
 
   it("keeps kits from before Phase 4c without a trim stripe", () => {
     expect(parseKitDefinition(makeKit())).not.toHaveProperty("trimStripe");
+  });
+
+  it.each(SHORTS_TRIM_STYLES)("accepts the %s shorts trim and keeps it through a JSON round trip", (style) => {
+    const kit = makeKit({ shorts: { color: "secondary", trim: { style, color: "primary" } } });
+    expect(parseKitDefinition(JSON.parse(JSON.stringify(kit)))).toEqual(kit);
+  });
+
+  it.each(SOCKS_TRIM_STYLES)("accepts the %s socks trim and keeps it through a JSON round trip", (style) => {
+    const kit = makeKit({ socks: { color: "primary", trim: { style, color: "accent" } } });
+    expect(parseKitDefinition(JSON.parse(JSON.stringify(kit)))).toEqual(kit);
+  });
+
+  it("rejects unknown shorts and socks trim styles, colors and keys and names the path", () => {
+    const shorts = (trim: unknown) => ({ ...makeKit(), shorts: { color: "secondary", trim } });
+    const socks = (trim: unknown) => ({ ...makeKit(), socks: { color: "primary", trim } });
+    expect(() => parseKitDefinition(shorts({ style: "turnover", color: "primary" }))).toThrow(/shorts\.trim\.style/);
+    expect(() => parseKitDefinition(shorts({ style: "hem-band", color: "gold" }))).toThrow(/shorts\.trim\.color/);
+    expect(() => parseKitDefinition(shorts({ style: "hem-band", color: "primary", width: 2 }))).toThrow(/width/);
+    expect(() => parseKitDefinition(socks({ style: "hem-band", color: "accent" }))).toThrow(/socks\.trim\.style/);
+    expect(() => parseKitDefinition(socks({ style: "hoops", color: "gold" }))).toThrow(/socks\.trim\.color/);
+    expect(() => parseKitDefinition(socks({ style: "hoops", color: "accent", count: 3 }))).toThrow(/count/);
+  });
+
+  it("keeps kits from before Phase 4e without shorts and socks trims", () => {
+    const kit = parseKitDefinition(makeKit());
+    expect(kit.shorts).toEqual({ color: "secondary" });
+    expect(kit.socks).toEqual({ color: "primary" });
   });
 
   it("rejects unknown color roles", () => {

@@ -42,7 +42,11 @@
     "color": "primary"
   },
   "shorts": {
-    "color": "primary"
+    "color": "primary",
+    "trim": {
+      "style": "side-stripe",
+      "color": "accent"
+    }
   },
   "socks": {
     "color": "primary"

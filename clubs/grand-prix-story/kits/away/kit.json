@@ -42,10 +42,18 @@
     "color": "secondary"
   },
   "shorts": {
-    "color": "secondary"
+    "color": "secondary",
+    "trim": {
+      "style": "side-piping",
+      "color": "accent"
+    }
   },
   "socks": {
-    "color": "secondary"
+    "color": "secondary",
+    "trim": {
+      "style": "top-hoops",
+      "color": "primary"
+    }
   },
   "badge": true,
   "sponsor": {

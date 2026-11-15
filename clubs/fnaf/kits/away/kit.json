@@ -40,7 +40,11 @@
     "color": "secondary"
   },
   "socks": {
-    "color": "secondary"
+    "color": "secondary",
+    "trim": {
+      "style": "top-hoops",
+      "color": "primary"
+    }
   },
   "badge": true,
   "sponsor": {

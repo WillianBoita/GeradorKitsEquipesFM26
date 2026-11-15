@@ -44,7 +44,11 @@
     "cuffColor": "primary"
   },
   "shorts": {
-    "color": "primary"
+    "color": "primary",
+    "trim": {
+      "style": "side-piping",
+      "color": "secondary"
+    }
   },
   "socks": {
     "color": "primary"

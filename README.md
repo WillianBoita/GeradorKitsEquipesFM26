@@ -175,7 +175,16 @@ Tamanhos e posições dos padrões novos são frações da largura ou da altura 
 
 O punho tem cor própria em `sleeves.cuffColor` nos dois estilos.
 
-**Calção e meias** (`shorts.color` e `socks.color`): só têm cor, sem estilo, e aparecem só na textura 3D, lisos; o PNG 2D mostra só a camisa.
+**Calção e meias** (`shorts` e `socks`): aparecem só na textura 3D; o PNG 2D mostra só a camisa. Cada peça tem `color` e um acabamento opcional em `trim` (`style` e `color`, que não pode ser a cor da peça), medido nas máscaras dos kits do próprio FM26. Sem `trim`, a peça é lisa.
+
+| Peça | `trim.style` | Desenho |
+|---|---|---|
+| Calção | `side-stripe` | Listra larga na costura de fora de cada perna |
+| Calção | `side-piping` | Filete fino na costura de fora de cada perna |
+| Calção | `hem-band` | Faixa na barra das pernas |
+| Meias | `turnover` | Dobra do cano em outra cor |
+| Meias | `top-hoops` | Dois aros finos no alto da meia |
+| Meias | `hoops` | Três aros largos ao longo da meia |
 
 **Papéis de cor.** `primary`, `secondary` e `accent` apontam para `colors` no `kit.json`, então editar uma cor da paleta atualiza padrão, gola, mangas, calção e meias de uma vez. Só as cores dos logos podem ser um hex fixo.
 

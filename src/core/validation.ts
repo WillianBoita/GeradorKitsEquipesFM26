@@ -123,6 +123,13 @@ function trimStripeIssues(kit: KitDefinition): ValidationIssue[] {
     .map(([piece]) => ({ rule: "trim-stripe-color", message: `${kit.kitType} kit trim stripe uses ${stripe.color}, the color of the ${piece}` }));
 }
 
+// O acabamento do calção ou das meias na cor da própria peça não aparece.
+function pieceTrimIssues(kit: KitDefinition): ValidationIssue[] {
+  return (["shorts", "socks"] as const)
+    .filter((piece) => kit[piece].trim?.color === kit[piece].color)
+    .map((piece) => ({ rule: `${piece}-trim-color`, message: `${kit.kitType} kit ${piece} trim uses ${kit[piece].color}, the color of the ${piece}` }));
+}
+
 function layerIssues(kit: KitDefinition): ValidationIssue[] {
   const layerIds = listLayerTemplates().map((template) => template.id);
   const templates = new Map(listPatternTemplates().map((template) => [template.id, template]));
@@ -162,7 +169,7 @@ export function validateKit(kit: KitDefinition): ValidationIssue[] {
       issues.push({ rule: "pattern-contrast", message: `${kit.kitType} kit base ${kit.colors[base]} and overlay ${kit.colors[overlay]} are ${problem}` });
     }
   }
-  return [...issues, ...layerIssues(kit), ...trimStripeIssues(kit)];
+  return [...issues, ...layerIssues(kit), ...trimStripeIssues(kit), ...pieceTrimIssues(kit)];
 }
 
 export function validateKitAssets(kit: KitDefinition, registry: AssetRegistry): ValidationIssue[] {

@@ -1,4 +1,4 @@
-import { TRIM_STRIPE_STYLES, type CollarStyle, type SleeveCut, type SleeveStyle } from "../core/kit.js";
+import { SHORTS_TRIM_STYLES, SOCKS_TRIM_STYLES, TRIM_STRIPE_STYLES, type CollarStyle, type SleeveCut, type SleeveStyle } from "../core/kit.js";
 
 // Quantidade de camadas por kit, de 0 a MAX_LAYERS (core/kit.ts); string porque vira chave de tabela de peso.
 export const LAYER_COUNTS = ["0", "1", "2"] as const;
@@ -7,6 +7,12 @@ export type LayerCount = (typeof LAYER_COUNTS)[number];
 // Ausência de listra entra como opção do sorteio ponderado; "none" não vai para o kit.json.
 export const TRIM_STRIPE_OPTIONS = ["none", ...TRIM_STRIPE_STYLES] as const;
 export type TrimStripeOption = (typeof TRIM_STRIPE_OPTIONS)[number];
+
+// Calção e meias lisos entram como "none", como a listra.
+export const SHORTS_TRIM_OPTIONS = ["none", ...SHORTS_TRIM_STYLES] as const;
+export type ShortsTrimOption = (typeof SHORTS_TRIM_OPTIONS)[number];
+export const SOCKS_TRIM_OPTIONS = ["none", ...SOCKS_TRIM_STYLES] as const;
+export type SocksTrimOption = (typeof SOCKS_TRIM_OPTIONS)[number];
 
 export interface StyleProfile {
   id: string;
@@ -19,12 +25,14 @@ export interface StyleProfile {
   // Só padrões com layerSlot; o sorteio zera os da região que o kit já ocupa.
   layerWeights: Record<string, number>;
   trimStripeWeights: Weights<TrimStripeOption>;
+  shortsTrimWeights: Weights<ShortsTrimOption>;
+  socksTrimWeights: Weights<SocksTrimOption>;
 }
 
 export type Weights<K extends string> = Partial<Record<K, number>>;
 
 // Clube sem categories nem patternWeights usa classic: são os pesos de antes dos perfis, então as seeds antigas geram os mesmos kits.
-// Em gola e manga, pesos iguais com rng.weighted escolhem o mesmo índice que o rng.pick de antes dos perfis; classic nunca sorteia camada nem listra.
+// Em gola e manga, pesos iguais com rng.weighted escolhem o mesmo índice que o rng.pick de antes dos perfis; classic nunca sorteia camada, listra nem acabamento de calção e meias.
 export const DEFAULT_STYLE_PROFILE = "classic";
 
 export const STYLE_PROFILES: readonly StyleProfile[] = [
@@ -38,6 +46,8 @@ export const STYLE_PROFILES: readonly StyleProfile[] = [
     layerCountWeights: { 0: 1 },
     layerWeights: {},
     trimStripeWeights: { none: 1 },
+    shortsTrimWeights: { none: 1 },
+    socksTrimWeights: { none: 1 },
   },
   {
     id: "traditional",
@@ -49,6 +59,8 @@ export const STYLE_PROFILES: readonly StyleProfile[] = [
     layerCountWeights: { 0: 70, 1: 30 },
     layerWeights: { "double-pinline": 30, "side-lines": 25, "shoulder-line": 25, "hoop-line": 20 },
     trimStripeWeights: { none: 60, single: 25, double: 15 },
+    shortsTrimWeights: { none: 55, "side-stripe": 20, "side-piping": 10, "hem-band": 15 },
+    socksTrimWeights: { none: 40, turnover: 35, "top-hoops": 15, hoops: 10 },
   },
   {
     id: "modern",
@@ -60,6 +72,8 @@ export const STYLE_PROFILES: readonly StyleProfile[] = [
     layerCountWeights: { 0: 30, 1: 50, 2: 20 },
     layerWeights: { "side-lines": 40, "shoulder-line": 30, "hoop-line": 30 },
     trimStripeWeights: { none: 75, single: 20, double: 5 },
+    shortsTrimWeights: { none: 50, "side-stripe": 15, "side-piping": 25, "hem-band": 10 },
+    socksTrimWeights: { none: 60, turnover: 20, "top-hoops": 15, hoops: 5 },
   },
   {
     id: "retro",
@@ -71,6 +85,8 @@ export const STYLE_PROFILES: readonly StyleProfile[] = [
     layerCountWeights: { 0: 40, 1: 45, 2: 15 },
     layerWeights: { "hoop-line": 30, "double-pinline": 25, "side-lines": 25, "shoulder-line": 20 },
     trimStripeWeights: { none: 40, single: 30, double: 30 },
+    shortsTrimWeights: { none: 40, "side-stripe": 30, "side-piping": 10, "hem-band": 20 },
+    socksTrimWeights: { none: 25, turnover: 30, "top-hoops": 20, hoops: 25 },
   },
 ];
 

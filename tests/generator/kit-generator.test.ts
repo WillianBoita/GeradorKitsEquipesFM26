@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { parseClubIdentity, type ClubIdentity } from "../../src/core/club.js";
-import { COLLAR_STYLES, KIT_TYPES, parseKitDefinition, visibleRoles } from "../../src/core/kit.js";
+import { COLLAR_STYLES, KIT_TYPES, parseKitDefinition, SHORTS_TRIM_STYLES, SOCKS_TRIM_STYLES, visibleRoles, type KitDefinition } from "../../src/core/kit.js";
 import { resolvePalette } from "../../src/core/palette.js";
 import { createRng, deriveSeed } from "../../src/core/random.js";
 import { validateKit, validateKitSet, validatePalette } from "../../src/core/validation.js";
@@ -304,25 +304,39 @@ describe("generateKitSet logos", () => {
   });
 });
 
-function setsDigest(club: ClubIdentity, badge: boolean, withoutTrimStripe = false): string {
+// Sem os acabamentos do calção e das meias, o JSON volta ao de antes da 4e: as peças ficam só com a cor, na mesma posição.
+function withoutPieceTrims(kit: KitDefinition): KitDefinition {
+  return { ...kit, shorts: { color: kit.shorts.color }, socks: { color: kit.socks.color } };
+}
+
+// Sem a listra, o JSON volta ao de antes da 4c: a chave sai e a ordem das outras não muda.
+function withoutTrimStripe({ trimStripe: _stripe, ...kit }: KitDefinition): Omit<KitDefinition, "trimStripe"> {
+  return kit;
+}
+
+function setsDigest(club: ClubIdentity, badge: boolean, strip: (kit: KitDefinition) => object = (kit) => kit): string {
   const sets = Array.from({ length: 30 }, (_, seed) => generateKitSet(club, seed, { badge }));
-  // Sem a listra, o JSON volta ao de antes da 4c: a chave sai e a ordem das outras não muda.
-  const drawn = withoutTrimStripe
-    ? sets.map((set) => Object.fromEntries(Object.entries(set).map(([kitType, { trimStripe: _stripe, ...kit }]) => [kitType, kit])))
-    : sets;
+  const drawn = sets.map((set) => Object.fromEntries(Object.entries(set).map(([kitType, kit]) => [kitType, strip(kit)])));
   return createHash("sha256").update(JSON.stringify(drawn)).digest("hex");
 }
 
 // Guarda da Fase 3b: o clube sem categories (perfil classic) não pode mudar de kit para a mesma seed.
-// O branded (categoria modern) muda de propósito quando os pesos de gola, manga (Fase 4a), camada (Fase 4b) ou listra (Fase 4c) dos perfis mudam ou quando muda o que vai nos logos (só o id desde que os logos mantêm as cores do arquivo); atualize o hash só nessas mudanças.
+// O branded (categoria modern) muda de propósito quando os pesos de gola, manga (Fase 4a), camada (Fase 4b), listra (Fase 4c) ou acabamento de calção e meias (Fase 4e) dos perfis mudam ou quando muda o que vai nos logos (só o id desde que os logos mantêm as cores do arquivo); atualize o hash só nessas mudanças.
 describe("generateKitSet Phase 3b baseline", () => {
   it("keeps the sets of a club with pattern weights and brands", () => {
-    expect(setsDigest(branded, true)).toBe("5162fbd6ff6187a096ef0e23b42415b699637ce4520be8deb097305d33ab0fce");
+    expect(setsDigest(branded, true)).toBe("b83f12393b5096f3a286aada08da8daeeb459f8bf99a8fbffc0b0fb969525c11");
   });
 
-  // A listra é o último sorteio: tirando ela, os conjuntos do branded são os de antes da 4c.
-  it("keeps the branded sets of before Phase 4c apart from the trim stripe", () => {
-    expect(setsDigest(branded, true, true)).toBe("c20550b8efc79d1ee736bae0e0670bc5dc0e4a6fff4c1f6f3d3cb2fff6b163f4");
+  // Os acabamentos do calção e das meias são os últimos sorteios: tirando eles, os conjuntos do branded são os de antes da 4e.
+  it("keeps the branded sets of before Phase 4e apart from the shorts and socks trims", () => {
+    expect(setsDigest(branded, true, withoutPieceTrims)).toBe("5162fbd6ff6187a096ef0e23b42415b699637ce4520be8deb097305d33ab0fce");
+  });
+
+  // A listra vem logo antes: tirando ela também, os conjuntos do branded são os de antes da 4c.
+  it("keeps the branded sets of before Phase 4c apart from the trim stripe and the shorts and socks trims", () => {
+    expect(setsDigest(branded, true, (kit) => withoutTrimStripe(withoutPieceTrims(kit)))).toBe(
+      "c20550b8efc79d1ee736bae0e0670bc5dc0e4a6fff4c1f6f3d3cb2fff6b163f4",
+    );
   });
 
   it("keeps the sets of a club without categories or pattern weights", () => {
@@ -423,15 +437,15 @@ describe("generateKitSet layers", () => {
     for (const kit of kitsOf(club)) for (const layer of kit.layers ?? []) expect(["hoop-line", "side-lines"]).not.toContain(layer.id);
   });
 
-  // As camadas vêm antes da listra: sem nenhuma permitida, o rng chega à listra em outro estado, e só os campos layers e trimStripe mudam.
+  // As camadas vêm antes da listra e dos acabamentos de calção e meias: sem nenhuma permitida, o rng chega a eles em outro estado, e só layers, trimStripe e os trims mudam.
   it("keeps the rest of the kit when the traditions forbid every layer", () => {
     const forbidAll = styled(["modern"], { traditions: { forbiddenPatterns: listLayerTemplates().map((template) => template.id) } });
     let dropped = 0;
     for (let seed = 0; seed < 100; seed++) {
       const [withLayers, withoutLayers] = [generateKitSet(styled(["modern"]), seed), generateKitSet(forbidAll, seed)];
       for (const kitType of KIT_TYPES) {
-        const { layers, trimStripe: _stripe, ...rest } = withLayers[kitType];
-        const { trimStripe: _other, ...withoutStripe } = withoutLayers[kitType];
+        const { layers, ...rest } = withoutTrimStripe(withoutPieceTrims(withLayers[kitType]));
+        const withoutStripe = withoutTrimStripe(withoutPieceTrims(withoutLayers[kitType]));
         if (layers) dropped++;
         expect(withoutStripe).toEqual(rest);
       }
@@ -484,5 +498,41 @@ describe("generateKitSet trim stripes", () => {
       expect(kit.trimStripe.color).not.toBe(kit.sleeves.cuffColor);
     }
     expect(striped).toBeGreaterThan(0);
+  });
+});
+
+describe("generateKitSet shorts and socks trims", () => {
+  const styled = (categories: string[]) => parseClubIdentity({ ...GALATICOS_CLUB, style: { categories } });
+  const kitsOf = (club: ClubIdentity, seeds = 100) => Array.from({ length: seeds }, (_, seed) => Object.values(generateKitSet(club, seed))).flat();
+
+  it("never draws a shorts or socks trim for a club without categories", () => {
+    for (const kit of kitsOf(styled([]))) {
+      expect(kit.shorts).toEqual({ color: kit.shorts.color });
+      expect(kit.socks).toEqual({ color: kit.socks.color });
+    }
+  });
+
+  it("draws every style for a retro club, in a color the piece does not use", () => {
+    const kits = kitsOf(styled(["retro"]), 200);
+    expect(new Set(kits.map((kit) => kit.shorts.trim?.style ?? "none"))).toEqual(new Set(["none", ...SHORTS_TRIM_STYLES]));
+    expect(new Set(kits.map((kit) => kit.socks.trim?.style ?? "none"))).toEqual(new Set(["none", ...SOCKS_TRIM_STYLES]));
+    for (const kit of kits) {
+      if (kit.shorts.trim) expect(kit.shorts.trim.color).not.toBe(kit.shorts.color);
+      if (kit.socks.trim) expect(kit.socks.trim.color).not.toBe(kit.socks.color);
+      expect(validateKit(kit)).toEqual([]);
+    }
+  });
+
+  it("uses both colors the piece leaves free", () => {
+    const kits = kitsOf(styled(["retro"]), 200);
+    for (const piece of ["shorts", "socks"] as const) {
+      const pairs = new Set(kits.filter((kit) => kit[piece].trim).map((kit) => `${kit[piece].color}/${kit[piece].trim!.color}`));
+      expect(pairs.size, piece).toBeGreaterThan(0);
+      for (const pair of pairs) {
+        const [color, trim] = pair.split("/");
+        const other = ["primary", "secondary", "accent"].find((role) => role !== color && role !== trim);
+        expect(pairs, `${piece} ${pair}`).toContain(`${color}/${other}`);
+      }
+    }
   });
 });

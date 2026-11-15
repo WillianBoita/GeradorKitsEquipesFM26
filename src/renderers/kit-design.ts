@@ -1,4 +1,4 @@
-import type { ColorRole, KitDefinition, TrimStripeStyle } from "../core/kit.js";
+import type { ColorRole, KitDefinition, ShortsTrimStyle, SocksTrimStyle, TrimStripeStyle } from "../core/kit.js";
 import { resolveParams } from "../patterns/params.js";
 import { getPatternTemplate } from "../patterns/registry.js";
 import type { PatternTemplate } from "../patterns/types.js";
@@ -25,6 +25,9 @@ export interface KitDesign {
   socks: string;
   // Listra casada da gola e dos punhos; ausente quando o kit não tem.
   trimStripe?: { style: TrimStripeStyle; color: string };
+  // Acabamentos do calção e das meias (Fase 4e): só o renderer 3D desenha essas peças.
+  shortsTrim?: { style: ShortsTrimStyle; color: string };
+  socksTrim?: { style: SocksTrimStyle; color: string };
 }
 
 export function kitDesign(kit: KitDefinition): KitDesign {
@@ -50,6 +53,8 @@ export function kitDesign(kit: KitDefinition): KitDesign {
     shorts: color(kit.shorts.color),
     socks: color(kit.socks.color),
     ...(kit.trimStripe ? { trimStripe: { style: kit.trimStripe.style, color: color(kit.trimStripe.color) } } : {}),
+    ...(kit.shorts.trim ? { shortsTrim: { style: kit.shorts.trim.style, color: color(kit.shorts.trim.color) } } : {}),
+    ...(kit.socks.trim ? { socksTrim: { style: kit.socks.trim.style, color: color(kit.socks.trim.color) } } : {}),
   };
 }
 

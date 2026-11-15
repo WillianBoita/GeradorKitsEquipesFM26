@@ -289,6 +289,27 @@ describe("validateKit trim stripe", () => {
   });
 });
 
+describe("validateKit shorts and socks trims", () => {
+  it("accepts trims in a color the piece does not use", () => {
+    const kit = makeKit({
+      shorts: { color: "secondary", trim: { style: "side-stripe", color: "primary" } },
+      socks: { color: "primary", trim: { style: "turnover", color: "accent" } },
+    });
+    expect(validateKit(kit)).toEqual([]);
+  });
+
+  it("reports a trim in the color of its piece", () => {
+    const kit = makeKit({
+      shorts: { color: "secondary", trim: { style: "hem-band", color: "secondary" } },
+      socks: { color: "primary", trim: { style: "hoops", color: "primary" } },
+    });
+    expect(validateKit(kit)).toEqual([
+      { rule: "shorts-trim-color", message: "home kit shorts trim uses secondary, the color of the shorts" },
+      { rule: "socks-trim-color", message: "home kit socks trim uses primary, the color of the socks" },
+    ]);
+  });
+});
+
 describe("validateKitTraditions", () => {
   const traditions = club({ traditions: { forbiddenPatterns: ["sash"], patterns: { home: ["stripes"] } } });
   const kitWith = (kitType: "home" | "away", id: string) => makeKit({ kitType, pattern: { id, base: "primary", overlay: "secondary", params: {} } });
